@@ -1,0 +1,39 @@
+using SalamHack.Domain.Common.Results;
+
+namespace SalamHack.Application.Common.Errors;
+
+public static class ApplicationErrors
+{
+    public static class Auth
+    {
+        public static readonly Error EmailAlreadyRegistered =
+            Error.Conflict("Auth.EmailAlreadyRegistered", "Email is already registered.");
+
+        public static Error RegistrationFailed(string details) =>
+            Error.Failure("Auth.RegistrationFailed", $"Registration failed: {details}");
+
+        public static readonly Error InvalidCredentials =
+            Error.Unauthorized("Auth.InvalidCredentials", "Invalid email or password.");
+
+        public static readonly Error AccountLocked =
+            Error.Unauthorized("Auth.AccountLocked", "Account is temporarily locked. Please try again later.");
+
+        public static readonly Error UserNotFound =
+            Error.NotFound("Auth.UserNotFound", "User not found.");
+
+        public static readonly Error UpdateFailed =
+            Error.Failure("Auth.UpdateFailed", "Profile update failed.");
+
+        public static readonly Error InvalidRefreshToken =
+            Error.Unauthorized("Auth.InvalidRefreshToken", "Refresh token is invalid.");
+
+        public static readonly Error RefreshTokenReuse =
+            Error.Unauthorized("Auth.RefreshTokenReuse", "Refresh token reuse detected. Please login again.");
+
+        public static readonly Error InvalidCurrentPassword =
+            Error.Unauthorized("Auth.InvalidCurrentPassword", "Current password is incorrect.");
+
+        public static Error PasswordChangeFailed(string details) =>
+            Error.Validation("Auth.PasswordChangeFailed", $"Password change failed: {details}");
+    }
+}
