@@ -20,3 +20,5 @@ appsettings.Local.json
 docker-compose.override.yml
 publish/
 out/
+
+src/SalamHack.Client/
