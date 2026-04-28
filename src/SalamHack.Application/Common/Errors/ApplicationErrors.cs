@@ -43,6 +43,15 @@ public static class ApplicationErrors
             Error.NotFound("Expenses.ExpenseNotFound", "Expense was not found.");
     }
 
+    public static class Invoices
+    {
+        public static readonly Error InvoiceNotFound =
+            Error.NotFound("Invoices.InvoiceNotFound", "Invoice was not found.");
+
+        public static readonly Error InvoiceNumberAlreadyExists =
+            Error.Conflict("Invoices.InvoiceNumberAlreadyExists", "An invoice with the same number already exists.");
+    }
+
     public static class Auth
     {
         public static readonly Error EmailAlreadyRegistered =
