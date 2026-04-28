@@ -18,4 +18,21 @@ public static class ApplicationConstants
         public const int LastNameMaxLength = 100;
         public const int PhoneNumberMaxLength = 32;
     }
+
+    public static class BusinessRules
+    {
+        public const decimal TaxRate = 0.15m;
+        public const decimal TargetProfitMarginRate = 0.45m;
+        public const decimal HealthyMarginThreshold = 30m;
+        public const decimal AtRiskMarginThreshold = 15m;
+        public const decimal AdvancePaymentRate = 0.30m;
+        public const decimal MinimumPriceMultiplier = 1.10m;
+        public const decimal EconomyPriceMultiplier = 0.78m;
+        public const decimal PremiumPriceMultiplier = 1.30m;
+        public const decimal CostRatePerHour = 55m;
+        public const decimal DefaultRevenueRatePerHour = 180m;
+        public const decimal SimpleComplexityMultiplier = 0.80m;
+        public const decimal MediumComplexityMultiplier = 1.00m;
+        public const decimal ComplexComplexityMultiplier = 1.40m;
+    }
 }
