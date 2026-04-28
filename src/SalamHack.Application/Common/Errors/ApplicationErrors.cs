@@ -4,6 +4,24 @@ namespace SalamHack.Application.Common.Errors;
 
 public static class ApplicationErrors
 {
+    public static class Customers
+    {
+        public static readonly Error CustomerNotFound =
+            Error.NotFound("Customers.CustomerNotFound", "Customer was not found.");
+
+        public static readonly Error EmailAlreadyExists =
+            Error.Conflict("Customers.EmailAlreadyExists", "A customer with the same email already exists.");
+    }
+
+    public static class Services
+    {
+        public static readonly Error ServiceNotFound =
+            Error.NotFound("Services.ServiceNotFound", "Service was not found.");
+
+        public static readonly Error ServiceNameAlreadyExists =
+            Error.Conflict("Services.ServiceNameAlreadyExists", "A service with the same name already exists.");
+    }
+
     public static class Auth
     {
         public static readonly Error EmailAlreadyRegistered =
