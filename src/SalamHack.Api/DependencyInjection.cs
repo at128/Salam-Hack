@@ -68,6 +68,7 @@ public static class DependencyInjection
         services.AddEndpointsApiExplorer();
 
         services.AddHttpContextAccessor();
+        services.AddHttpClient();
         services.AddScoped<IUser, CurrentUser>();
         services.AddScoped<ICookieService, CookieService>();
 
