@@ -1,0 +1,70 @@
+using SalamHack.Application.Common.Errors;
+using SalamHack.Application.Common.Interfaces;
+using SalamHack.Application.Features.Customers.Models;
+using SalamHack.Domain.Common.Results;
+using SalamHack.Domain.Invoices;
+using MediatR;
+using Microsoft.EntityFrameworkCore;
+
+namespace SalamHack.Application.Features.Customers.Queries.GetCustomerProfile;
+
+public sealed class GetCustomerProfileQueryHandler(IAppDbContext context)
+    : IRequestHandler<GetCustomerProfileQuery, Result<CustomerProfileDto>>
+{
+    public async Task<Result<CustomerProfileDto>> Handle(GetCustomerProfileQuery query, CancellationToken ct)
+    {
+        var customer = await context.Customers
+            .AsNoTracking()
+            .FirstOrDefaultAsync(c => c.Id == query.CustomerId && c.UserId == query.UserId, ct);
+
+        if (customer is null)
+            return ApplicationErrors.Customers.CustomerNotFound;
+
+        var projects = await context.Projects
+            .AsNoTracking()
+            .Where(p => p.UserId == query.UserId && p.CustomerId == query.CustomerId)
+            .OrderByDescending(p => p.StartDate)
+            .Select(p => new CustomerProjectSummaryDto(
+                p.Id,
+                p.ProjectName,
+                p.ServiceId,
+                p.Service.ServiceName,
+                p.Status,
+                p.SuggestedPrice,
+                p.ProfitMargin,
+                p.StartDate,
+                p.EndDate))
+            .ToListAsync(ct);
+
+        var invoices = await context.Invoices
+            .AsNoTracking()
+            .Where(i => i.CustomerId == query.CustomerId && i.Project.UserId == query.UserId)
+            .OrderByDescending(i => i.IssueDate)
+            .Select(i => new CustomerInvoiceSummaryDto(
+                i.Id,
+                i.InvoiceNumber,
+                i.ProjectId,
+                i.Project.ProjectName,
+                i.TotalWithTax,
+                i.PaidAmount,
+                i.TotalWithTax - i.PaidAmount,
+                i.Status,
+                i.IssueDate,
+                i.DueDate,
+                i.Currency))
+            .ToListAsync(ct);
+
+        var totalOverdue = invoices
+            .Where(i => i.Status == InvoiceStatus.Overdue)
+            .Sum(i => i.RemainingAmount);
+
+        return new CustomerProfileDto(
+            customer.ToDto(),
+            projects.Count,
+            invoices.Sum(i => i.TotalWithTax),
+            invoices.Sum(i => i.PaidAmount),
+            totalOverdue,
+            projects,
+            invoices);
+    }
+}
