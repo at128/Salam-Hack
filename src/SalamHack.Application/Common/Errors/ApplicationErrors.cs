@@ -20,6 +20,21 @@ public static class ApplicationErrors
 
         public static readonly Error ServiceNameAlreadyExists =
             Error.Conflict("Services.ServiceNameAlreadyExists", "A service with the same name already exists.");
+
+        public static readonly Error InactiveServiceCannotBeUsed =
+            Error.Conflict("Services.InactiveServiceCannotBeUsed", "Inactive service cannot be used for a new project.");
+    }
+
+    public static class Projects
+    {
+        public static readonly Error ProjectNotFound =
+            Error.NotFound("Projects.ProjectNotFound", "Project was not found.");
+
+        public static readonly Error ProjectNameAlreadyExists =
+            Error.Conflict("Projects.ProjectNameAlreadyExists", "A project with the same name already exists.");
+
+        public static readonly Error UnsupportedStatusTransition =
+            Error.Validation("Projects.UnsupportedStatusTransition", "Requested project status transition is not supported.");
     }
 
     public static class Auth
