@@ -133,9 +133,6 @@ public class Invoice : AuditableEntity, ISoftDeletable
         if (string.IsNullOrWhiteSpace(currency))
             return InvoiceErrors.CurrencyRequired;
 
-        if (currency != invoice.Currency)
-            return InvoiceErrors.CurrencyMismatch;
-
         var paymentResult = Payment.Create(Id, amount, method, paymentDate, currency, notes);
         if (paymentResult.IsError)
             return paymentResult.Errors;
