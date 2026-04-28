@@ -81,7 +81,7 @@ public sealed class GetProjectAnalysisDashboardQueryHandler(IAppDbContext contex
             .FirstOrDefault();
 
         var narrative = latestStoredAnalysis is null
-            ? BuildNarrative(row.Project.ProjectName, row.Health)
+            ? ProjectAnalysisNarrative.Build(row.Project.ProjectName, row.Health)
             : new ProjectNarrative(
                 latestStoredAnalysis.WhatHappened,
                 latestStoredAnalysis.WhatItMeans,
@@ -206,31 +206,5 @@ public sealed class GetProjectAnalysisDashboardQueryHandler(IAppDbContext contex
             : new ProjectHealthRow(project, health.Value);
     }
 
-    private static ProjectNarrative BuildNarrative(string projectName, ProjectHealthSnapshot health)
-    {
-        if (health.HealthStatus == ProjectHealthStatus.Healthy)
-        {
-            return new ProjectNarrative(
-                $"{projectName} is performing above the healthy margin threshold.",
-                "The current price covers the real cost and leaves enough room for profit.",
-                "Keep this pricing pattern and use it as a reference for similar work.");
-        }
-
-        if (health.HealthStatus == ProjectHealthStatus.AtRisk)
-        {
-            return new ProjectNarrative(
-                $"{projectName} margin is below the healthy benchmark.",
-                "The project is still profitable, but extra expenses or additional hours can quickly erase margin.",
-                "Review scope, protect change requests, and consider a higher price on similar projects.");
-        }
-
-        return new ProjectNarrative(
-            $"{projectName} is under the at-risk margin threshold.",
-            "The project cost structure is too close to the selling price.",
-            "Raise the price, reduce avoidable expenses, or renegotiate scope before repeating this pattern.");
-    }
-
     private sealed record ProjectHealthRow(Project Project, ProjectHealthSnapshot Health);
-
-    private sealed record ProjectNarrative(string WhatHappened, string WhatItMeans, string WhatToDo);
 }

@@ -14,5 +14,6 @@ public sealed record PricingQuoteDto(
     decimal NaivePrice,
     decimal NaiveMarginPercent,
     ServiceHistoryStatsDto History,
+    IReadOnlyCollection<ServiceHistoryProjectDto> RecentProjects,
     IReadOnlyCollection<PricingPlanDto> Plans,
     IReadOnlyCollection<PricingInsightDto> Insights);

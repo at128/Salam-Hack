@@ -17,5 +17,8 @@ public sealed class CalculatePricingQuoteQueryValidator : AbstractValidator<Calc
 
         RuleFor(x => x.Complexity)
             .IsInEnum();
+
+        RuleFor(x => x.RecentProjectCount)
+            .InclusiveBetween(0, 20);
     }
 }

@@ -2,6 +2,7 @@ namespace SalamHack.Application.Features.Reports.Models;
 
 public sealed record CashFlowForecastDto(
     ReportPeriodDto Period,
+    CashOpeningBalanceDto OpeningBalance,
     decimal CurrentBalance,
     decimal CurrentMonthInflows,
     decimal CurrentMonthOutflows,

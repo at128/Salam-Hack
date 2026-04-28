@@ -58,9 +58,16 @@ public sealed class GetCustomerProfileQueryHandler(IAppDbContext context)
             .Where(i => i.Status == InvoiceStatus.Overdue)
             .Sum(i => i.RemainingAmount);
 
+        var activityDates = projects.Select(p => p.StartDate)
+            .Concat(projects.Select(p => p.EndDate))
+            .Concat(invoices.Select(i => i.IssueDate))
+            .ToList();
+
         return new CustomerProfileDto(
             customer.ToDto(),
             projects.Count,
+            activityDates.Count > 0 ? activityDates.Min() : null,
+            activityDates.Count > 0 ? activityDates.Max() : null,
             invoices.Sum(i => i.TotalWithTax),
             invoices.Sum(i => i.PaidAmount),
             totalOverdue,

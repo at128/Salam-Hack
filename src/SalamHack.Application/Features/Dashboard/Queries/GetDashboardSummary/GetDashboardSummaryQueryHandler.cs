@@ -19,6 +19,7 @@ public sealed class GetDashboardSummaryQueryHandler(
         var asOfUtc = query.AsOfUtc ?? timeProvider.GetUtcNow();
         var monthStart = new DateTimeOffset(asOfUtc.Year, asOfUtc.Month, 1, 0, 0, 0, TimeSpan.Zero);
         var nextMonthStart = monthStart.AddMonths(1);
+        var previousMonthStart = monthStart.AddMonths(-1);
         var trendStart = monthStart.AddMonths(-5);
 
         var monthlyRevenue = await context.Payments
@@ -34,6 +35,23 @@ public sealed class GetDashboardSummaryQueryHandler(
                         e.ExpenseDate >= monthStart &&
                         e.ExpenseDate < nextMonthStart)
             .SumAsync(e => (decimal?)e.Amount, ct) ?? 0;
+
+        var previousMonthRevenue = await context.Payments
+            .AsNoTracking()
+            .Where(p => p.Invoice.Project.UserId == query.UserId &&
+                        p.PaymentDate >= previousMonthStart &&
+                        p.PaymentDate < monthStart)
+            .SumAsync(p => (decimal?)p.Amount, ct) ?? 0;
+
+        var previousMonthExpenses = await context.Expenses
+            .AsNoTracking()
+            .Where(e => e.UserId == query.UserId &&
+                        e.ExpenseDate >= previousMonthStart &&
+                        e.ExpenseDate < monthStart)
+            .SumAsync(e => (decimal?)e.Amount, ct) ?? 0;
+
+        var monthlyProfit = monthlyRevenue - monthlyExpenses;
+        var previousMonthProfit = previousMonthRevenue - previousMonthExpenses;
 
         var pendingInvoicesQuery = context.Invoices
             .AsNoTracking()
@@ -76,8 +94,11 @@ public sealed class GetDashboardSummaryQueryHandler(
         return new DashboardSummaryDto(
             new DashboardPeriodDto(monthStart, nextMonthStart.AddTicks(-1)),
             monthlyRevenue,
+            CalculateChangePercent(monthlyRevenue, previousMonthRevenue),
             monthlyExpenses,
-            monthlyRevenue - monthlyExpenses,
+            CalculateChangePercent(monthlyExpenses, previousMonthExpenses),
+            monthlyProfit,
+            CalculateChangePercent(monthlyProfit, previousMonthProfit),
             pendingInvoiceAmount,
             pendingInvoiceCount,
             activeProjectCount,
@@ -227,6 +248,11 @@ public sealed class GetDashboardSummaryQueryHandler(
 
         return points;
     }
+
+    private static decimal CalculateChangePercent(decimal current, decimal previous)
+        => previous == 0
+            ? current == 0 ? 0 : 100
+            : Math.Round((current - previous) / Math.Abs(previous) * 100, 2);
 
     private sealed record MonthlyAmount(int Year, int Month, decimal Amount);
 }

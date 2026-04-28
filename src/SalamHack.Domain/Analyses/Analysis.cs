@@ -1,4 +1,5 @@
 using SalamHack.Domain.Common;
+using SalamHack.Domain.Common.Results;
 using SalamHack.Domain.Projects;
 
 namespace SalamHack.Domain.Analyses;
@@ -72,14 +73,46 @@ public class Analysis : AuditableEntity
 
     public Project Project { get; private set; } = null!;
 
-    public void Update(
+    public static Result<Analysis> Create(
+        Guid projectId,
+        AnalysisType type,
+        string whatHappened,
+        string whatItMeans,
+        string whatToDo,
+        string healthStatus,
+        DateTimeOffset generatedAt,
+        string? title = null,
+        string? summary = null,
+        decimal? confidenceScore = null,
+        string? metadataJson = null)
+    {
+        var validation = Validate(projectId, whatHappened, whatItMeans, whatToDo, healthStatus, confidenceScore);
+        if (validation.IsError)
+            return validation.Errors;
+
+        return new Analysis(
+            Guid.CreateVersion7(),
+            projectId,
+            type,
+            whatHappened.Trim(),
+            whatItMeans.Trim(),
+            whatToDo.Trim(),
+            healthStatus.Trim(),
+            generatedAt,
+            NormalizeOptional(title),
+            NormalizeOptional(summary),
+            confidenceScore,
+            NormalizeOptional(metadataJson));
+    }
+
+    public Result<Success> Update(
         string whatHappened,
         string whatItMeans,
         string whatToDo,
         string healthStatus,
         DateTimeOffset generatedAt)
     {
-        Update(
+        return Update(
             Type,
             whatHappened,
             whatItMeans,
@@ -92,7 +125,7 @@ public class Analysis : AuditableEntity
             MetadataJson);
     }
 
-    public void Update(
+    public Result<Success> Update(
         AnalysisType type,
         string whatHappened,
         string whatItMeans,
@@ -104,20 +137,58 @@ public class Analysis : AuditableEntity
         decimal? confidenceScore,
         string? metadataJson)
     {
+        var validation = Validate(ProjectId, whatHappened, whatItMeans, whatToDo, healthStatus, confidenceScore);
+        if (validation.IsError)
+            return validation;
+
         Type = type;
-        WhatHappened = whatHappened;
-        WhatItMeans = whatItMeans;
-        WhatToDo = whatToDo;
-        HealthStatus = healthStatus;
+        WhatHappened = whatHappened.Trim();
+        WhatItMeans = whatItMeans.Trim();
+        WhatToDo = whatToDo.Trim();
+        HealthStatus = healthStatus.Trim();
         GeneratedAt = generatedAt;
-        Title = title;
-        Summary = summary;
+        Title = NormalizeOptional(title);
+        Summary = NormalizeOptional(summary);
         ConfidenceScore = confidenceScore;
-        MetadataJson = metadataJson;
+        MetadataJson = NormalizeOptional(metadataJson);
+
+        return Result.Success;
     }
 
     public void MarkReviewed(DateTimeOffset reviewedAtUtc)
     {
         ReviewedAtUtc = reviewedAtUtc;
     }
+
+    private static Result<Success> Validate(
+        Guid projectId,
+        string whatHappened,
+        string whatItMeans,
+        string whatToDo,
+        string healthStatus,
+        decimal? confidenceScore)
+    {
+        if (projectId == Guid.Empty)
+            return AnalysisErrors.InvalidProjectId;
+
+        if (string.IsNullOrWhiteSpace(whatHappened))
+            return AnalysisErrors.WhatHappenedRequired;
+
+        if (string.IsNullOrWhiteSpace(whatItMeans))
+            return AnalysisErrors.WhatItMeansRequired;
+
+        if (string.IsNullOrWhiteSpace(whatToDo))
+            return AnalysisErrors.WhatToDoRequired;
+
+        if (string.IsNullOrWhiteSpace(healthStatus))
+            return AnalysisErrors.HealthStatusRequired;
+
+        if (confidenceScore is < 0 or > 1)
+            return AnalysisErrors.ConfidenceScoreOutOfRange;
+
+        return Result.Success;
+    }
+
+    private static string? NormalizeOptional(string? value)
+        => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 }

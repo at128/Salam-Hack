@@ -23,4 +23,22 @@ public record PricingResult(
         : 0;
 
     public bool IsViableAtEconomy => EconomyPrice >= MinAcceptablePrice;
+
+    public decimal GetPrice(PricingPlanType planType)
+        => planType switch
+        {
+            PricingPlanType.Economy => EconomyPrice,
+            PricingPlanType.Recommended => MarketPrice,
+            PricingPlanType.Premium => PremiumPrice,
+            _ => MarketPrice
+        };
+
+    public decimal GetMarginPercent(PricingPlanType planType)
+        => planType switch
+        {
+            PricingPlanType.Economy => EconomyMarginPercent,
+            PricingPlanType.Recommended => MarketMarginPercent,
+            PricingPlanType.Premium => PremiumMarginPercent,
+            _ => MarketMarginPercent
+        };
 }

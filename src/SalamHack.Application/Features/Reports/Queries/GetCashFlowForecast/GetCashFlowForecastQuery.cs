@@ -7,4 +7,6 @@ namespace SalamHack.Application.Features.Reports.Queries.GetCashFlowForecast;
 public sealed record GetCashFlowForecastQuery(
     Guid UserId,
     Guid? DelayedCustomerId = null,
-    DateTimeOffset? AsOfUtc = null) : IRequest<Result<CashFlowForecastDto>>;
+    DateTimeOffset? AsOfUtc = null,
+    decimal OpeningBalance = 0,
+    DateTimeOffset? OpeningBalanceDateUtc = null) : IRequest<Result<CashFlowForecastDto>>;

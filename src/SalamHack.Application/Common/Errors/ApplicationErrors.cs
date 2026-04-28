@@ -52,6 +52,18 @@ public static class ApplicationErrors
             Error.Conflict("Invoices.InvoiceNumberAlreadyExists", "An invoice with the same number already exists.");
     }
 
+    public static class Pricing
+    {
+        public static readonly Error PricingPlanCannotBeUsed =
+            Error.Validation("Pricing.PricingPlanCannotBeUsed", "Selected pricing plan cannot be used for this quote.");
+    }
+
+    public static class Analyses
+    {
+        public static readonly Error AnalysisNotFound =
+            Error.NotFound("Analyses.AnalysisNotFound", "Analysis was not found.");
+    }
+
     public static class Notifications
     {
         public static readonly Error NotificationNotFound =

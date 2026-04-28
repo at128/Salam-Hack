@@ -9,4 +9,5 @@ public sealed record CalculatePricingQuoteQuery(
     Guid UserId,
     Guid ServiceId,
     decimal EstimatedHours,
-    ComplexityLevel Complexity) : IRequest<Result<PricingQuoteDto>>;
+    ComplexityLevel Complexity,
+    int RecentProjectCount = PricingQuoteBuilder.DefaultRecentProjectCount) : IRequest<Result<PricingQuoteDto>>;

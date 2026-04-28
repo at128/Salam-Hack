@@ -1,5 +1,6 @@
 using SalamHack.Application.Common.Interfaces;
 using SalamHack.Application.Features.Reports.Models;
+using SalamHack.Domain.CashFlow;
 using SalamHack.Domain.Common.Results;
 using SalamHack.Domain.Expenses;
 using SalamHack.Domain.Invoices;
@@ -20,15 +21,20 @@ public sealed class GetCashFlowForecastQueryHandler(
         var nextMonthStart = currentMonthStart.AddMonths(1);
         var forecastTo = nextMonthStart.AddMonths(1).AddTicks(-1);
         var trendStart = currentMonthStart.AddMonths(-5);
+        var openingBalance = CashOpeningBalance.Create(query.OpeningBalance, query.OpeningBalanceDateUtc);
 
         var totalInflows = await context.Payments
             .AsNoTracking()
-            .Where(p => p.Invoice.Project.UserId == query.UserId && p.PaymentDate <= asOfUtc)
+            .Where(p => p.Invoice.Project.UserId == query.UserId &&
+                        p.PaymentDate <= asOfUtc &&
+                        (openingBalance.EffectiveAtUtc == null || p.PaymentDate > openingBalance.EffectiveAtUtc))
             .SumAsync(p => (decimal?)p.Amount, ct) ?? 0;
 
         var totalOutflows = await context.Expenses
             .AsNoTracking()
-            .Where(e => e.UserId == query.UserId && e.ExpenseDate <= asOfUtc)
+            .Where(e => e.UserId == query.UserId &&
+                        e.ExpenseDate <= asOfUtc &&
+                        (openingBalance.EffectiveAtUtc == null || e.ExpenseDate > openingBalance.EffectiveAtUtc))
             .SumAsync(e => (decimal?)e.Amount, ct) ?? 0;
 
         var currentMonthInflows = await context.Payments
@@ -98,7 +104,7 @@ public sealed class GetCashFlowForecastQueryHandler(
             .Select(e => new MonthlyAmount(e.ExpenseDate.Year, e.ExpenseDate.Month, e.Amount))
             .ToListAsync(ct);
 
-        var currentBalance = totalInflows - totalOutflows;
+        var currentBalance = openingBalance.Amount + totalInflows - totalOutflows;
         var monthlyTrend = BuildMonthlyTrend(currentMonthStart, trendPayments, trendExpenses, currentBalance);
         var recurringMonthlyOutflow = recurringExpenses.Sum(e => e.MonthlyEquivalentAmount);
         var expectedInflows = pendingInvoices
@@ -114,6 +120,7 @@ public sealed class GetCashFlowForecastQueryHandler(
 
         return new CashFlowForecastDto(
             new ReportPeriodDto(currentMonthStart, nextMonthStart.AddTicks(-1)),
+            new CashOpeningBalanceDto(openingBalance.Amount, openingBalance.EffectiveAtUtc),
             currentBalance,
             currentMonthInflows,
             currentMonthOutflows,
