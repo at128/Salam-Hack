@@ -37,6 +37,12 @@ public static class ApplicationErrors
             Error.Validation("Projects.UnsupportedStatusTransition", "Requested project status transition is not supported.");
     }
 
+    public static class Expenses
+    {
+        public static readonly Error ExpenseNotFound =
+            Error.NotFound("Expenses.ExpenseNotFound", "Expense was not found.");
+    }
+
     public static class Auth
     {
         public static readonly Error EmailAlreadyRegistered =
