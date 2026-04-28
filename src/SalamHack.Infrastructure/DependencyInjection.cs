@@ -1,6 +1,7 @@
 using System.Text;
 using SalamHack.Application.Common.Interfaces;
 using SalamHack.Application.Settings;
+using SalamHack.Infrastructure.Analytics;
 using SalamHack.Infrastructure.BackgroundJobs;
 using SalamHack.Infrastructure.Caching;
 using SalamHack.Infrastructure.Data;
@@ -35,6 +36,8 @@ public static class DependencyInjection
 
         services.AddScoped<ITokenProvider, TokenProvider>();
         services.AddScoped<IIdentityService, IdentityService>();
+        services.AddScoped<IServiceHistoryAnalyzer, ServiceHistoryAnalyzer>();
+        services.AddScoped<IExpenseClassifier, RuleBasedExpenseClassifier>();
 
         services.AddHybridCache();
         services.AddScoped<ICacheInvalidator, CacheInvalidator>();

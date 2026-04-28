@@ -4,6 +4,7 @@ public sealed record ServiceHistoryStats(
     int CompletedProjectCount,
     decimal AverageEstimatedHours,
     decimal AverageActualHours,
+    decimal AverageMarginPercent,
     decimal HoursOverrunFactor,
     decimal CostOverrunFactor,
     decimal AverageExtraExpenses)
@@ -12,6 +13,7 @@ public sealed record ServiceHistoryStats(
         CompletedProjectCount: 0,
         AverageEstimatedHours: 0,
         AverageActualHours: 0,
+        AverageMarginPercent: 0,
         HoursOverrunFactor: 1,
         CostOverrunFactor: 1,
         AverageExtraExpenses: 0);
