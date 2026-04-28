@@ -52,6 +52,12 @@ public static class ApplicationErrors
             Error.Conflict("Invoices.InvoiceNumberAlreadyExists", "An invoice with the same number already exists.");
     }
 
+    public static class Notifications
+    {
+        public static readonly Error NotificationNotFound =
+            Error.NotFound("Notifications.NotificationNotFound", "Notification was not found.");
+    }
+
     public static class Auth
     {
         public static readonly Error EmailAlreadyRegistered =
