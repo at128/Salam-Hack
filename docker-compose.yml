@@ -45,7 +45,7 @@ services:
     container_name: salamhack-api
     environment:
       ASPNETCORE_ENVIRONMENT: "Development"
-      ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=SalamHackDb;User Id=sa;Password=${SA_PASSWORD};TrustServerCertificate=True;"
+      ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=SalamHackDb;User Id=sa;Password=${SA_PASSWORD};Encrypt=False;TrustServerCertificate=True;"
       JWT__Secret: "${JWT_SECRET}"
       JWT__Issuer: "SalamHackApi"
       JWT__Audience: "SalamHackClient"

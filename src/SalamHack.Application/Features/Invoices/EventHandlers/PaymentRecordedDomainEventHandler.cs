@@ -1,0 +1,33 @@
+using SalamHack.Application.Common.DomainEvents;
+using SalamHack.Application.Common.Interfaces;
+using SalamHack.Domain.Invoices.Events;
+using SalamHack.Domain.Notifications;
+using MediatR;
+
+namespace SalamHack.Application.Features.Invoices.EventHandlers;
+
+public sealed class PaymentRecordedDomainEventHandler(IAppDbContext context)
+    : INotificationHandler<PaymentRecordedDomainEvent>
+{
+    public async Task Handle(PaymentRecordedDomainEvent notification, CancellationToken ct)
+    {
+        var userId = await DomainEventHandlerHelpers.GetProjectOwnerIdAsync(
+            context,
+            notification.ProjectId,
+            ct);
+
+        if (userId is null)
+            return;
+
+        var status = notification.IsFullyPaid ? "fully paid" : "partially paid";
+        var message = $"Payment of {notification.Amount:0.##} was recorded. Invoice is now {status}.";
+
+        var paymentNotification = Notification.CreatePaymentReceived(
+            userId.Value,
+            notification.InvoiceId,
+            message);
+
+        await DomainEventHandlerHelpers.AddNotificationIfMissingAsync(context, paymentNotification, ct);
+        await context.SaveChangesAsync(ct);
+    }
+}

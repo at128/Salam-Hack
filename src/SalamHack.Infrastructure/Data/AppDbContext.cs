@@ -1,7 +1,15 @@
 using System.Data;
 using SalamHack.Application.Common.Interfaces;
+using SalamHack.Domain.Analyses;
 using SalamHack.Domain.Common;
 using SalamHack.Domain.Common.Constants;
+using SalamHack.Domain.Customers;
+using SalamHack.Domain.Expenses;
+using SalamHack.Domain.Invoices;
+using SalamHack.Domain.Notifications;
+using SalamHack.Domain.Payments;
+using SalamHack.Domain.Projects;
+using SalamHack.Domain.Services;
 using SalamHack.Infrastructure.Identity;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
@@ -15,11 +23,23 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IMediator medi
     : IdentityDbContext<ApplicationUser, IdentityRole<Guid>, Guid>(options), IAppDbContext
 {
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+    public DbSet<Customer> Customers => Set<Customer>();
+    public DbSet<Service> Services => Set<Service>();
+    public DbSet<Project> Projects => Set<Project>();
+    public DbSet<Expense> Expenses => Set<Expense>();
+    public DbSet<Invoice> Invoices => Set<Invoice>();
+    public DbSet<Payment> Payments => Set<Payment>();
+    public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<Analysis> Analyses => Set<Analysis>();
 
     public override async Task<int> SaveChangesAsync(CancellationToken ct = default)
     {
-        await DispatchDomainEventsAsync(ct);
-        return await base.SaveChangesAsync(ct);
+        var domainEvents = CollectDomainEvents();
+        var result = await base.SaveChangesAsync(ct);
+
+        await PublishDomainEventsAsync(domainEvents, ct);
+
+        return result;
     }
 
     public Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken ct)
@@ -80,7 +100,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IMediator medi
         builder.Entity<T>().HasQueryFilter(e => e.DeletedAtUtc == null);
     }
 
-    private async Task DispatchDomainEventsAsync(CancellationToken ct)
+    private List<DomainEvent> CollectDomainEvents()
     {
         var entities = ChangeTracker.Entries<Entity>()
             .Where(e => e.Entity.DomainEvents.Count != 0)
@@ -92,6 +112,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IMediator medi
         foreach (var entity in entities)
             entity.ClearDomainEvents();
 
+        return domainEvents;
+    }
+
+    private async Task PublishDomainEventsAsync(List<DomainEvent> domainEvents, CancellationToken ct)
+    {
         foreach (var domainEvent in domainEvents)
             await mediator.Publish(domainEvent, ct);
     }
