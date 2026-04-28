@@ -21,4 +21,40 @@ docker-compose.override.yml
 publish/
 out/
 
-src/SalamHack.Client/
+# =========================
+# React App (Client)
+# =========================
+
+src/SalamHack.Client/node_modules/
+
+src/SalamHack.Client/dist/
+src/SalamHack.Client/dist-ssr/
+src/SalamHack.Client/build/
+
+src/SalamHack.Client/.env
+src/SalamHack.Client/.env.*
+
+# logs inside client
+src/SalamHack.Client/*.log
+src/SalamHack.Client/npm-debug.log*
+src/SalamHack.Client/yarn-debug.log*
+src/SalamHack.Client/yarn-error.log*
+src/SalamHack.Client/pnpm-debug.log*
+src/SalamHack.Client/lerna-debug.log*
+
+# local files
+src/SalamHack.Client/*.local
+
+# OS
+.DS_Store
+
+# IDE (global)
+.vscode/
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
