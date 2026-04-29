@@ -82,7 +82,7 @@ public sealed class InvoiceConfiguration : IEntityTypeConfiguration<Invoice>
         builder.HasOne<ApplicationUser>()
             .WithMany()
             .HasForeignKey(i => i.UserId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .OnDelete(DeleteBehavior.NoAction);
 
         builder.HasOne<Customer>()
             .WithMany()
