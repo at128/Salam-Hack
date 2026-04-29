@@ -28,6 +28,14 @@ public sealed class PaymentRecordedDomainEventHandler(IAppDbContext context)
             message);
 
         context.Notifications.Add(paymentNotification);
-        await context.SaveChangesAsync(ct);
+        try
+        {
+            await context.SaveChangesAsync(ct);
+        }
+        catch
+        {
+            // Notifications must never break primary flows (recording payments).
+            // If persistence fails (e.g., pending migrations), we swallow to avoid returning 500.
+        }
     }
 }

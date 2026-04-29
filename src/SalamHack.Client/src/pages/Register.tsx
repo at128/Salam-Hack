@@ -5,7 +5,7 @@ import AuthLayout from "@/components/auth/AuthLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { storeAuthSession, type AuthSessionResponse } from "@/lib/auth";
+import { storeAuthSession, unwrapApiResponse, type AuthSessionResponse } from "@/lib/auth";
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/+$/, "");
 const REGISTER_API_URL = `${API_BASE_URL}/api/v1/Auth/register`;
@@ -104,7 +104,7 @@ export default function Register() {
         return;
       }
 
-      storeAuthSession(payload as AuthSessionResponse);
+      storeAuthSession(unwrapApiResponse<AuthSessionResponse>(payload));
       navigate("/dashboard");
     } catch {
       setErrors({ general: ["تعذر الاتصال بالخدمة. حاول مرة أخرى بعد قليل."] });

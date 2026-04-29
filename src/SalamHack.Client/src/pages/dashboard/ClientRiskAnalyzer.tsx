@@ -187,7 +187,8 @@ export async function requestGemmaAnalysis(
     if (!response.ok) throw new Error("Gemma API request failed.");
 
     const payload = await response.json();
-    const text = payload?.content;
+    const body = payload && typeof payload === "object" && "data" in payload ? payload.data : payload;
+    const text = body?.content;
     if (!text || typeof text !== "string") throw new Error("Gemma did not return analysis text.");
 
     const parsed = JSON.parse(extractJson(text));

@@ -38,7 +38,14 @@ public sealed class InvoiceSentDomainEventHandler(
             reminderAt);
 
         await DomainEventHandlerHelpers.AddNotificationIfMissingAsync(context, reminder, ct);
-        await context.SaveChangesAsync(ct);
+        try
+        {
+            await context.SaveChangesAsync(ct);
+        }
+        catch
+        {
+            // Avoid failing the main request if notifications cannot be saved.
+        }
     }
 
     private DateTimeOffset GetReminderDate(DateTimeOffset dueDate)

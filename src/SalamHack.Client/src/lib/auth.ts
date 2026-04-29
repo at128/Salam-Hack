@@ -22,6 +22,33 @@ export type TokenResponse = {
   expiresOnUtc?: string;
 };
 
+export type ApiResponse<T> = {
+  success?: boolean;
+  data?: T;
+  message?: string | null;
+  errors?: unknown;
+  traceId?: string;
+};
+
+export function unwrapApiResponse<T>(payload: unknown): T {
+  if (payload && typeof payload === "object" && "data" in payload) {
+    return (payload as ApiResponse<T>).data as T;
+  }
+
+  return payload as T;
+}
+
+export function getApiErrorMessage(payload: unknown, fallback: string) {
+  if (!payload || typeof payload !== "object") return fallback;
+
+  const response = payload as ApiResponse<unknown> & {
+    detail?: string;
+    title?: string;
+  };
+
+  return response.message ?? response.detail ?? response.title ?? fallback;
+}
+
 export function storeAuthSession(result: AuthSessionResponse) {
   if (!result.token?.accessToken) return;
 
@@ -102,7 +129,8 @@ export async function refreshAccessToken() {
     return false;
   }
 
-  const token = (await response.json()) as TokenResponse;
+  const payload = await response.json().catch(() => null);
+  const token = unwrapApiResponse<TokenResponse>(payload);
   if (!token.accessToken) {
     clearAuthSession();
     return false;
@@ -136,9 +164,11 @@ export async function fetchCurrentProfile(): Promise<AuthUser> {
     },
   });
 
-  if (!response.ok) throw new Error("Unable to load profile.");
+  const payload = await response.json().catch(() => null);
 
-  return response.json();
+  if (!response.ok) throw new Error(getApiErrorMessage(payload, "Unable to load profile."));
+
+  return unwrapApiResponse<AuthUser>(payload);
 }
 
 export async function updateCurrentProfile(input: {
@@ -159,9 +189,11 @@ export async function updateCurrentProfile(input: {
     body: JSON.stringify(input),
   });
 
-  if (!response.ok) throw new Error("Unable to update profile.");
+  const payload = await response.json().catch(() => null);
 
-  return response.json();
+  if (!response.ok) throw new Error(getApiErrorMessage(payload, "Unable to update profile."));
+
+  return unwrapApiResponse<AuthUser>(payload);
 }
 
 export async function changeCurrentPassword(input: {
@@ -181,8 +213,9 @@ export async function changeCurrentPassword(input: {
     body: JSON.stringify(input),
   });
 
+  const payload = await response.json().catch(() => null);
+
   if (!response.ok) {
-    const payload = await response.json().catch(() => null);
     throw payload ?? new Error("Unable to change password.");
   }
 }

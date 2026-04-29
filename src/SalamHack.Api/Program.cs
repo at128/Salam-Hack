@@ -15,12 +15,15 @@ ValidateProductionSecrets(builder);
 AddApplicationServices(builder);
 AddHealthChecks(builder);
 
-var app = builder.Build();
-
-if (!app.Environment.IsEnvironment("Testing"))
+// Auto-migrate on startup in non-development environments.
+// Using a BackgroundService ensures this never runs during EF design-time
+// tool invocations (dotnet ef / PMC), which would cause double-migration errors.
+if (!builder.Environment.IsDevelopment() && !builder.Environment.IsEnvironment("Testing"))
 {
-    await VerifyDatabaseAsync(app);
+    builder.Services.AddHostedService<DatabaseMigrationService>();
 }
+
+var app = builder.Build();
 
 app.UseCoreMiddlewares();
 app.MapControllers();
@@ -54,16 +57,6 @@ static void AddHealthChecks(WebApplicationBuilder builder)
                 name: "database",
                 timeout: TimeSpan.FromSeconds(3));
     }
-}
-
-static async Task VerifyDatabaseAsync(WebApplication app)
-{
-    if (!app.Environment.IsDevelopment())
-        return;
-
-    using var scope = app.Services.CreateScope();
-    var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    await context.Database.MigrateAsync();
 }
 
 static void MapHealthEndpoints(WebApplication app)
@@ -144,3 +137,13 @@ static bool LooksLikePlaceholder(string value)
 }
 
 public partial class Program;
+
+internal sealed class DatabaseMigrationService(IServiceProvider services) : BackgroundService
+{
+    protected override async Task ExecuteAsync(CancellationToken ct)
+    {
+        using var scope = services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        await context.Database.MigrateAsync(ct);
+    }
+}

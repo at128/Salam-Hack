@@ -10,23 +10,23 @@ internal static class ProjectAnalysisNarrative
         if (health.MarginPercent >= ApplicationConstants.BusinessRules.HealthyMarginThreshold)
         {
             return new ProjectNarrative(
-                $"{projectName} is performing above the healthy margin threshold.",
-                "The current price covers the real cost and leaves enough room for profit.",
-                "Keep this pricing pattern and use it as a reference for similar work.");
+                $"المشروع {projectName} يحقق هامش ربح أعلى من الحد الصحي.",
+                "السعر الحالي يغطي التكلفة الفعلية ويترك مساحة كافية للربح.",
+                "حافظ على نمط التسعير الحالي واستخدمه كمرجع للأعمال المشابهة.");
         }
 
         if (health.MarginPercent >= ApplicationConstants.BusinessRules.AtRiskMarginThreshold)
         {
             return new ProjectNarrative(
-                $"{projectName} margin is below the healthy benchmark.",
-                "The project is still profitable, but extra expenses or additional hours can quickly erase margin.",
-                "Review scope, protect change requests, and consider a higher price on similar projects.");
+                $"هامش المشروع {projectName} أقل من المستوى الصحي.",
+                "المشروع ما زال مربحا، لكن المصاريف الإضافية أو الساعات الزائدة قد تقلل الهامش بسرعة.",
+                "راجع نطاق العمل، واضبط طلبات التغيير، وفكر في سعر أعلى للمشاريع المشابهة.");
         }
 
         return new ProjectNarrative(
-            $"{projectName} is under the at-risk margin threshold.",
-            "The project cost structure is too close to the selling price.",
-            "Raise the price, reduce avoidable expenses, or renegotiate scope before repeating this pattern.");
+            $"المشروع {projectName} أقل من حد الخطر لهامش الربح.",
+            "تكلفة المشروع قريبة جدا من سعر البيع.",
+            "ارفع السعر، أو قلل المصاريف غير الضرورية، أو أعد التفاوض على النطاق قبل تكرار هذا النمط.");
     }
 }
 

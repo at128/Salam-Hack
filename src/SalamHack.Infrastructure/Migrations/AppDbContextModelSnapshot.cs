@@ -8,7 +8,7 @@ using SalamHack.Infrastructure.Data;
 
 #nullable disable
 
-namespace SalamHack.Infrastructure.Data.Migrations
+namespace SalamHack.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
     partial class AppDbContextModelSnapshot : ModelSnapshot
@@ -339,13 +339,13 @@ namespace SalamHack.Infrastructure.Data.Migrations
                         .HasMaxLength(10)
                         .HasColumnType("nvarchar(10)");
 
+                    b.Property<DateTimeOffset?>("DeletedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
-
-                    b.Property<DateTimeOffset?>("DeletedAtUtc")
-                        .HasColumnType("datetimeoffset");
 
                     b.Property<DateTimeOffset>("ExpenseDate")
                         .HasColumnType("datetimeoffset");
@@ -468,8 +468,6 @@ namespace SalamHack.Infrastructure.Data.Migrations
 
                     b.HasIndex("CustomerId");
 
-                    b.HasIndex("CustomerId", "UserId");
-
                     b.HasIndex("DeletedAtUtc");
 
                     b.HasIndex("DueDate");
@@ -478,11 +476,13 @@ namespace SalamHack.Infrastructure.Data.Migrations
 
                     b.HasIndex("UserId");
 
+                    b.HasIndex("CustomerId", "UserId");
+
+                    b.HasIndex("ProjectId", "CustomerId");
+
                     b.HasIndex("UserId", "InvoiceNumber")
                         .IsUnique()
                         .HasFilter("[DeletedAtUtc] IS NULL");
-
-                    b.HasIndex("ProjectId", "CustomerId");
 
                     b.ToTable("invoices", (string)null);
                 });
@@ -651,7 +651,7 @@ namespace SalamHack.Infrastructure.Data.Migrations
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal>("ProfitMargin")
-                        .HasColumnType("decimal(5,2)");
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("ProjectName")
                         .IsRequired()
@@ -988,17 +988,17 @@ namespace SalamHack.Infrastructure.Data.Migrations
 
             modelBuilder.Entity("SalamHack.Domain.Invoices.Invoice", b =>
                 {
+                    b.HasOne("SalamHack.Infrastructure.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
                     b.HasOne("SalamHack.Domain.Customers.Customer", null)
                         .WithMany()
                         .HasForeignKey("CustomerId", "UserId")
                         .HasPrincipalKey("Id", "UserId")
                         .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("SalamHack.Infrastructure.Identity.ApplicationUser", null)
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
                     b.HasOne("SalamHack.Domain.Projects.Project", "Project")

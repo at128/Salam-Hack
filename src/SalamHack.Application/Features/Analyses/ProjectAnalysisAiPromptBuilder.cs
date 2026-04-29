@@ -22,6 +22,7 @@ Use the systemHealthStatus as the baseline classification unless the provided ri
 Focus on profitability, delivery risk, scope creep, cashflow, and practical next actions.
 
 Return valid JSON only. No markdown, no prose outside JSON.
+Write all human-readable text fields in Arabic. Keep enum/code fields exactly in English where the schema specifies fixed values, including overallStatus, severity, priority, and confidence.
 The response must match this exact shape:
 {
   "overallStatus": "Healthy | AtRisk | Critical",

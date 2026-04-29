@@ -75,17 +75,7 @@ public sealed class GetProjectAnalysisDashboardQueryHandler(IAppDbContext contex
 
     private static ProjectAnalysisDto BuildSelectedProject(ProjectHealthRow row)
     {
-        var latestStoredAnalysis = row.Project.Analyses
-            .Where(a => a.Type == AnalysisType.ProjectHealth)
-            .OrderByDescending(a => a.GeneratedAt)
-            .FirstOrDefault();
-
-        var narrative = latestStoredAnalysis is null
-            ? ProjectAnalysisNarrative.Build(row.Project.ProjectName, row.Health)
-            : new ProjectNarrative(
-                latestStoredAnalysis.WhatHappened,
-                latestStoredAnalysis.WhatItMeans,
-                latestStoredAnalysis.WhatToDo);
+        var narrative = ProjectAnalysisNarrative.Build(row.Project.ProjectName, row.Health);
 
         var hoursForHealth = row.Project.ActualHours > 0
             ? row.Project.ActualHours
@@ -137,21 +127,21 @@ public sealed class GetProjectAnalysisDashboardQueryHandler(IAppDbContext contex
         [
             new ProjectWhatIfScenarioDto(
                 ProjectWhatIfScenarioType.PriceIncrease,
-                "Increase price by 15%",
+                "زيادة السعر بنسبة 15%",
                 profitAfterPriceIncrease,
                 null,
                 profitAfterPriceIncrease - health.Profit,
                 profitAfterPriceIncrease >= health.Profit),
             new ProjectWhatIfScenarioDto(
                 ProjectWhatIfScenarioType.CostReduction,
-                "Reduce costs by 20%",
+                "تقليل التكاليف بنسبة 20%",
                 profitAfterCostReduction,
                 null,
                 profitAfterCostReduction - health.Profit,
                 profitAfterCostReduction >= health.Profit),
             new ProjectWhatIfScenarioDto(
                 ProjectWhatIfScenarioType.ExtraHours,
-                "Add 5 work hours",
+                "إضافة 5 ساعات عمل",
                 health.Profit,
                 hourlyAfterExtraHours,
                 hourlyAfterExtraHours - health.HourlyProfit,
@@ -174,22 +164,22 @@ public sealed class GetProjectAnalysisDashboardQueryHandler(IAppDbContext contex
             worst.Health.HealthStatus == ProjectHealthStatus.Critical
                 ? AnalysisInsightSeverity.Critical
                 : AnalysisInsightSeverity.Warning,
-            "Lowest project margin",
-            $"{worst.Project.ProjectName} is at {worst.Health.MarginPercent}% margin."));
+            "أقل هامش ربح",
+            $"المشروع {worst.Project.ProjectName} عند هامش ربح {worst.Health.MarginPercent}%."));
 
         insights.Add(new AnalysisInsightDto(
             AnalysisType.GeneralInsight,
             AnalysisInsightSeverity.Success,
-            "Best project margin",
-            $"{best.Project.ProjectName} leads with {best.Health.MarginPercent}% margin."));
+            "أفضل هامش ربح",
+            $"المشروع {best.Project.ProjectName} يتصدر بهامش ربح {best.Health.MarginPercent}%."));
 
         if (expenseHeavy is not null && expenseHeavy.Health.AdditionalExpenses > 0)
         {
             insights.Add(new AnalysisInsightDto(
                 AnalysisType.ExpenseTrend,
                 AnalysisInsightSeverity.Info,
-                "Highest extra expense pressure",
-                $"{expenseHeavy.Project.ProjectName} has {expenseHeavy.Health.AdditionalExpenses:0.##} in extra expenses."));
+                "أعلى ضغط من المصاريف الإضافية",
+                $"المشروع {expenseHeavy.Project.ProjectName} لديه مصاريف إضافية بقيمة {expenseHeavy.Health.AdditionalExpenses:0.##}."));
         }
 
         return insights;
