@@ -7,6 +7,7 @@ using SalamHack.Application.Features.Auth.Commands.RefreshToken;
 using SalamHack.Application.Features.Auth.Commands.Register;
 using SalamHack.Application.Features.Auth.Commands.UpdateProfile;
 using SalamHack.Application.Features.Auth.Queries.GetProfile;
+using SalamHack.Api.Responses;
 using SalamHack.Contracts.Auth;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -21,7 +22,7 @@ public sealed class AuthController(ISender sender) : ApiController
     [EnableRateLimiting("auth")]
     [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
     [HttpPost("register")]
-    [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ApiResponse<AuthResponse>), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Register(
@@ -32,7 +33,7 @@ public sealed class AuthController(ISender sender) : ApiController
             request.LastName, request.PhoneNumber), ct);
 
         return result.Match(
-            response => CreatedAtAction(nameof(GetProfile), response),
+            response => CreatedResponse(nameof(GetProfile), null, response, "Registered successfully."),
             Problem);
     }
 
@@ -40,7 +41,7 @@ public sealed class AuthController(ISender sender) : ApiController
     [EnableRateLimiting("auth")]
     [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
     [HttpPost("login")]
-    [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<AuthResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> Login(
         [FromBody] LoginRequest request, CancellationToken ct)
@@ -48,48 +49,48 @@ public sealed class AuthController(ISender sender) : ApiController
         var result = await sender.Send(
             new LoginCommand(request.Email, request.Password), ct);
 
-        return result.Match(Ok, Problem);
+        return result.Match(response => OkResponse(response), Problem);
     }
 
     /// <summary>Get the current user's profile.</summary>
     [Authorize]
     [EnableRateLimiting("user-read")]
     [HttpGet("profile")]
-    [ProducesResponseType(typeof(ProfileResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<ProfileResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> GetProfile(CancellationToken ct)
     {
         if (!TryGetUserId(out var userId))
-            return Unauthorized();
+            return UnauthorizedResponse();
 
         var result = await sender.Send(new GetProfileQuery(userId), ct);
 
-        return result.Match(Ok, Problem);
+        return result.Match(response => OkResponse(response), Problem);
     }
 
     /// <summary>Update the current user's profile.</summary>
     [Authorize]
     [EnableRateLimiting("user-write")]
     [HttpPut("profile")]
-    [ProducesResponseType(typeof(ProfileResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<ProfileResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> UpdateProfile(
         [FromBody] UpdateProfileRequest request, CancellationToken ct)
     {
         if (!TryGetUserId(out var userId))
-            return Unauthorized();
+            return UnauthorizedResponse();
 
         var result = await sender.Send(new UpdateProfileCommand(
-            userId.ToString(), request.FirstName, request.LastName, request.PhoneNumber), ct);
+            userId, request.FirstName, request.LastName, request.PhoneNumber), ct);
 
-        return result.Match(Ok, Problem);
+        return result.Match(response => OkResponse(response), Problem);
     }
 
     /// <summary>Change the current user's password.</summary>
     [Authorize]
     [EnableRateLimiting("user-write")]
     [HttpPost("change-password")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
@@ -98,52 +99,52 @@ public sealed class AuthController(ISender sender) : ApiController
         CancellationToken ct)
     {
         if (!TryGetUserId(out var userId))
-            return Unauthorized();
+            return UnauthorizedResponse();
 
         var result = await sender.Send(new ChangePasswordCommand(
-            userId.ToString(),
+            userId,
             request.CurrentPassword,
             request.NewPassword), ct);
 
         return result.Match(
-            _ => NoContent(),
+            _ => OkResponse<object?>(null, "Password changed successfully."),
             Problem);
     }
 
     [EnableRateLimiting("auth-refresh")]
     [HttpPost("refresh")]
     [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
-    [ProducesResponseType(typeof(TokenResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<TokenResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> Refresh(CancellationToken ct)
     {
         var result = await sender.Send(new RefreshTokenCommand(), ct);
-        return result.Match(Ok, Problem);
+        return result.Match(response => OkResponse(response), Problem);
     }
 
     [Authorize]
     [EnableRateLimiting("user-write")]
     [HttpPost("logout")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
     public async Task<IActionResult> Logout(CancellationToken ct)
     {
         if (!TryGetUserId(out var userId))
-            return Unauthorized();
+            return UnauthorizedResponse();
 
         await sender.Send(new LogoutCurrentSessionCommand(userId), ct);
-        return NoContent();
+        return OkResponse<object?>(null, "Logged out successfully.");
     }
 
     [Authorize]
     [EnableRateLimiting("user-write")]
     [HttpPost("logout-all")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
     public async Task<IActionResult> LogoutAllSessions(CancellationToken ct)
     {
         if (!TryGetUserId(out var userId))
-            return Unauthorized();
+            return UnauthorizedResponse();
 
         await sender.Send(new LogoutAllSessionsCommand(userId), ct);
-        return NoContent();
+        return OkResponse<object?>(null, "All sessions logged out successfully.");
     }
 }

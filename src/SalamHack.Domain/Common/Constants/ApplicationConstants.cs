@@ -34,5 +34,12 @@ public static class ApplicationConstants
         public const decimal SimpleComplexityMultiplier = 0.80m;
         public const decimal MediumComplexityMultiplier = 1.00m;
         public const decimal ComplexComplexityMultiplier = 1.40m;
+        public const decimal UrgentProjectPriceMultiplier = 1.15m;
+        public const decimal ExtraRevisionPriceRate = 0.05m;
+        public const decimal NewServiceConfidenceBufferRate = 0.05m;
+        public const decimal MinimumHistoricalHoursFactor = 0.90m;
+        public const decimal MaximumHistoricalHoursFactor = 2.50m;
+        public const decimal MinimumResidualCostFactor = 0.95m;
+        public const decimal MaximumResidualCostFactor = 1.50m;
     }
 }

@@ -1,6 +1,7 @@
 using SalamHack.Domain.Customers;
 using SalamHack.Domain.Invoices;
 using SalamHack.Domain.Projects;
+using SalamHack.Infrastructure.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -13,6 +14,9 @@ public sealed class InvoiceConfiguration : IEntityTypeConfiguration<Invoice>
         builder.ToTable("invoices");
 
         builder.HasKey(i => i.Id);
+
+        builder.Property(i => i.UserId)
+            .IsRequired();
 
         builder.Property(i => i.ProjectId)
             .IsRequired();
@@ -75,15 +79,24 @@ public sealed class InvoiceConfiguration : IEntityTypeConfiguration<Invoice>
             .HasPrincipalKey(p => new { p.Id, p.CustomerId })
             .OnDelete(DeleteBehavior.Restrict);
 
+        builder.HasOne<ApplicationUser>()
+            .WithMany()
+            .HasForeignKey(i => i.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
         builder.HasOne<Customer>()
             .WithMany()
-            .HasForeignKey(i => i.CustomerId)
+            .HasForeignKey(i => new { i.CustomerId, i.UserId })
+            .HasPrincipalKey(c => new { c.Id, c.UserId })
             .OnDelete(DeleteBehavior.Restrict);
 
-        builder.HasIndex(i => i.InvoiceNumber)
-            .IsUnique();
+        builder.HasIndex(i => new { i.UserId, i.InvoiceNumber })
+            .IsUnique()
+            .HasFilter("[DeletedAtUtc] IS NULL");
 
         builder.HasIndex(i => new { i.ProjectId, i.CustomerId });
+
+        builder.HasIndex(i => i.UserId);
 
         builder.HasIndex(i => i.CustomerId);
 

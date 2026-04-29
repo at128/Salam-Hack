@@ -4,6 +4,75 @@ namespace SalamHack.Application.Common.Errors;
 
 public static class ApplicationErrors
 {
+    public static class Customers
+    {
+        public static readonly Error CustomerNotFound =
+            Error.NotFound("Customers.CustomerNotFound", "Customer was not found.");
+
+        public static readonly Error EmailAlreadyExists =
+            Error.Conflict("Customers.EmailAlreadyExists", "A customer with the same email already exists.");
+    }
+
+    public static class Services
+    {
+        public static readonly Error ServiceNotFound =
+            Error.NotFound("Services.ServiceNotFound", "Service was not found.");
+
+        public static readonly Error ServiceNameAlreadyExists =
+            Error.Conflict("Services.ServiceNameAlreadyExists", "A service with the same name already exists.");
+
+        public static readonly Error InactiveServiceCannotBeUsed =
+            Error.Conflict("Services.InactiveServiceCannotBeUsed", "Inactive service cannot be used for a new project.");
+    }
+
+    public static class Projects
+    {
+        public static readonly Error ProjectNotFound =
+            Error.NotFound("Projects.ProjectNotFound", "Project was not found.");
+
+        public static readonly Error ProjectNameAlreadyExists =
+            Error.Conflict("Projects.ProjectNameAlreadyExists", "A project with the same name already exists.");
+
+        public static readonly Error UnsupportedStatusTransition =
+            Error.Validation("Projects.UnsupportedStatusTransition", "Requested project status transition is not supported.");
+    }
+
+    public static class Expenses
+    {
+        public static readonly Error ExpenseNotFound =
+            Error.NotFound("Expenses.ExpenseNotFound", "Expense was not found.");
+
+        public static readonly Error ExpenseReceiptNotFound =
+            Error.NotFound("Expenses.ExpenseReceiptNotFound", "Expense receipt was not found.");
+    }
+
+    public static class Invoices
+    {
+        public static readonly Error InvoiceNotFound =
+            Error.NotFound("Invoices.InvoiceNotFound", "Invoice was not found.");
+
+        public static readonly Error InvoiceNumberAlreadyExists =
+            Error.Conflict("Invoices.InvoiceNumberAlreadyExists", "An invoice with the same number already exists.");
+    }
+
+    public static class Pricing
+    {
+        public static readonly Error PricingPlanCannotBeUsed =
+            Error.Validation("Pricing.PricingPlanCannotBeUsed", "Selected pricing plan cannot be used for this quote.");
+    }
+
+    public static class Analyses
+    {
+        public static readonly Error AnalysisNotFound =
+            Error.NotFound("Analyses.AnalysisNotFound", "Analysis was not found.");
+    }
+
+    public static class Notifications
+    {
+        public static readonly Error NotificationNotFound =
+            Error.NotFound("Notifications.NotificationNotFound", "Notification was not found.");
+    }
+
     public static class Auth
     {
         public static readonly Error EmailAlreadyRegistered =

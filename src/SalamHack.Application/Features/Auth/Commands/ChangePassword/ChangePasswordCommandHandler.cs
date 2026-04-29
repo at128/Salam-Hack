@@ -6,8 +6,8 @@ namespace SalamHack.Application.Features.Auth.Commands.ChangePassword;
 
 public sealed class ChangePasswordCommandHandler(
     IIdentityService identityService,
-    IRefreshTokenRepository? refreshTokenRepository = null,
-    ICookieService? cookieService = null)
+    IRefreshTokenRepository refreshTokenRepository,
+    ICookieService cookieService)
     : IRequestHandler<ChangePasswordCommand, Result<Success>>
 {
     public async Task<Result<Success>> Handle(
@@ -23,13 +23,8 @@ public sealed class ChangePasswordCommandHandler(
         if (result.IsError)
             return result;
 
-        if (refreshTokenRepository is not null &&
-            Guid.TryParse(cmd.UserId, out var userId))
-        {
-            await refreshTokenRepository.RevokeAllForUserAsync(userId, ct);
-        }
-
-        cookieService?.RemoveRefreshTokenCookie();
+        await refreshTokenRepository.RevokeAllForUserAsync(cmd.UserId, ct);
+        cookieService.RemoveRefreshTokenCookie();
 
         return Result.Success;
     }

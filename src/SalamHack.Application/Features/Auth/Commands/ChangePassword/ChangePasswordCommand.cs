@@ -5,6 +5,6 @@ using MediatR;
 namespace SalamHack.Application.Features.Auth.Commands.ChangePassword;
 
 public sealed record ChangePasswordCommand(
-    string UserId,
+    Guid UserId,
     string CurrentPassword,
     string NewPassword) : IRequest<Result<Success>>, ISensitiveRequest;

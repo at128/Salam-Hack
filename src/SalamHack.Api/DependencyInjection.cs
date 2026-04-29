@@ -2,13 +2,17 @@ using System.Globalization;
 using System.Net;
 using System.Net.Sockets;
 using System.Security.Claims;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 using SalamHack.Api.Infrastructure;
+using SalamHack.Api.Responses;
 using SalamHack.Api.Services;
 using SalamHack.Application.Common.Interfaces;
 using SalamHack.Infrastructure.Settings;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Options;
 using OpenTelemetry.Metrics;
@@ -64,8 +68,41 @@ public static class DependencyInjection
 
     private static IServiceCollection AddPresentationCore(this IServiceCollection services)
     {
-        services.AddControllers();
+        services.AddControllers()
+            .AddJsonOptions(options =>
+            {
+                options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+                options.JsonSerializerOptions.DictionaryKeyPolicy = JsonNamingPolicy.CamelCase;
+                options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
+            })
+            .ConfigureApiBehaviorOptions(options =>
+            {
+                options.InvalidModelStateResponseFactory = context =>
+                {
+                    var errors = context.ModelState
+                        .Where(entry => entry.Value?.Errors.Count > 0)
+                        .SelectMany(entry => entry.Value!.Errors.Select(error => new ApiErrorDto(
+                            string.IsNullOrWhiteSpace(entry.Key) ? "Validation" : entry.Key,
+                            string.IsNullOrWhiteSpace(error.ErrorMessage) ? "Invalid value." : error.ErrorMessage,
+                            "Validation")))
+                        .ToList();
+
+                    if (errors.Count == 0)
+                    {
+                        errors.Add(new ApiErrorDto(
+                            "Validation",
+                            "The request payload is invalid.",
+                            "Validation"));
+                    }
+
+                    return new BadRequestObjectResult(ApiResponse<object?>.Fail(
+                        "One or more validation errors occurred.",
+                        errors,
+                        context.HttpContext.TraceIdentifier));
+                };
+            });
         services.AddEndpointsApiExplorer();
+        services.Configure<RouteOptions>(options => options.LowercaseUrls = true);
 
         services.AddHttpContextAccessor();
         services.AddHttpClient();
@@ -134,9 +171,16 @@ public static class DependencyInjection
 
                 if (!context.HttpContext.Response.HasStarted)
                 {
-                    context.HttpContext.Response.ContentType = "application/json";
-                    await context.HttpContext.Response.WriteAsync(
-                        "{\"error\":\"rate_limited\",\"message\":\"Too many requests. Please retry later.\"}",
+                    await context.HttpContext.Response.WriteAsJsonAsync(
+                        ApiResponse<object?>.Fail(
+                            "Too many requests. Please retry later.",
+                            [
+                                new ApiErrorDto(
+                                    "RateLimit.Exceeded",
+                                    "Too many requests. Please retry later.",
+                                    "RateLimited")
+                            ],
+                            context.HttpContext.TraceIdentifier),
                         token);
                 }
             };

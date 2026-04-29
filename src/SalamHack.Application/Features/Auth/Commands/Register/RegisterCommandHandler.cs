@@ -13,7 +13,8 @@ public class RegisterCommandHandler(
     ITokenProvider tokenProvider,
     IRefreshTokenRepository refreshTokenRepository,
     ICookieService cookieService,
-    IOptions<RefreshTokenSettings> rtOptions) : IRequestHandler<RegisterCommand, Result<AuthResponse>>
+    IOptions<RefreshTokenSettings> rtOptions,
+    TimeProvider timeProvider) : IRequestHandler<RegisterCommand, Result<AuthResponse>>
 {
     private readonly RefreshTokenSettings _rtSettings = rtOptions.Value;
     public async Task<Result<AuthResponse>> Handle(
@@ -52,7 +53,7 @@ public class RegisterCommandHandler(
             IsActive: true,
             IsUsed: false,
             IsRevoked: false,
-            ExpiresAt: DateTimeOffset.UtcNow.AddDays(_rtSettings.ExpiryDays));
+            ExpiresAt: timeProvider.GetUtcNow().AddDays(_rtSettings.ExpiryDays));
 
         await refreshTokenRepository.AddAsync(rtData, ct);
 
