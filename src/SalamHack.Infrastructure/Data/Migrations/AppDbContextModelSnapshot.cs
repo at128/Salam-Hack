@@ -998,7 +998,7 @@ namespace SalamHack.Infrastructure.Data.Migrations
                     b.HasOne("SalamHack.Infrastructure.Identity.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
                     b.HasOne("SalamHack.Domain.Projects.Project", "Project")
