@@ -113,11 +113,14 @@ public sealed class GetDashboardSummaryQueryHandler(
         int take,
         CancellationToken ct)
     {
+        // Each side could be entirely the most-recent items, so over-fetch to ensure the merged top-`take` is correct.
+        var perSourceTake = take * 2;
+
         var payments = await context.Payments
             .AsNoTracking()
             .Where(p => p.Invoice.UserId == userId)
             .OrderByDescending(p => p.PaymentDate)
-            .Take(take)
+            .Take(perSourceTake)
             .Select(p => new DashboardTransactionDto(
                 p.PaymentDate,
                 $"Payment for invoice {p.Invoice.InvoiceNumber}",
@@ -133,7 +136,7 @@ public sealed class GetDashboardSummaryQueryHandler(
             .AsNoTracking()
             .Where(e => e.UserId == userId)
             .OrderByDescending(e => e.ExpenseDate)
-            .Take(take)
+            .Take(perSourceTake)
             .Select(e => new DashboardTransactionDto(
                 e.ExpenseDate,
                 e.Description,

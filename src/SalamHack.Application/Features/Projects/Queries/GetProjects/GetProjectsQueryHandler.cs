@@ -14,9 +14,6 @@ public sealed class GetProjectsQueryHandler(IAppDbContext context)
     {
         var projectsQuery = context.Projects
             .AsNoTracking()
-            .Include(p => p.Customer)
-            .Include(p => p.Service)
-            .Include(p => p.Expenses)
             .Where(p => p.UserId == query.UserId);
 
         if (!string.IsNullOrWhiteSpace(query.Search))
@@ -41,15 +38,22 @@ public sealed class GetProjectsQueryHandler(IAppDbContext context)
         var pageNumber = Math.Max(query.PageNumber, 1);
         var pageSize = Math.Clamp(query.PageSize, 1, 100);
 
-        var projects = await projectsQuery
+        var projections = await projectsQuery
             .OrderByDescending(p => p.StartDate)
             .ThenBy(p => p.ProjectName)
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
+            .Select(p => new
+            {
+                Project = p,
+                CustomerName = p.Customer.CustomerName,
+                ServiceName = p.Service.ServiceName,
+                ExpenseTotal = p.Expenses.Sum(e => (decimal?)e.Amount) ?? 0m
+            })
             .ToListAsync(ct);
 
-        var items = projects
-            .Select(p => p.ToListItemDto(p.Expenses.Sum(e => e.Amount)))
+        var items = projections
+            .Select(x => x.Project.ToListItemDto(x.CustomerName, x.ServiceName, x.ExpenseTotal))
             .ToList();
 
         return new PaginatedList<ProjectListItemDto>

@@ -108,6 +108,10 @@ public static class InvoiceErrors
         "Invoice.InvoiceNotDue",
         "Invoice is not overdue yet.");
 
+    public static readonly Error OnlyDraftCanBeDeleted = Error.Failure(
+        "Invoice.OnlyDraftCanBeDeleted",
+        "Only draft invoices can be deleted. Cancel the invoice instead.");
+
     public static readonly Error NotFound = Error.NotFound(
         "Invoice.NotFound",
         "Invoice was not found.");

@@ -52,17 +52,13 @@ public sealed class GetCustomerProfileQueryHandler(
                 i.TotalWithTax,
                 i.PaidAmount,
                 i.TotalWithTax - i.PaidAmount,
-                i.Status != InvoiceStatus.Draft &&
-                i.Status != InvoiceStatus.Cancelled &&
-                i.TotalWithTax <= i.PaidAmount
-                    ? InvoiceStatus.Paid
-                    : i.Status != InvoiceStatus.Draft &&
-                      i.Status != InvoiceStatus.Cancelled &&
-                      i.Status != InvoiceStatus.Paid &&
-                      i.TotalWithTax > i.PaidAmount &&
-                      i.DueDate < asOfUtc
-                    ? InvoiceStatus.Overdue
-                    : i.Status,
+                i.Status == InvoiceStatus.Draft || i.Status == InvoiceStatus.Cancelled
+                    ? i.Status
+                    : i.TotalWithTax <= i.PaidAmount
+                        ? InvoiceStatus.Paid
+                        : i.DueDate < asOfUtc
+                            ? InvoiceStatus.Overdue
+                            : i.Status,
                 i.IssueDate,
                 i.DueDate,
                 i.Currency))

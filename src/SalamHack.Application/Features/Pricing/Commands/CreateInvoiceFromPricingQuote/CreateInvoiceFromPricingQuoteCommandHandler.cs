@@ -97,14 +97,10 @@ public sealed class CreateInvoiceFromPricingQuoteCommandHandler(
 
         await using var transaction = await context.BeginTransactionAsync(ct);
 
+        var invoice = invoiceResult.Value;
         context.Projects.Add(project);
-        context.Invoices.Add(invoiceResult.Value);
+        context.Invoices.Add(invoice);
         await context.SaveChangesAsync(ct);
-
-        var invoiceDto = await LoadInvoiceDtoAsync(invoiceResult.Value.Id, cmd.UserId, ct);
-        if (invoiceDto is null)
-            return ApplicationErrors.Invoices.InvoiceNotFound;
-
         await transaction.CommitAsync(ct);
 
         var projectDto = project.ToDto(
@@ -113,6 +109,8 @@ public sealed class CreateInvoiceFromPricingQuoteCommandHandler(
             calculation.Value.Service.Category,
             additionalExpenses: 0);
 
+        var invoiceDto = invoice.ToDto(project.ProjectName, customer.CustomerName);
+
         return new InvoiceFromPricingQuoteDto(
             projectDto,
             invoiceDto,
@@ -120,18 +118,6 @@ public sealed class CreateInvoiceFromPricingQuoteCommandHandler(
             cmd.SelectedPlan,
             selectedPrice,
             advanceAmount);
-    }
-
-    private async Task<InvoiceDto?> LoadInvoiceDtoAsync(Guid invoiceId, Guid userId, CancellationToken ct)
-    {
-        var invoice = await context.Invoices
-            .AsNoTracking()
-            .Include(i => i.Project)
-                .ThenInclude(p => p.Customer)
-            .Include(i => i.Payments)
-            .FirstOrDefaultAsync(i => i.Id == invoiceId && i.UserId == userId, ct);
-
-        return invoice?.ToDto();
     }
 
     private static bool CanUsePlan(PricingQuoteDto quote, Domain.Pricing.PricingPlanType selectedPlan)

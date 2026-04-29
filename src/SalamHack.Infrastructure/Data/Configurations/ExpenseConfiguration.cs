@@ -50,6 +50,9 @@ public sealed class ExpenseConfiguration : IEntityTypeConfiguration<Expense>
 
         builder.ConfigureAuditColumns();
 
+        builder.Property(e => e.DeletedAtUtc)
+            .HasColumnType("datetimeoffset");
+
         builder.HasOne<ApplicationUser>()
             .WithMany()
             .HasForeignKey(e => e.UserId)
@@ -70,6 +73,8 @@ public sealed class ExpenseConfiguration : IEntityTypeConfiguration<Expense>
         builder.HasIndex(e => new { e.UserId, e.IsRecurring });
 
         builder.HasIndex(e => new { e.UserId, e.ProjectId });
+
+        builder.HasIndex(e => e.DeletedAtUtc);
     }
 
 }

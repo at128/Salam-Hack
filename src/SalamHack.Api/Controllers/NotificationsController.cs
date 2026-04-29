@@ -2,6 +2,7 @@ using SalamHack.Application.Features.Notifications.Commands.CreateInvoiceReminde
 using SalamHack.Application.Features.Notifications.Commands.MarkNotificationAsRead;
 using SalamHack.Application.Features.Notifications.Commands.SendDueNotifications;
 using SalamHack.Application.Features.Notifications.Queries.GetNotifications;
+using SalamHack.Domain.Common.Constants;
 using SalamHack.Domain.Notifications;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -59,17 +60,15 @@ public sealed class NotificationsController(ISender sender) : ApiController
         return result.Match(notification => OkResponse(notification, "Notification marked as read."), Problem);
     }
 
+    [Authorize(Roles = ApplicationConstants.Roles.Admin)]
     [HttpPost("send-due")]
-    [EnableRateLimiting("user-write")]
+    [EnableRateLimiting("admin")]
     public async Task<IActionResult> SendDue(
         [FromBody] SendDueNotificationsRequest request,
         CancellationToken ct)
     {
-        if (!TryGetUserId(out var userId))
-            return UnauthorizedResponse();
-
         var result = await sender.Send(
-            new SendDueNotificationsCommand(userId, request.DueAtUtc, request.Take),
+            new SendDueNotificationsCommand(null, request.DueAtUtc, request.Take),
             ct);
 
         return result.Match(summary => OkResponse(summary, "Due notifications processed successfully."), Problem);

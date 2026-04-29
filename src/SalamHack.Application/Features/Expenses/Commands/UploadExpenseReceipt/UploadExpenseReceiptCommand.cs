@@ -9,4 +9,5 @@ public sealed record UploadExpenseReceiptCommand(
     Guid ExpenseId,
     string FileName,
     string ContentType,
-    byte[] Content) : IRequest<Result<ExpenseReceiptDto>>;
+    Stream Content,
+    long Length) : IRequest<Result<ExpenseReceiptDto>>;

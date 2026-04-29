@@ -8,6 +8,7 @@ using SalamHack.Infrastructure.Data;
 using SalamHack.Infrastructure.Data.Interceptors;
 using SalamHack.Infrastructure.Identity;
 using SalamHack.Infrastructure.Invoices;
+using SalamHack.Infrastructure.Notifications;
 using SalamHack.Infrastructure.Reports;
 using SalamHack.Infrastructure.Settings;
 using SalamHack.Infrastructure.Storage;
@@ -44,6 +45,7 @@ public static class DependencyInjection
         services.AddScoped<IExpenseClassifier, RuleBasedExpenseClassifier>();
         services.AddScoped<IInvoicePdfRenderer, InvoicePdfRenderer>();
         services.AddScoped<IExpenseReceiptStorage, FileSystemExpenseReceiptStorage>();
+        services.AddScoped<INotificationDeliveryService, InAppNotificationDeliveryService>();
         services.AddScoped<IReportExporter, ReportExporter>();
 
         services.AddHybridCache();

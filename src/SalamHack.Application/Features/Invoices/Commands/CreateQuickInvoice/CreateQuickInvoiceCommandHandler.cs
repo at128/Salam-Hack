@@ -100,16 +100,12 @@ public sealed class CreateQuickInvoiceCommandHandler(
             context.Services.Add(service);
 
         context.Projects.Add(project);
-        context.Invoices.Add(invoiceResult.Value);
+        var invoice = invoiceResult.Value;
+        context.Invoices.Add(invoice);
         await context.SaveChangesAsync(ct);
-
-        var invoiceDto = await LoadInvoiceDtoAsync(invoiceResult.Value.Id, cmd.UserId, ct);
-        if (invoiceDto is null)
-            return ApplicationErrors.Invoices.InvoiceNotFound;
-
         await transaction.CommitAsync(ct);
 
-        return invoiceDto;
+        return invoice.ToDto(project.ProjectName, customer.CustomerName);
     }
 
     private async Task<Result<string>> ResolveInvoiceNumberAsync(
@@ -170,18 +166,6 @@ public sealed class CreateQuickInvoiceCommandHandler(
         }
 
         return TrimToMaxLength($"{baseName} - {Guid.CreateVersion7():N}", 200);
-    }
-
-    private async Task<InvoiceDto?> LoadInvoiceDtoAsync(Guid invoiceId, Guid userId, CancellationToken ct)
-    {
-        var invoice = await context.Invoices
-            .AsNoTracking()
-            .Include(i => i.Project)
-                .ThenInclude(p => p.Customer)
-            .Include(i => i.Payments)
-            .FirstOrDefaultAsync(i => i.Id == invoiceId && i.UserId == userId, ct);
-
-        return invoice?.ToDto();
     }
 
     private static decimal EstimateHours(decimal totalAmount)

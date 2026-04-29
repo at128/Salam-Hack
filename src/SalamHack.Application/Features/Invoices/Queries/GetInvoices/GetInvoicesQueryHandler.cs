@@ -39,12 +39,7 @@ public sealed class GetInvoicesQueryHandler(
         {
             invoicesQuery = query.Status.Value switch
             {
-                InvoiceStatus.Overdue => invoicesQuery.Where(i =>
-                    i.Status != InvoiceStatus.Draft &&
-                    i.Status != InvoiceStatus.Cancelled &&
-                    i.Status != InvoiceStatus.Paid &&
-                    i.TotalWithTax > i.PaidAmount &&
-                    (i.Status == InvoiceStatus.Overdue || i.DueDate < asOfUtc)),
+                InvoiceStatus.Overdue => invoicesQuery.Where(InvoiceMappings.IsOverdueAtExpression(asOfUtc)),
                 InvoiceStatus.Sent => invoicesQuery.Where(i =>
                     i.Status == InvoiceStatus.Sent &&
                     !(i.TotalWithTax > i.PaidAmount && i.DueDate < asOfUtc)),
@@ -75,30 +70,7 @@ public sealed class GetInvoicesQueryHandler(
             .ThenByDescending(i => i.InvoiceNumber)
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
-            .Select(i => new InvoiceListItemDto(
-                i.Id,
-                i.ProjectId,
-                i.Project.ProjectName,
-                i.CustomerId,
-                i.Project.Customer.CustomerName,
-                i.InvoiceNumber,
-                i.TotalWithTax,
-                i.PaidAmount,
-                i.TotalWithTax - i.PaidAmount,
-                i.Status != InvoiceStatus.Draft &&
-                i.Status != InvoiceStatus.Cancelled &&
-                i.TotalWithTax <= i.PaidAmount
-                    ? InvoiceStatus.Paid
-                    : i.Status != InvoiceStatus.Draft &&
-                      i.Status != InvoiceStatus.Cancelled &&
-                      i.Status != InvoiceStatus.Paid &&
-                      i.TotalWithTax > i.PaidAmount &&
-                      i.DueDate < asOfUtc
-                    ? InvoiceStatus.Overdue
-                    : i.Status,
-                i.IssueDate,
-                i.DueDate,
-                i.Currency))
+            .Select(InvoiceMappings.ToListItemExpression(asOfUtc))
             .ToListAsync(ct);
 
         return new PaginatedList<InvoiceListItemDto>

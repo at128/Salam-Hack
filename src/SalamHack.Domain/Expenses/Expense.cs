@@ -4,7 +4,7 @@ using SalamHack.Domain.Projects;
 
 namespace SalamHack.Domain.Expenses;
 
-public class Expense : AuditableEntity
+public class Expense : AuditableEntity, ISoftDeletable
 {
     private Expense()
     {
@@ -46,8 +46,19 @@ public class Expense : AuditableEntity
     public RecurrenceInterval? RecurrenceInterval { get; private set; }
     public DateTimeOffset? RecurrenceEndDate { get; private set; }
     public string Currency { get; private set; } = null!;
+    public DateTimeOffset? DeletedAtUtc { get; set; }
 
     public Project? Project { get; private set; }
+
+    public void Delete(DateTimeOffset deletedAtUtc)
+    {
+        DeletedAtUtc = deletedAtUtc;
+    }
+
+    public void Restore()
+    {
+        DeletedAtUtc = null;
+    }
 
     public static Result<Expense> Create(
         Guid userId,

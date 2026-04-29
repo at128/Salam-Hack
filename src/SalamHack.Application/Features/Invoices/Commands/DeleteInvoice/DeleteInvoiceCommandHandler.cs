@@ -1,6 +1,7 @@
 using SalamHack.Application.Common.Errors;
 using SalamHack.Application.Common.Interfaces;
 using SalamHack.Domain.Common.Results;
+using SalamHack.Domain.Invoices;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -16,6 +17,9 @@ public sealed class DeleteInvoiceCommandHandler(IAppDbContext context, TimeProvi
 
         if (invoice is null)
             return ApplicationErrors.Invoices.InvoiceNotFound;
+
+        if (invoice.Status != InvoiceStatus.Draft)
+            return InvoiceErrors.OnlyDraftCanBeDeleted;
 
         invoice.Delete(timeProvider.GetUtcNow());
         await context.SaveChangesAsync(ct);

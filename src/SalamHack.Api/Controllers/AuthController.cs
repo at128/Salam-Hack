@@ -81,7 +81,7 @@ public sealed class AuthController(ISender sender) : ApiController
             return UnauthorizedResponse();
 
         var result = await sender.Send(new UpdateProfileCommand(
-            userId.ToString(), request.FirstName, request.LastName, request.PhoneNumber), ct);
+            userId, request.FirstName, request.LastName, request.PhoneNumber), ct);
 
         return result.Match(response => OkResponse(response), Problem);
     }
@@ -102,7 +102,7 @@ public sealed class AuthController(ISender sender) : ApiController
             return UnauthorizedResponse();
 
         var result = await sender.Send(new ChangePasswordCommand(
-            userId.ToString(),
+            userId,
             request.CurrentPassword,
             request.NewPassword), ct);
 

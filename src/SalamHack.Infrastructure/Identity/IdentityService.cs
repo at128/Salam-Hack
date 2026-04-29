@@ -121,7 +121,7 @@ public class IdentityService(
     }
 
     public async Task<Result<UserProfileResult>> UpdateUserAsync(
-        string userId, string firstName, string lastName,
+        Guid userId, string firstName, string lastName,
         string? phoneNumber, CancellationToken ct = default)
     {
         var user = await userManager.FindByIdAsync(userId.ToString());
@@ -146,7 +146,7 @@ public class IdentityService(
     }
 
     public async Task<Result<Success>> ChangePasswordAsync(
-        string userId,
+        Guid userId,
         string currentPassword,
         string newPassword,
         CancellationToken ct = default)

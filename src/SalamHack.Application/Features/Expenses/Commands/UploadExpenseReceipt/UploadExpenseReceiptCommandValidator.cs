@@ -23,10 +23,11 @@ public sealed class UploadExpenseReceiptCommandValidator : AbstractValidator<Upl
             .WithMessage("Receipt must be a PDF, JPEG, PNG, or WebP file.");
 
         RuleFor(x => x.Content)
-            .NotNull().WithMessage("Receipt content is required.")
-            .Must(content => content is { Length: > 0 })
-            .WithMessage("Receipt content is required.")
-            .Must(content => content is not null && content.Length <= ExpenseReceiptRules.MaxFileSizeBytes)
+            .NotNull().WithMessage("Receipt content is required.");
+
+        RuleFor(x => x.Length)
+            .GreaterThan(0).WithMessage("Receipt content is required.")
+            .LessThanOrEqualTo(ExpenseReceiptRules.MaxFileSizeBytes)
             .WithMessage("Receipt file size must be 10 MB or less.");
     }
 }

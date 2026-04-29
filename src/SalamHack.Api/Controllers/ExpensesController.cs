@@ -163,15 +163,14 @@ public sealed class ExpensesController(ISender sender) : ApiController
         }
 
         await using var stream = request.File.OpenReadStream();
-        using var memory = new MemoryStream();
-        await stream.CopyToAsync(memory, ct);
 
         var result = await sender.Send(new UploadExpenseReceiptCommand(
             userId,
             expenseId,
             request.File.FileName,
             request.File.ContentType,
-            memory.ToArray()), ct);
+            stream,
+            request.File.Length), ct);
 
         return result.Match(receipt => OkResponse(receipt, "Receipt uploaded successfully."), Problem);
     }

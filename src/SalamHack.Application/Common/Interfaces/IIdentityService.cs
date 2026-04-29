@@ -17,11 +17,11 @@ public interface IIdentityService
         Guid userId, CancellationToken ct = default);
 
     Task<Result<UserProfileResult>> UpdateUserAsync(
-        string userId, string firstName, string lastName,
+        Guid userId, string firstName, string lastName,
         string? phoneNumber, CancellationToken ct = default);
 
     Task<Result<Success>> ChangePasswordAsync(
-        string userId,
+        Guid userId,
         string currentPassword,
         string newPassword,
         CancellationToken ct = default);

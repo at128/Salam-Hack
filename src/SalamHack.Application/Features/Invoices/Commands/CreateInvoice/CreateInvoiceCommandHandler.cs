@@ -46,22 +46,6 @@ public sealed class CreateInvoiceCommandHandler(IAppDbContext context)
         context.Invoices.Add(invoice);
         await context.SaveChangesAsync(ct);
 
-        var invoiceDto = await LoadInvoiceDtoAsync(invoice.Id, cmd.UserId, ct);
-
-        return invoiceDto is null
-            ? ApplicationErrors.Invoices.InvoiceNotFound
-            : invoiceDto;
-    }
-
-    private async Task<InvoiceDto?> LoadInvoiceDtoAsync(Guid invoiceId, Guid userId, CancellationToken ct)
-    {
-        var invoice = await context.Invoices
-            .AsNoTracking()
-            .Include(i => i.Project)
-                .ThenInclude(p => p.Customer)
-            .Include(i => i.Payments)
-            .FirstOrDefaultAsync(i => i.Id == invoiceId && i.UserId == userId, ct);
-
-        return invoice?.ToDto();
+        return invoice.ToDto(project.ProjectName, project.Customer.CustomerName);
     }
 }

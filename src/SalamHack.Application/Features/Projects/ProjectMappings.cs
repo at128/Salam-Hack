@@ -48,6 +48,13 @@ internal static class ProjectMappings
     }
 
     public static ProjectListItemDto ToListItemDto(this Project project, decimal additionalExpenses)
+        => project.ToListItemDto(project.Customer.CustomerName, project.Service.ServiceName, additionalExpenses);
+
+    public static ProjectListItemDto ToListItemDto(
+        this Project project,
+        string customerName,
+        string serviceName,
+        decimal additionalExpenses)
     {
         var health = project.GetHealthSnapshot(additionalExpenses);
 
@@ -55,9 +62,9 @@ internal static class ProjectMappings
             project.Id,
             project.ProjectName,
             project.CustomerId,
-            project.Customer.CustomerName,
+            customerName,
             project.ServiceId,
-            project.Service.ServiceName,
+            serviceName,
             project.SuggestedPrice,
             project.ProfitMargin,
             project.Status,

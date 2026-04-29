@@ -344,6 +344,9 @@ namespace SalamHack.Infrastructure.Data.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
 
+                    b.Property<DateTimeOffset?>("DeletedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
                     b.Property<DateTimeOffset>("ExpenseDate")
                         .HasColumnType("datetimeoffset");
 
@@ -371,6 +374,8 @@ namespace SalamHack.Infrastructure.Data.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("DeletedAtUtc");
 
                     b.HasIndex("UserId");
 

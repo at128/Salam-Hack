@@ -12,16 +12,26 @@ public sealed class GetProjectByIdQueryHandler(IAppDbContext context)
 {
     public async Task<Result<ProjectDto>> Handle(GetProjectByIdQuery query, CancellationToken ct)
     {
-        var project = await context.Projects
+        var projection = await context.Projects
             .AsNoTracking()
-            .Include(p => p.Customer)
-            .Include(p => p.Service)
-            .Include(p => p.Expenses)
-            .FirstOrDefaultAsync(p => p.Id == query.ProjectId && p.UserId == query.UserId, ct);
+            .Where(p => p.Id == query.ProjectId && p.UserId == query.UserId)
+            .Select(p => new
+            {
+                Project = p,
+                CustomerName = p.Customer.CustomerName,
+                ServiceName = p.Service.ServiceName,
+                ServiceCategory = p.Service.Category,
+                ExpenseTotal = p.Expenses.Sum(e => (decimal?)e.Amount) ?? 0m
+            })
+            .FirstOrDefaultAsync(ct);
 
-        if (project is null)
+        if (projection is null)
             return ApplicationErrors.Projects.ProjectNotFound;
 
-        return project.ToDto(project.Expenses.Sum(e => e.Amount));
+        return projection.Project.ToDto(
+            projection.CustomerName,
+            projection.ServiceName,
+            projection.ServiceCategory,
+            projection.ExpenseTotal);
     }
 }

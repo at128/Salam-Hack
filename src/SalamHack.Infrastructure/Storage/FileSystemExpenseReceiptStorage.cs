@@ -20,24 +20,36 @@ public sealed class FileSystemExpenseReceiptStorage(
         Guid expenseId,
         string fileName,
         string contentType,
-        byte[] content,
+        Stream content,
         CancellationToken cancellationToken = default)
     {
         var directory = GetReceiptDirectory(userId, expenseId);
         Directory.CreateDirectory(directory);
+
+        var contentPath = Path.Combine(directory, ContentFileName);
+        var metadataPath = Path.Combine(directory, MetadataFileName);
+
+        long sizeInBytes;
+        await using (var fileStream = new FileStream(
+            contentPath,
+            FileMode.Create,
+            FileAccess.Write,
+            FileShare.None,
+            bufferSize: 81920,
+            useAsync: true))
+        {
+            await content.CopyToAsync(fileStream, cancellationToken);
+            sizeInBytes = fileStream.Length;
+        }
 
         var uploadedAtUtc = timeProvider.GetUtcNow();
         var safeFileName = Path.GetFileName(fileName.Trim());
         var metadata = new StoredReceiptMetadata(
             string.IsNullOrWhiteSpace(safeFileName) ? "receipt" : safeFileName,
             contentType.Trim(),
-            content.LongLength,
+            sizeInBytes,
             uploadedAtUtc);
 
-        var contentPath = Path.Combine(directory, ContentFileName);
-        var metadataPath = Path.Combine(directory, MetadataFileName);
-
-        await File.WriteAllBytesAsync(contentPath, content, cancellationToken);
         await File.WriteAllTextAsync(
             metadataPath,
             JsonSerializer.Serialize(metadata, JsonOptions),
@@ -50,7 +62,7 @@ public sealed class FileSystemExpenseReceiptStorage(
             metadata.ContentType,
             metadata.SizeInBytes,
             metadata.UploadedAtUtc,
-            content);
+            []);
     }
 
     public async Task<ExpenseReceiptStorageFile?> GetAsync(

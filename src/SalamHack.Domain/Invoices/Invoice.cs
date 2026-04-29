@@ -66,10 +66,12 @@ public class Invoice : AuditableEntity, ISoftDeletable
     public decimal AdvanceRemainingAmount => Math.Max(AdvanceAmount - PaidAmount, 0);
     public bool HasAdvanceBeenPaid => AdvanceRemainingAmount <= 0;
     public bool IsFullyPaid => RemainingAmount <= 0;
-    public bool IsOverdue => Status != InvoiceStatus.Draft &&
-                             Status != InvoiceStatus.Cancelled &&
-                             !IsFullyPaid &&
-                             DueDate < DateTimeOffset.UtcNow;
+
+    public bool IsOverdueAt(DateTimeOffset asOfUtc) =>
+        Status != InvoiceStatus.Draft &&
+        Status != InvoiceStatus.Cancelled &&
+        !IsFullyPaid &&
+        DueDate < asOfUtc;
 
     public Project Project { get; private set; } = null!;
     public ICollection<Payment> Payments { get; private set; } = [];
@@ -233,16 +235,11 @@ public class Invoice : AuditableEntity, ISoftDeletable
 
     public Result<Success> Send(DateTimeOffset asOfUtc)
     {
-        if (Status != InvoiceStatus.Draft &&
-            Status != InvoiceStatus.Cancelled &&
-            !IsFullyPaid &&
-            DueDate < asOfUtc)
-        {
-            return InvoiceErrors.CannotSendOverdueInvoice;
-        }
-
         if (Status != InvoiceStatus.Draft && Status != InvoiceStatus.PartiallyPaid)
             return InvoiceErrors.OnlyDraftOrPartiallyPaidCanBeSent;
+
+        if (!IsFullyPaid && DueDate < asOfUtc)
+            return InvoiceErrors.CannotSendOverdueInvoice;
 
         if (Status == InvoiceStatus.Draft)
             Status = InvoiceStatus.Sent;
@@ -354,13 +351,7 @@ public class Invoice : AuditableEntity, ISoftDeletable
             return;
         }
 
-        if (IsOverdue)
-        {
-            Status = InvoiceStatus.Overdue;
-            return;
-        }
-
-        if (PaidAmount > 0)
+        if (PaidAmount > 0 && Status != InvoiceStatus.Overdue)
         {
             Status = InvoiceStatus.PartiallyPaid;
             return;

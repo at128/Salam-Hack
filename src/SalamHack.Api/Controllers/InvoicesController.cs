@@ -68,7 +68,9 @@ public sealed class InvoicesController(ISender sender) : ApiController
 
         var result = await sender.Send(new ExportInvoicePdfQuery(userId, invoiceId), ct);
 
-        return result.Match(file => OkResponse(file, "Invoice PDF exported successfully."), Problem);
+        return result.Match(
+            file => (IActionResult)File(file.Content, file.ContentType, file.FileName),
+            Problem);
     }
 
     [HttpGet("{invoiceId:guid}/payments")]

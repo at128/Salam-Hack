@@ -7,7 +7,7 @@ public interface IExpenseReceiptStorage
         Guid expenseId,
         string fileName,
         string contentType,
-        byte[] content,
+        Stream content,
         CancellationToken cancellationToken = default);
 
     Task<ExpenseReceiptStorageFile?> GetAsync(
