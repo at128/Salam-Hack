@@ -2,19 +2,23 @@ using SalamHack.Application.Common.Interfaces;
 using SalamHack.Application.Common.Models;
 using SalamHack.Application.Features.Invoices.Models;
 using SalamHack.Domain.Common.Results;
+using SalamHack.Domain.Invoices;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
 namespace SalamHack.Application.Features.Invoices.Queries.GetInvoices;
 
-public sealed class GetInvoicesQueryHandler(IAppDbContext context)
+public sealed class GetInvoicesQueryHandler(
+    IAppDbContext context,
+    TimeProvider timeProvider)
     : IRequestHandler<GetInvoicesQuery, Result<PaginatedList<InvoiceListItemDto>>>
 {
     public async Task<Result<PaginatedList<InvoiceListItemDto>>> Handle(GetInvoicesQuery query, CancellationToken ct)
     {
+        var asOfUtc = timeProvider.GetUtcNow();
         var invoicesQuery = context.Invoices
             .AsNoTracking()
-            .Where(i => i.Project.UserId == query.UserId);
+            .Where(i => i.UserId == query.UserId);
 
         if (!string.IsNullOrWhiteSpace(query.Search))
         {
@@ -32,7 +36,29 @@ public sealed class GetInvoicesQueryHandler(IAppDbContext context)
             invoicesQuery = invoicesQuery.Where(i => i.ProjectId == query.ProjectId.Value);
 
         if (query.Status.HasValue)
-            invoicesQuery = invoicesQuery.Where(i => i.Status == query.Status.Value);
+        {
+            invoicesQuery = query.Status.Value switch
+            {
+                InvoiceStatus.Overdue => invoicesQuery.Where(i =>
+                    i.Status != InvoiceStatus.Draft &&
+                    i.Status != InvoiceStatus.Cancelled &&
+                    i.Status != InvoiceStatus.Paid &&
+                    i.TotalWithTax > i.PaidAmount &&
+                    (i.Status == InvoiceStatus.Overdue || i.DueDate < asOfUtc)),
+                InvoiceStatus.Sent => invoicesQuery.Where(i =>
+                    i.Status == InvoiceStatus.Sent &&
+                    !(i.TotalWithTax > i.PaidAmount && i.DueDate < asOfUtc)),
+                InvoiceStatus.PartiallyPaid => invoicesQuery.Where(i =>
+                    i.Status == InvoiceStatus.PartiallyPaid &&
+                    !(i.TotalWithTax > i.PaidAmount && i.DueDate < asOfUtc)),
+                InvoiceStatus.Paid => invoicesQuery.Where(i =>
+                    i.Status == InvoiceStatus.Paid ||
+                    (i.Status != InvoiceStatus.Draft &&
+                     i.Status != InvoiceStatus.Cancelled &&
+                     i.TotalWithTax <= i.PaidAmount)),
+                _ => invoicesQuery.Where(i => i.Status == query.Status.Value)
+            };
+        }
 
         if (query.FromDate.HasValue)
             invoicesQuery = invoicesQuery.Where(i => i.IssueDate >= query.FromDate.Value);
@@ -59,7 +85,17 @@ public sealed class GetInvoicesQueryHandler(IAppDbContext context)
                 i.TotalWithTax,
                 i.PaidAmount,
                 i.TotalWithTax - i.PaidAmount,
-                i.Status,
+                i.Status != InvoiceStatus.Draft &&
+                i.Status != InvoiceStatus.Cancelled &&
+                i.TotalWithTax <= i.PaidAmount
+                    ? InvoiceStatus.Paid
+                    : i.Status != InvoiceStatus.Draft &&
+                      i.Status != InvoiceStatus.Cancelled &&
+                      i.Status != InvoiceStatus.Paid &&
+                      i.TotalWithTax > i.PaidAmount &&
+                      i.DueDate < asOfUtc
+                    ? InvoiceStatus.Overdue
+                    : i.Status,
                 i.IssueDate,
                 i.DueDate,
                 i.Currency))

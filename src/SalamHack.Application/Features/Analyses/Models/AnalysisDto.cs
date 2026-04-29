@@ -17,4 +17,5 @@ public sealed record AnalysisDto(
     string? MetadataJson,
     DateTimeOffset? ReviewedAtUtc,
     DateTimeOffset CreatedAtUtc,
-    DateTimeOffset? LastModifiedUtc);
+    DateTimeOffset? LastModifiedUtc,
+    ProjectAiAnalysisDto? AiAnalysis = null);

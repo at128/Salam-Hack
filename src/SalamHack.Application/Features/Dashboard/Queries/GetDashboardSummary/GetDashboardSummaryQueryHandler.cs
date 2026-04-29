@@ -24,7 +24,7 @@ public sealed class GetDashboardSummaryQueryHandler(
 
         var monthlyRevenue = await context.Payments
             .AsNoTracking()
-            .Where(p => p.Invoice.Project.UserId == query.UserId &&
+            .Where(p => p.Invoice.UserId == query.UserId &&
                         p.PaymentDate >= monthStart &&
                         p.PaymentDate < nextMonthStart)
             .SumAsync(p => (decimal?)p.Amount, ct) ?? 0;
@@ -38,7 +38,7 @@ public sealed class GetDashboardSummaryQueryHandler(
 
         var previousMonthRevenue = await context.Payments
             .AsNoTracking()
-            .Where(p => p.Invoice.Project.UserId == query.UserId &&
+            .Where(p => p.Invoice.UserId == query.UserId &&
                         p.PaymentDate >= previousMonthStart &&
                         p.PaymentDate < monthStart)
             .SumAsync(p => (decimal?)p.Amount, ct) ?? 0;
@@ -55,7 +55,7 @@ public sealed class GetDashboardSummaryQueryHandler(
 
         var pendingInvoicesQuery = context.Invoices
             .AsNoTracking()
-            .Where(i => i.Project.UserId == query.UserId &&
+            .Where(i => i.UserId == query.UserId &&
                         i.Status != InvoiceStatus.Draft &&
                         i.Status != InvoiceStatus.Paid &&
                         i.Status != InvoiceStatus.Cancelled &&
@@ -73,7 +73,7 @@ public sealed class GetDashboardSummaryQueryHandler(
 
         var paymentPoints = await context.Payments
             .AsNoTracking()
-            .Where(p => p.Invoice.Project.UserId == query.UserId &&
+            .Where(p => p.Invoice.UserId == query.UserId &&
                         p.PaymentDate >= trendStart &&
                         p.PaymentDate < nextMonthStart)
             .Select(p => new MonthlyAmount(p.PaymentDate.Year, p.PaymentDate.Month, p.Amount))
@@ -88,7 +88,8 @@ public sealed class GetDashboardSummaryQueryHandler(
             .ToListAsync(ct);
 
         var trend = BuildTrend(monthStart, paymentPoints, expensePoints);
-        var recentTransactions = await GetRecentTransactions(query.UserId, query.RecentTransactionCount, ct);
+        var recentTransactionCount = Math.Clamp(query.RecentTransactionCount, 1, 20);
+        var recentTransactions = await GetRecentTransactions(query.UserId, recentTransactionCount, ct);
         var alerts = await GetAlerts(query.UserId, asOfUtc, ct);
 
         return new DashboardSummaryDto(
@@ -114,7 +115,7 @@ public sealed class GetDashboardSummaryQueryHandler(
     {
         var payments = await context.Payments
             .AsNoTracking()
-            .Where(p => p.Invoice.Project.UserId == userId)
+            .Where(p => p.Invoice.UserId == userId)
             .OrderByDescending(p => p.PaymentDate)
             .Take(take)
             .Select(p => new DashboardTransactionDto(
@@ -158,7 +159,8 @@ public sealed class GetDashboardSummaryQueryHandler(
     {
         var overdueInvoices = await context.Invoices
             .AsNoTracking()
-            .Where(i => i.Project.UserId == userId &&
+            .Where(i => i.UserId == userId &&
+                        i.Status != InvoiceStatus.Draft &&
                         i.Status != InvoiceStatus.Paid &&
                         i.Status != InvoiceStatus.Cancelled &&
                         i.TotalWithTax > i.PaidAmount &&

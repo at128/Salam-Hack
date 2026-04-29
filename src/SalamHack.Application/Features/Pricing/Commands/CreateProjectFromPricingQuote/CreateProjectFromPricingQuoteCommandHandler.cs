@@ -39,7 +39,10 @@ public sealed class CreateProjectFromPricingQuoteCommandHandler(
             cmd.ServiceId,
             cmd.EstimatedHours,
             cmd.Complexity,
+            cmd.ToolCost,
             PricingQuoteBuilder.DefaultRecentProjectCount,
+            cmd.Revision,
+            cmd.IsUrgent,
             ct);
 
         if (calculation.IsError)

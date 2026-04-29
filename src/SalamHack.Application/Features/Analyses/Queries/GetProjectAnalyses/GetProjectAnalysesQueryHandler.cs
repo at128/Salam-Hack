@@ -28,24 +28,8 @@ public sealed class GetProjectAnalysesQueryHandler(IAppDbContext context)
 
         var analyses = await analysesQuery
             .OrderByDescending(a => a.GeneratedAt)
-            .Select(a => new AnalysisDto(
-                a.Id,
-                a.ProjectId,
-                a.Type,
-                a.WhatHappened,
-                a.WhatItMeans,
-                a.WhatToDo,
-                a.HealthStatus,
-                a.GeneratedAt,
-                a.Title,
-                a.Summary,
-                a.ConfidenceScore,
-                a.MetadataJson,
-                a.ReviewedAtUtc,
-                a.CreatedAtUtc,
-                a.LastModifiedUtc))
             .ToListAsync(ct);
 
-        return analyses;
+        return analyses.Select(a => a.ToDto()).ToList();
     }
 }

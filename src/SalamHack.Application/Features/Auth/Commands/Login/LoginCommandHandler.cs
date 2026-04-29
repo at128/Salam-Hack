@@ -13,7 +13,8 @@ public sealed class LoginCommandHandler(
     ITokenProvider tokenProvider,
     IRefreshTokenRepository refreshTokenRepository,
     ICookieService cookieService,
-    IOptions<RefreshTokenSettings> rtOptions
+    IOptions<RefreshTokenSettings> rtOptions,
+    TimeProvider timeProvider
 
     )
     : IRequestHandler<LoginCommand, Result<AuthResponse>>
@@ -45,7 +46,7 @@ public sealed class LoginCommandHandler(
             IsActive: true,
             IsUsed: false,
             IsRevoked: false,
-            ExpiresAt: DateTimeOffset.UtcNow.AddDays(_rtSettings.ExpiryDays));
+            ExpiresAt: timeProvider.GetUtcNow().AddDays(_rtSettings.ExpiryDays));
 
         await refreshTokenRepository.AddAsync(rtData, ct);
 

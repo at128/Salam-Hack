@@ -14,13 +14,22 @@ public sealed class CreateExpenseWithImpactCommandValidator : AbstractValidator<
 
         RuleFor(x => x.Description)
             .NotEmpty()
-            .MaximumLength(500);
+            .MaximumLength(1000);
 
         RuleFor(x => x.Amount)
             .GreaterThan(0);
 
         RuleFor(x => x.Currency)
             .NotEmpty()
-            .MaximumLength(3);
+            .MaximumLength(10);
+
+        RuleFor(x => x.RecurrenceInterval)
+            .NotNull()
+            .When(x => x.IsRecurring)
+            .WithMessage("Recurring expenses must include a recurrence interval.");
+
+        RuleFor(x => x.RecurrenceEndDate)
+            .GreaterThanOrEqualTo(x => x.ExpenseDate)
+            .When(x => x.IsRecurring && x.RecurrenceEndDate.HasValue);
     }
 }

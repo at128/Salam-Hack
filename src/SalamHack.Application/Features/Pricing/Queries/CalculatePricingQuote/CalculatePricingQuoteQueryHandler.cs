@@ -19,7 +19,10 @@ public sealed class CalculatePricingQuoteQueryHandler(
             query.ServiceId,
             query.EstimatedHours,
             query.Complexity,
+            query.ToolCost,
             query.RecentProjectCount,
+            query.RequestedRevisions,
+            query.IsUrgent,
             ct);
 
         return calculation.IsError

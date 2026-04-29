@@ -15,7 +15,7 @@ public sealed class CreateInvoiceReminderCommandHandler(IAppDbContext context)
     {
         var invoiceExists = await context.Invoices
             .AsNoTracking()
-            .AnyAsync(i => i.Id == cmd.InvoiceId && i.Project.UserId == cmd.UserId, ct);
+            .AnyAsync(i => i.Id == cmd.InvoiceId && i.UserId == cmd.UserId, ct);
 
         if (!invoiceExists)
             return ApplicationErrors.Invoices.InvoiceNotFound;

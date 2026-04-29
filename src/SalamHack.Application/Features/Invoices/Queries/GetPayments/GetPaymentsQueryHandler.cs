@@ -14,7 +14,7 @@ public sealed class GetPaymentsQueryHandler(IAppDbContext context)
     {
         var paymentsQuery = context.Payments
             .AsNoTracking()
-            .Where(p => p.Invoice.Project.UserId == query.UserId);
+            .Where(p => p.Invoice.UserId == query.UserId);
 
         if (query.InvoiceId.HasValue)
             paymentsQuery = paymentsQuery.Where(p => p.InvoiceId == query.InvoiceId.Value);

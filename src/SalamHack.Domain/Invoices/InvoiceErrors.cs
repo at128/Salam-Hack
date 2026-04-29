@@ -4,6 +4,10 @@ namespace SalamHack.Domain.Invoices;
 
 public static class InvoiceErrors
 {
+    public static readonly Error InvalidUserId = Error.Validation(
+        "Invoice.InvalidUserId",
+        "User id is required.");
+
     public static readonly Error InvalidProjectId = Error.Validation(
         "Invoice.InvalidProjectId",
         "Project id is required.");
@@ -19,6 +23,10 @@ public static class InvoiceErrors
     public static readonly Error CurrencyRequired = Error.Validation(
         "Invoice.CurrencyRequired",
         "Currency is required.");
+
+    public static readonly Error PaymentCurrencyMismatch = Error.Validation(
+        "Invoice.PaymentCurrencyMismatch",
+        "Payment currency must match the invoice currency.");
 
     public static readonly Error TotalAmountMustBePositive = Error.Validation(
         "Invoice.TotalAmountMustBePositive",
@@ -71,6 +79,34 @@ public static class InvoiceErrors
     public static readonly Error OnlyDraftCanBeEdited = Error.Failure(
         "Invoice.OnlyDraftCanBeEdited",
         "Only draft invoices can be edited.");
+
+    public static readonly Error OnlyDraftCanBeSent = Error.Failure(
+        "Invoice.OnlyDraftCanBeSent",
+        "Only draft invoices can be sent.");
+
+    public static readonly Error OnlyDraftOrPartiallyPaidCanBeSent = Error.Failure(
+        "Invoice.OnlyDraftOrPartiallyPaidCanBeSent",
+        "Only draft or partially paid invoices can be sent.");
+
+    public static readonly Error CannotSendOverdueInvoice = Error.Failure(
+        "Invoice.CannotSendOverdueInvoice",
+        "Cannot send an overdue invoice.");
+
+    public static readonly Error CannotMarkPaidInvoiceOverdue = Error.Failure(
+        "Invoice.CannotMarkPaidInvoiceOverdue",
+        "Cannot mark a paid invoice as overdue.");
+
+    public static readonly Error CannotMarkCancelledInvoiceOverdue = Error.Failure(
+        "Invoice.CannotMarkCancelledInvoiceOverdue",
+        "Cannot mark a cancelled invoice as overdue.");
+
+    public static readonly Error CannotMarkDraftInvoiceOverdue = Error.Failure(
+        "Invoice.CannotMarkDraftInvoiceOverdue",
+        "Cannot mark a draft invoice as overdue.");
+
+    public static readonly Error InvoiceNotDue = Error.Validation(
+        "Invoice.InvoiceNotDue",
+        "Invoice is not overdue yet.");
 
     public static readonly Error NotFound = Error.NotFound(
         "Invoice.NotFound",

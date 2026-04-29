@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Diagnostics;
-using Microsoft.AspNetCore.Mvc;
+using SalamHack.Api.Responses;
 
 namespace SalamHack.Api.Infrastructure;
 
@@ -14,14 +14,17 @@ public class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logger) : IE
 
         httpContext.Response.StatusCode = StatusCodes.Status500InternalServerError;
 
-        await httpContext.Response.WriteAsJsonAsync(new ProblemDetails
-        {
-            Type = "https://api.example.com/errors/internal-server-error",
-            Title = "Internal Server Error",
-            Status = 500,
-            Detail = "An unexpected error occurred.",
-            Extensions = { ["traceId"] = httpContext.TraceIdentifier }
-        }, ct);
+        await httpContext.Response.WriteAsJsonAsync(
+            ApiResponse<object?>.Fail(
+                "An unexpected error occurred.",
+                [
+                    new ApiErrorDto(
+                        "Unexpected",
+                        "An unexpected error occurred.",
+                        "Unexpected")
+                ],
+                httpContext.TraceIdentifier),
+            ct);
 
         return true;
     }

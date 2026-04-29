@@ -8,21 +8,28 @@ namespace SalamHack.Infrastructure.Analytics;
 
 public sealed class ServiceHistoryAnalyzer(AppDbContext context) : IServiceHistoryAnalyzer
 {
+    private const int RecentHistoryProjectLimit = 12;
+
     public async Task<ServiceHistoryStats> AnalyzeAsync(
         Guid userId,
         Guid serviceId,
         CancellationToken cancellationToken = default)
     {
-        var projects = await context.Projects
+        var completedProjects = context.Projects
             .AsNoTracking()
-            .Include(p => p.Expenses)
             .Where(p => p.UserId == userId &&
                         p.ServiceId == serviceId &&
-                        p.Status == ProjectStatus.Completed)
-            .ToListAsync(cancellationToken);
+                        p.Status == ProjectStatus.Completed);
 
-        if (projects.Count == 0)
+        var completedProjectCount = await completedProjects.CountAsync(cancellationToken);
+        if (completedProjectCount == 0)
             return ServiceHistoryStats.Empty;
+
+        var projects = await completedProjects
+            .Include(p => p.Expenses)
+            .OrderByDescending(p => p.EndDate)
+            .Take(RecentHistoryProjectLimit)
+            .ToListAsync(cancellationToken);
 
         var estimatedHours = projects.Average(p => p.EstimatedHours);
         var actualHours = projects.Average(p => p.ActualHours > 0 ? p.ActualHours : p.EstimatedHours);
@@ -42,7 +49,7 @@ public sealed class ServiceHistoryAnalyzer(AppDbContext context) : IServiceHisto
         });
 
         return new ServiceHistoryStats(
-            CompletedProjectCount: projects.Count,
+            CompletedProjectCount: completedProjectCount,
             AverageEstimatedHours: Math.Round(estimatedHours, 2),
             AverageActualHours: Math.Round(actualHours, 2),
             AverageMarginPercent: Math.Round(avgMarginPercent, 2),

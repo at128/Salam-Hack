@@ -41,6 +41,9 @@ public static class ApplicationErrors
     {
         public static readonly Error ExpenseNotFound =
             Error.NotFound("Expenses.ExpenseNotFound", "Expense was not found.");
+
+        public static readonly Error ExpenseReceiptNotFound =
+            Error.NotFound("Expenses.ExpenseReceiptNotFound", "Expense receipt was not found.");
     }
 
     public static class Invoices

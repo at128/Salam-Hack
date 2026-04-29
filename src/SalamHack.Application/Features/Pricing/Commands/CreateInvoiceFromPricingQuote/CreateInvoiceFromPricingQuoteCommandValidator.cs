@@ -46,6 +46,6 @@ public sealed class CreateInvoiceFromPricingQuoteCommandValidator : AbstractVali
 
         RuleFor(x => x.Currency)
             .NotEmpty()
-            .MaximumLength(3);
+            .MaximumLength(10);
     }
 }

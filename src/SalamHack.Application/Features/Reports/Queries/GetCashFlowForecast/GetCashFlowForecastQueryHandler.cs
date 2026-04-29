@@ -25,7 +25,7 @@ public sealed class GetCashFlowForecastQueryHandler(
 
         var totalInflows = await context.Payments
             .AsNoTracking()
-            .Where(p => p.Invoice.Project.UserId == query.UserId &&
+            .Where(p => p.Invoice.UserId == query.UserId &&
                         p.PaymentDate <= asOfUtc &&
                         (openingBalance.EffectiveAtUtc == null || p.PaymentDate > openingBalance.EffectiveAtUtc))
             .SumAsync(p => (decimal?)p.Amount, ct) ?? 0;
@@ -39,7 +39,7 @@ public sealed class GetCashFlowForecastQueryHandler(
 
         var currentMonthInflows = await context.Payments
             .AsNoTracking()
-            .Where(p => p.Invoice.Project.UserId == query.UserId &&
+            .Where(p => p.Invoice.UserId == query.UserId &&
                         p.PaymentDate >= currentMonthStart &&
                         p.PaymentDate < nextMonthStart)
             .SumAsync(p => (decimal?)p.Amount, ct) ?? 0;
@@ -53,7 +53,7 @@ public sealed class GetCashFlowForecastQueryHandler(
 
         var pendingInvoices = await context.Invoices
             .AsNoTracking()
-            .Where(i => i.Project.UserId == query.UserId &&
+            .Where(i => i.UserId == query.UserId &&
                         i.Status != InvoiceStatus.Draft &&
                         i.Status != InvoiceStatus.Paid &&
                         i.Status != InvoiceStatus.Cancelled &&
@@ -90,7 +90,7 @@ public sealed class GetCashFlowForecastQueryHandler(
 
         var trendPayments = await context.Payments
             .AsNoTracking()
-            .Where(p => p.Invoice.Project.UserId == query.UserId &&
+            .Where(p => p.Invoice.UserId == query.UserId &&
                         p.PaymentDate >= trendStart &&
                         p.PaymentDate < nextMonthStart)
             .Select(p => new MonthlyAmount(p.PaymentDate.Year, p.PaymentDate.Month, p.Amount))
@@ -154,7 +154,7 @@ public sealed class GetCashFlowForecastQueryHandler(
         var delayedAmount = await context.Invoices
             .AsNoTracking()
             .Where(i => i.CustomerId == customerId &&
-                        i.Project.UserId == userId &&
+                        i.UserId == userId &&
                         i.Status != InvoiceStatus.Draft &&
                         i.Status != InvoiceStatus.Paid &&
                         i.Status != InvoiceStatus.Cancelled &&

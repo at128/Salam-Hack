@@ -7,7 +7,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace SalamHack.Application.Features.Invoices.Queries.GetInvoiceById;
 
-public sealed class GetInvoiceByIdQueryHandler(IAppDbContext context)
+public sealed class GetInvoiceByIdQueryHandler(
+    IAppDbContext context,
+    TimeProvider timeProvider)
     : IRequestHandler<GetInvoiceByIdQuery, Result<InvoiceDto>>
 {
     public async Task<Result<InvoiceDto>> Handle(GetInvoiceByIdQuery query, CancellationToken ct)
@@ -17,10 +19,10 @@ public sealed class GetInvoiceByIdQueryHandler(IAppDbContext context)
             .Include(i => i.Project)
                 .ThenInclude(p => p.Customer)
             .Include(i => i.Payments)
-            .FirstOrDefaultAsync(i => i.Id == query.InvoiceId && i.Project.UserId == query.UserId, ct);
+            .FirstOrDefaultAsync(i => i.Id == query.InvoiceId && i.UserId == query.UserId, ct);
 
         return invoice is null
             ? ApplicationErrors.Invoices.InvoiceNotFound
-            : invoice.ToDto();
+            : invoice.ToDto(timeProvider.GetUtcNow());
     }
 }

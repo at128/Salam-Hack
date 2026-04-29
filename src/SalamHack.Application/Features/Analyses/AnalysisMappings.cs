@@ -21,5 +21,6 @@ internal static class AnalysisMappings
             analysis.MetadataJson,
             analysis.ReviewedAtUtc,
             analysis.CreatedAtUtc,
-            analysis.LastModifiedUtc);
+            analysis.LastModifiedUtc,
+            ProjectAiAnalysisFactory.TryParseMetadata(analysis.MetadataJson));
 }

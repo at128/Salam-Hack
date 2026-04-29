@@ -1,6 +1,7 @@
 using SalamHack.Application.Common.Interfaces;
 using SalamHack.Application.Features.Reports.Models;
 using SalamHack.Domain.Common.Results;
+using SalamHack.Domain.Projects;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -24,6 +25,7 @@ public sealed class GetProfitabilityReportQueryHandler(
             .Include(p => p.Service)
             .Include(p => p.Expenses)
             .Where(p => p.UserId == query.UserId &&
+                        p.Status == ProjectStatus.Completed &&
                         p.EndDate >= fromUtc &&
                         p.EndDate <= toUtc)
             .ToListAsync(ct);

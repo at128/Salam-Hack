@@ -456,18 +456,26 @@ namespace SalamHack.Infrastructure.Data.Migrations
                     b.Property<decimal>("TotalWithTax")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.HasKey("Id");
 
                     b.HasIndex("CustomerId");
+
+                    b.HasIndex("CustomerId", "UserId");
 
                     b.HasIndex("DeletedAtUtc");
 
                     b.HasIndex("DueDate");
 
-                    b.HasIndex("InvoiceNumber")
-                        .IsUnique();
-
                     b.HasIndex("Status");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("UserId", "InvoiceNumber")
+                        .IsUnique()
+                        .HasFilter("[DeletedAtUtc] IS NULL");
 
                     b.HasIndex("ProjectId", "CustomerId");
 
@@ -977,8 +985,15 @@ namespace SalamHack.Infrastructure.Data.Migrations
                 {
                     b.HasOne("SalamHack.Domain.Customers.Customer", null)
                         .WithMany()
-                        .HasForeignKey("CustomerId")
+                        .HasForeignKey("CustomerId", "UserId")
+                        .HasPrincipalKey("Id", "UserId")
                         .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SalamHack.Infrastructure.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("SalamHack.Domain.Projects.Project", "Project")

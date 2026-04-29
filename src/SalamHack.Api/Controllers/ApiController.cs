@@ -1,8 +1,8 @@
 using System.Security.Claims;
 using Asp.Versioning;
+using SalamHack.Api.Responses;
 using SalamHack.Domain.Common.Results;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.ModelBinding;
 
 namespace SalamHack.Api.Controllers;
 
@@ -17,20 +17,65 @@ public abstract class ApiController : ControllerBase
         return Guid.TryParse(userIdValue, out userId);
     }
 
-    protected ActionResult Problem(List<Error> errors)
+    protected IActionResult OkResponse<T>(T? data, string? message = null)
+        => Ok(ApiResponse<T>.Ok(data, message, HttpContext.TraceIdentifier));
+
+    protected IActionResult CreatedResponse<T>(
+        string? actionName,
+        object? routeValues,
+        T data,
+        string? message = null)
     {
-        if (errors.Count == 0)
-            return Problem();
+        var response = ApiResponse<T>.Ok(
+            data,
+            message ?? "Created successfully.",
+            HttpContext.TraceIdentifier);
 
-        if (errors.All(e => e.Type == ErrorKind.Validation))
-            return ValidationProblem(errors);
-
-        return Problem(errors[0]);
+        return string.IsNullOrWhiteSpace(actionName)
+            ? StatusCode(StatusCodes.Status201Created, response)
+            : CreatedAtAction(actionName, routeValues, response);
     }
 
-    private ActionResult Problem(Error error)
+    protected IActionResult DeletedResponse(string message = "Deleted successfully.")
+        => Ok(ApiResponse<object?>.Ok(null, message, HttpContext.TraceIdentifier));
+
+    protected IActionResult AcceptedResponse<T>(T data, string? message = null)
+        => Accepted(ApiResponse<T>.Ok(data, message, HttpContext.TraceIdentifier));
+
+    protected IActionResult UnauthorizedResponse()
+        => StatusCode(
+            StatusCodes.Status401Unauthorized,
+            ApiResponse<object?>.Fail(
+                "Unauthorized.",
+                [new ApiErrorDto("Auth.Unauthorized", "User is not authenticated.", ErrorKind.Unauthorized.ToString())],
+                HttpContext.TraceIdentifier));
+
+    protected IActionResult Problem(List<Error> errors)
     {
-        var statusCode = error.Type switch
+        if (errors.Count == 0)
+        {
+            return StatusCode(
+                StatusCodes.Status500InternalServerError,
+                ApiResponse<object?>.Fail(
+                    "Unexpected error.",
+                    [new ApiErrorDto("Unexpected", "Unexpected error.", ErrorKind.Unexpected.ToString())],
+                    HttpContext.TraceIdentifier));
+        }
+
+        var statusCode = errors.All(e => e.Type == ErrorKind.Validation)
+            ? StatusCodes.Status400BadRequest
+            : GetStatusCode(errors[0]);
+
+        return StatusCode(
+            statusCode,
+            ApiResponse<object?>.Fail(
+                GetErrorMessage(errors),
+                errors.Select(ToApiError).ToList(),
+                HttpContext.TraceIdentifier));
+    }
+
+    private static int GetStatusCode(Error error)
+        => error.Type switch
         {
             ErrorKind.Validation => StatusCodes.Status400BadRequest,
             ErrorKind.Unauthorized => StatusCodes.Status401Unauthorized,
@@ -41,18 +86,11 @@ public abstract class ApiController : ControllerBase
             _ => StatusCodes.Status500InternalServerError,
         };
 
-        return Problem(
-            statusCode: statusCode,
-            title: error.Code,
-            detail: error.Description);
-    }
+    private static string GetErrorMessage(IReadOnlyCollection<Error> errors)
+        => errors.Count == 1
+            ? errors.First().Description
+            : "One or more errors occurred.";
 
-    private ActionResult ValidationProblem(List<Error> errors)
-    {
-        var modelState = new ModelStateDictionary();
-        foreach (var error in errors)
-            modelState.AddModelError(error.Code, error.Description);
-
-        return ValidationProblem(modelState);
-    }
+    private static ApiErrorDto ToApiError(Error error)
+        => new(error.Code, error.Description, error.Type.ToString());
 }

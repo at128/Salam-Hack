@@ -37,7 +37,7 @@ public sealed class CreateInvoiceFromPricingQuoteCommandHandler(
 
         var invoiceNumber = cmd.InvoiceNumber.Trim();
         var numberExists = await context.Invoices
-            .AnyAsync(i => i.InvoiceNumber == invoiceNumber, ct);
+            .AnyAsync(i => i.UserId == cmd.UserId && i.InvoiceNumber == invoiceNumber, ct);
 
         if (numberExists)
             return ApplicationErrors.Invoices.InvoiceNumberAlreadyExists;
@@ -49,7 +49,10 @@ public sealed class CreateInvoiceFromPricingQuoteCommandHandler(
             cmd.ServiceId,
             cmd.EstimatedHours,
             cmd.Complexity,
+            cmd.ToolCost,
             PricingQuoteBuilder.DefaultRecentProjectCount,
+            cmd.Revision,
+            cmd.IsUrgent,
             ct);
 
         if (calculation.IsError)
@@ -78,6 +81,7 @@ public sealed class CreateInvoiceFromPricingQuoteCommandHandler(
         var project = projectResult.Value;
         var advanceAmount = PricingQuoteBuilder.GetAdvanceAmount(calculation.Value.Pricing, cmd.SelectedPlan);
         var invoiceResult = Invoice.Create(
+            cmd.UserId,
             project.Id,
             project.CustomerId,
             invoiceNumber,
@@ -125,7 +129,7 @@ public sealed class CreateInvoiceFromPricingQuoteCommandHandler(
             .Include(i => i.Project)
                 .ThenInclude(p => p.Customer)
             .Include(i => i.Payments)
-            .FirstOrDefaultAsync(i => i.Id == invoiceId && i.Project.UserId == userId, ct);
+            .FirstOrDefaultAsync(i => i.Id == invoiceId && i.UserId == userId, ct);
 
         return invoice?.ToDto();
     }

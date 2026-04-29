@@ -7,7 +7,10 @@ using SalamHack.Infrastructure.Caching;
 using SalamHack.Infrastructure.Data;
 using SalamHack.Infrastructure.Data.Interceptors;
 using SalamHack.Infrastructure.Identity;
+using SalamHack.Infrastructure.Invoices;
+using SalamHack.Infrastructure.Reports;
 using SalamHack.Infrastructure.Settings;
+using SalamHack.Infrastructure.Storage;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -37,13 +40,19 @@ public static class DependencyInjection
         services.AddScoped<ITokenProvider, TokenProvider>();
         services.AddScoped<IIdentityService, IdentityService>();
         services.AddScoped<IServiceHistoryAnalyzer, ServiceHistoryAnalyzer>();
+        services.AddScoped<IProjectAnalysisAiClient, OpenAiProjectAnalysisClient>();
         services.AddScoped<IExpenseClassifier, RuleBasedExpenseClassifier>();
+        services.AddScoped<IInvoicePdfRenderer, InvoicePdfRenderer>();
+        services.AddScoped<IExpenseReceiptStorage, FileSystemExpenseReceiptStorage>();
+        services.AddScoped<IReportExporter, ReportExporter>();
 
         services.AddHybridCache();
         services.AddScoped<ICacheInvalidator, CacheInvalidator>();
 
         services.AddAdminBootstrap(configuration);
         services.AddRefreshToken(configuration);
+        services.AddExpenseReceiptStorage(configuration);
+        services.AddProjectAnalysisAi(configuration);
 
         return services;
     }
@@ -173,6 +182,39 @@ public static class DependencyInjection
             .ValidateOnStart();
 
         services.AddHostedService<RefreshTokenCleanupService>();
+
+        return services;
+    }
+
+    private static IServiceCollection AddExpenseReceiptStorage(
+        this IServiceCollection services,
+        IConfiguration configuration)
+    {
+        services.AddOptions<ExpenseReceiptStorageSettings>()
+            .Bind(configuration.GetSection(ExpenseReceiptStorageSettings.SectionName))
+            .Validate(s => !string.IsNullOrWhiteSpace(s.RootPath),
+                $"{ExpenseReceiptStorageSettings.SectionName}:RootPath is required.")
+            .ValidateOnStart();
+
+        return services;
+    }
+
+    private static IServiceCollection AddProjectAnalysisAi(
+        this IServiceCollection services,
+        IConfiguration configuration)
+    {
+        services.AddOptions<ProjectAnalysisAiSettings>()
+            .Bind(configuration.GetSection(ProjectAnalysisAiSettings.SectionName))
+            .Validate(s => !s.Enabled || !string.IsNullOrWhiteSpace(s.ApiKey),
+                $"{ProjectAnalysisAiSettings.SectionName}:ApiKey is required when Enabled=true.")
+            .Validate(s => !s.Enabled || !string.IsNullOrWhiteSpace(s.Endpoint),
+                $"{ProjectAnalysisAiSettings.SectionName}:Endpoint is required when Enabled=true.")
+            .Validate(s => !s.Enabled || !string.IsNullOrWhiteSpace(s.Model),
+                $"{ProjectAnalysisAiSettings.SectionName}:Model is required when Enabled=true.")
+            .Validate(s => s.TimeoutSeconds is >= 5 and <= 120,
+                $"{ProjectAnalysisAiSettings.SectionName}:TimeoutSeconds must be between 5 and 120.")
+            .Validate(s => s.Temperature is >= 0 and <= 2,
+                $"{ProjectAnalysisAiSettings.SectionName}:Temperature must be between 0 and 2.");
 
         return services;
     }

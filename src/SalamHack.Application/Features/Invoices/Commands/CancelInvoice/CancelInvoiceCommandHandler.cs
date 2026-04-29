@@ -16,7 +16,7 @@ public sealed class CancelInvoiceCommandHandler(IAppDbContext context)
             .Include(i => i.Project)
                 .ThenInclude(p => p.Customer)
             .Include(i => i.Payments)
-            .FirstOrDefaultAsync(i => i.Id == cmd.InvoiceId && i.Project.UserId == cmd.UserId, ct);
+            .FirstOrDefaultAsync(i => i.Id == cmd.InvoiceId && i.UserId == cmd.UserId, ct);
 
         if (invoice is null)
             return ApplicationErrors.Invoices.InvoiceNotFound;

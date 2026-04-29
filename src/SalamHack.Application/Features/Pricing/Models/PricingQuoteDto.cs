@@ -16,4 +16,5 @@ public sealed record PricingQuoteDto(
     ServiceHistoryStatsDto History,
     IReadOnlyCollection<ServiceHistoryProjectDto> RecentProjects,
     IReadOnlyCollection<PricingPlanDto> Plans,
-    IReadOnlyCollection<PricingInsightDto> Insights);
+    IReadOnlyCollection<PricingInsightDto> Insights,
+    PricingAdjustmentDto Adjustments);

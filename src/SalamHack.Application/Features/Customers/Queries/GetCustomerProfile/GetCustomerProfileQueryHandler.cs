@@ -8,7 +8,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace SalamHack.Application.Features.Customers.Queries.GetCustomerProfile;
 
-public sealed class GetCustomerProfileQueryHandler(IAppDbContext context)
+public sealed class GetCustomerProfileQueryHandler(
+    IAppDbContext context,
+    TimeProvider timeProvider)
     : IRequestHandler<GetCustomerProfileQuery, Result<CustomerProfileDto>>
 {
     public async Task<Result<CustomerProfileDto>> Handle(GetCustomerProfileQuery query, CancellationToken ct)
@@ -19,6 +21,8 @@ public sealed class GetCustomerProfileQueryHandler(IAppDbContext context)
 
         if (customer is null)
             return ApplicationErrors.Customers.CustomerNotFound;
+
+        var asOfUtc = timeProvider.GetUtcNow();
 
         var projects = await context.Projects
             .AsNoTracking()
@@ -38,7 +42,7 @@ public sealed class GetCustomerProfileQueryHandler(IAppDbContext context)
 
         var invoices = await context.Invoices
             .AsNoTracking()
-            .Where(i => i.CustomerId == query.CustomerId && i.Project.UserId == query.UserId)
+            .Where(i => i.CustomerId == query.CustomerId && i.UserId == query.UserId)
             .OrderByDescending(i => i.IssueDate)
             .Select(i => new CustomerInvoiceSummaryDto(
                 i.Id,
@@ -48,14 +52,30 @@ public sealed class GetCustomerProfileQueryHandler(IAppDbContext context)
                 i.TotalWithTax,
                 i.PaidAmount,
                 i.TotalWithTax - i.PaidAmount,
-                i.Status,
+                i.Status != InvoiceStatus.Draft &&
+                i.Status != InvoiceStatus.Cancelled &&
+                i.TotalWithTax <= i.PaidAmount
+                    ? InvoiceStatus.Paid
+                    : i.Status != InvoiceStatus.Draft &&
+                      i.Status != InvoiceStatus.Cancelled &&
+                      i.Status != InvoiceStatus.Paid &&
+                      i.TotalWithTax > i.PaidAmount &&
+                      i.DueDate < asOfUtc
+                    ? InvoiceStatus.Overdue
+                    : i.Status,
                 i.IssueDate,
                 i.DueDate,
                 i.Currency))
             .ToListAsync(ct);
 
-        var totalOverdue = invoices
-            .Where(i => i.Status == InvoiceStatus.Overdue)
+        var billableInvoices = invoices
+            .Where(i => i.Status != InvoiceStatus.Draft && i.Status != InvoiceStatus.Cancelled)
+            .ToList();
+
+        var totalOverdue = billableInvoices
+            .Where(i => i.Status != InvoiceStatus.Paid &&
+                        i.RemainingAmount > 0 &&
+                        (i.Status == InvoiceStatus.Overdue || i.DueDate < asOfUtc))
             .Sum(i => i.RemainingAmount);
 
         var activityDates = projects.Select(p => p.StartDate)
@@ -68,8 +88,8 @@ public sealed class GetCustomerProfileQueryHandler(IAppDbContext context)
             projects.Count,
             activityDates.Count > 0 ? activityDates.Min() : null,
             activityDates.Count > 0 ? activityDates.Max() : null,
-            invoices.Sum(i => i.TotalWithTax),
-            invoices.Sum(i => i.PaidAmount),
+            billableInvoices.Sum(i => i.TotalWithTax),
+            billableInvoices.Sum(i => i.PaidAmount),
             totalOverdue,
             projects,
             invoices);

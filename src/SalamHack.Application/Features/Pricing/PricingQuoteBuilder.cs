@@ -21,7 +21,10 @@ internal static class PricingQuoteBuilder
         Guid serviceId,
         decimal estimatedHours,
         ComplexityLevel complexity,
+        decimal toolCost,
         int recentProjectCount,
+        int? requestedRevisions,
+        bool isUrgent,
         CancellationToken ct)
     {
         var service = await context.Services
@@ -35,12 +38,19 @@ internal static class PricingQuoteBuilder
             return ApplicationErrors.Services.InactiveServiceCannotBeUsed;
 
         var history = await serviceHistoryAnalyzer.AnalyzeAsync(userId, serviceId, ct);
+        var effectiveRequestedRevisions = requestedRevisions ?? service.DefaultRevisions;
         var pricing = PricingCalculator.CalculateRecommendedPrices(
             estimatedHours,
             complexity,
             history.HoursOverrunFactor,
             history.CostOverrunFactor,
-            history.AverageExtraExpenses);
+            history.AverageExtraExpenses,
+            toolCost,
+            service.DefaultHourlyRate,
+            service.DefaultRevisions,
+            effectiveRequestedRevisions,
+            isUrgent,
+            history.HasHistory);
 
         var recentProjects = await GetRecentProjectsAsync(context, userId, serviceId, recentProjectCount, ct);
         var quote = BuildQuote(service, history, pricing, recentProjects, estimatedHours, complexity);
@@ -109,6 +119,22 @@ internal static class PricingQuoteBuilder
                 true)
         };
 
+        var adjustments = new PricingAdjustmentDto(
+            service.DefaultHourlyRate,
+            pricing.ComplexityMultiplier,
+            pricing.HistoricalHoursFactor,
+            pricing.AppliedCostFactor,
+            pricing.HourlyFloorPrice,
+            pricing.CostBasedPrice,
+            pricing.BaseRecommendedPrice,
+            pricing.IncludedRevisions,
+            pricing.RequestedRevisions,
+            pricing.ExtraRevisionCount,
+            pricing.IsUrgent,
+            pricing.RevisionMultiplier,
+            pricing.UrgencyMultiplier,
+            pricing.ConfidenceMultiplier);
+
         return new PricingQuoteDto(
             service.Id,
             service.ServiceName,
@@ -123,7 +149,8 @@ internal static class PricingQuoteBuilder
             historyDto,
             recentProjects,
             plans,
-            BuildInsights(history, naiveMargin));
+            BuildInsights(history, naiveMargin, pricing),
+            adjustments);
     }
 
     private static async Task<IReadOnlyCollection<ServiceHistoryProjectDto>> GetRecentProjectsAsync(
@@ -164,38 +191,72 @@ internal static class PricingQuoteBuilder
 
     private static IReadOnlyCollection<PricingInsightDto> BuildInsights(
         ServiceHistoryStats history,
-        decimal naiveMargin)
+        decimal naiveMargin,
+        PricingResult pricing)
     {
+        var insights = new List<PricingInsightDto>();
+
         if (!history.HasHistory)
         {
-            return
-            [
-                new PricingInsightDto(
-                    PricingInsightSeverity.Info,
-                    "No completed project history exists for this service yet.")
-            ];
-        }
+            insights.Add(new PricingInsightDto(
+                PricingInsightSeverity.Info,
+                "No completed project history exists for this service yet."));
 
-        var insights = new List<PricingInsightDto>
+            if (pricing.ConfidenceMultiplier > 1)
+            {
+                insights.Add(new PricingInsightDto(
+                    PricingInsightSeverity.Info,
+                    "A small confidence buffer was applied until enough history is available."));
+            }
+        }
+        else
         {
-            new(
+            insights.Add(new PricingInsightDto(
                 history.HoursOverrunFactor > 1.1m ? PricingInsightSeverity.Warning : PricingInsightSeverity.Success,
-                $"Historical hours factor is {history.HoursOverrunFactor:0.##}x."),
-            new(
+                $"Historical hours factor is {history.HoursOverrunFactor:0.##}x."));
+            insights.Add(new PricingInsightDto(
                 history.AverageExtraExpenses > 0 ? PricingInsightSeverity.Warning : PricingInsightSeverity.Success,
-                $"Average extra expenses are {history.AverageExtraExpenses:0.##}."),
-            new(
+                $"Average extra expenses are {history.AverageExtraExpenses:0.##}."));
+            insights.Add(new PricingInsightDto(
                 history.AverageMarginPercent >= ApplicationConstants.BusinessRules.HealthyMarginThreshold
                     ? PricingInsightSeverity.Success
                     : PricingInsightSeverity.Warning,
-                $"Historical average margin is {history.AverageMarginPercent:0.##}%.")
-        };
+                $"Historical average margin is {history.AverageMarginPercent:0.##}%."));
+        }
 
         if (naiveMargin < ApplicationConstants.BusinessRules.AtRiskMarginThreshold)
         {
             insights.Add(new PricingInsightDto(
                 PricingInsightSeverity.Critical,
                 "Naive pricing would put this estimate below the at-risk margin threshold."));
+        }
+
+        if (pricing.HourlyFloorPrice > pricing.CostBasedPrice)
+        {
+            insights.Add(new PricingInsightDto(
+                PricingInsightSeverity.Success,
+                "The service hourly rate protected the quote from underpricing."));
+        }
+
+        if (pricing.ExtraRevisionCount > 0)
+        {
+            insights.Add(new PricingInsightDto(
+                PricingInsightSeverity.Warning,
+                $"{pricing.ExtraRevisionCount} extra revision(s) added {ApplicationConstants.BusinessRules.ExtraRevisionPriceRate * 100:0.##}% each."));
+        }
+
+        if (pricing.IsUrgent)
+        {
+            insights.Add(new PricingInsightDto(
+                PricingInsightSeverity.Warning,
+                "Urgent delivery pricing was applied."));
+        }
+
+        if (pricing.EconomyPrice == pricing.MinAcceptablePrice)
+        {
+            insights.Add(new PricingInsightDto(
+                PricingInsightSeverity.Info,
+                "Economy pricing was raised to the minimum acceptable price."));
         }
 
         return insights;

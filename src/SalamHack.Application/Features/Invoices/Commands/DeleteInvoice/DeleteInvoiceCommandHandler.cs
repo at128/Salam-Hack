@@ -12,7 +12,7 @@ public sealed class DeleteInvoiceCommandHandler(IAppDbContext context, TimeProvi
     public async Task<Result<Deleted>> Handle(DeleteInvoiceCommand cmd, CancellationToken ct)
     {
         var invoice = await context.Invoices
-            .FirstOrDefaultAsync(i => i.Id == cmd.InvoiceId && i.Project.UserId == cmd.UserId, ct);
+            .FirstOrDefaultAsync(i => i.Id == cmd.InvoiceId && i.UserId == cmd.UserId, ct);
 
         if (invoice is null)
             return ApplicationErrors.Invoices.InvoiceNotFound;

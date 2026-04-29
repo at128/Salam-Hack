@@ -27,7 +27,7 @@ public sealed class PaymentRecordedDomainEventHandler(IAppDbContext context)
             notification.InvoiceId,
             message);
 
-        await DomainEventHandlerHelpers.AddNotificationIfMissingAsync(context, paymentNotification, ct);
+        context.Notifications.Add(paymentNotification);
         await context.SaveChangesAsync(ct);
     }
 }

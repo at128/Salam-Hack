@@ -22,12 +22,13 @@ public sealed class CreateInvoiceCommandHandler(IAppDbContext context)
 
         var invoiceNumber = cmd.InvoiceNumber.Trim();
         var numberExists = await context.Invoices
-            .AnyAsync(i => i.InvoiceNumber == invoiceNumber, ct);
+            .AnyAsync(i => i.UserId == cmd.UserId && i.InvoiceNumber == invoiceNumber, ct);
 
         if (numberExists)
             return ApplicationErrors.Invoices.InvoiceNumberAlreadyExists;
 
         var invoiceResult = Invoice.Create(
+            cmd.UserId,
             cmd.ProjectId,
             project.CustomerId,
             invoiceNumber,
@@ -59,7 +60,7 @@ public sealed class CreateInvoiceCommandHandler(IAppDbContext context)
             .Include(i => i.Project)
                 .ThenInclude(p => p.Customer)
             .Include(i => i.Payments)
-            .FirstOrDefaultAsync(i => i.Id == invoiceId && i.Project.UserId == userId, ct);
+            .FirstOrDefaultAsync(i => i.Id == invoiceId && i.UserId == userId, ct);
 
         return invoice?.ToDto();
     }

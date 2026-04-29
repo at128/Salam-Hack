@@ -21,10 +21,12 @@ public sealed class GetNotificationsQueryHandler(IAppDbContext context)
         if (query.Type.HasValue)
             notificationsQuery = notificationsQuery.Where(n => n.Type == query.Type.Value);
 
+        var take = Math.Clamp(query.Take, 1, 100);
+
         var notifications = await notificationsQuery
             .OrderBy(n => n.IsRead)
             .ThenByDescending(n => n.ScheduledAt ?? n.CreatedAtUtc)
-            .Take(query.Take)
+            .Take(take)
             .Select(n => new NotificationDto(
                 n.Id,
                 n.UserId,

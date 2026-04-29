@@ -14,7 +14,8 @@ public sealed class RefreshTokenCommandHandler(
     IRefreshTokenRepository refreshTokenRepository,
     IIdentityService identityService,
     ICookieService cookieService,
-    IOptions<RefreshTokenSettings> rtOptions)
+    IOptions<RefreshTokenSettings> rtOptions,
+    TimeProvider timeProvider)
     : IRequestHandler<RefreshTokenCommand, Result<TokenResponse>>
 {
     private readonly RefreshTokenSettings _rtSettings = rtOptions.Value;
@@ -22,6 +23,7 @@ public sealed class RefreshTokenCommandHandler(
     public async Task<Result<TokenResponse>> Handle(
          RefreshTokenCommand cmd, CancellationToken ct)
     {
+        var nowUtc = timeProvider.GetUtcNow();
 
         var rawToken = cookieService.GetRefreshTokenFromCookie();
 
@@ -46,7 +48,7 @@ public sealed class RefreshTokenCommandHandler(
             return ApplicationErrors.Auth.RefreshTokenReuse;
         }
 
-        if (!stored.IsActive)
+        if (stored.IsRevoked || stored.ExpiresAt <= nowUtc)
         {
             cookieService.RemoveRefreshTokenCookie();
             return ApplicationErrors.Auth.InvalidRefreshToken;
@@ -83,13 +85,13 @@ public sealed class RefreshTokenCommandHandler(
             IsActive: true,
             IsUsed: false,
             IsRevoked: false,
-            ExpiresAt: DateTimeOffset.UtcNow.AddDays(_rtSettings.ExpiryDays));
+            ExpiresAt: nowUtc.AddDays(_rtSettings.ExpiryDays));
 
         var rotated = await refreshTokenRepository.RotateAsync(
             oldTokenId: stored.Id,
             oldTokenFamily: stored.Family,
             newToken: newRTData,
-            nowUtc: DateTimeOffset.UtcNow,
+            nowUtc: nowUtc,
             ct: ct);
 
         if (!rotated)

@@ -54,6 +54,23 @@ public sealed class RuleBasedExpenseClassifier : IExpenseClassifier
         "\u062a\u0637\u0648\u064a\u0631 \u0645\u0647\u0646\u064a"
     ];
 
+    private static readonly string[] TransportationTerms =
+    [
+        "transport",
+        "transportation",
+        "delivery",
+        "ride",
+        "taxi",
+        "uber",
+        "fuel",
+        "\u0645\u0648\u0627\u0635\u0644\u0627\u062a",
+        "\u062a\u0648\u0635\u064a\u0644",
+        "\u0645\u0634\u0627\u0648\u064a\u0631",
+        "\u0628\u0646\u0632\u064a\u0646",
+        "\u062a\u0627\u0643\u0633\u064a",
+        "\u0627\u0648\u0628\u0631"
+    ];
+
     private static readonly string[] CommunicationTerms =
     [
         "phone",
@@ -80,6 +97,8 @@ public sealed class RuleBasedExpenseClassifier : IExpenseClassifier
                 => ExpenseCategory.Marketing,
             _ when ContainsAny(text, ProfessionalDevelopmentTerms)
                 => ExpenseCategory.ProfessionalDevelopment,
+            _ when ContainsAny(text, TransportationTerms)
+                => ExpenseCategory.Transportation,
             _ when ContainsAny(text, CommunicationTerms)
                 => ExpenseCategory.Communications,
             _ => ExpenseCategory.Other

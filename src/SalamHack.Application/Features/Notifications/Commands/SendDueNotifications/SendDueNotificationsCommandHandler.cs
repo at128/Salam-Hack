@@ -16,7 +16,9 @@ public sealed class SendDueNotificationsCommandHandler(
         SendDueNotificationsCommand cmd,
         CancellationToken ct)
     {
-        var dueAt = cmd.DueAtUtc ?? timeProvider.GetUtcNow();
+        var sentAt = timeProvider.GetUtcNow();
+        var dueAt = cmd.DueAtUtc ?? sentAt;
+        var take = Math.Clamp(cmd.Take, 1, 500);
         var notificationsQuery = context.Notifications
             .Where(n => n.SentAt == null &&
                         (n.ScheduledAt == null || n.ScheduledAt <= dueAt));
@@ -26,7 +28,7 @@ public sealed class SendDueNotificationsCommandHandler(
 
         var notifications = await notificationsQuery
             .OrderBy(n => n.ScheduledAt ?? n.CreatedAtUtc)
-            .Take(cmd.Take)
+            .Take(take)
             .ToListAsync(ct);
 
         var failures = new List<NotificationDeliveryFailureDto>();
@@ -53,7 +55,7 @@ public sealed class SendDueNotificationsCommandHandler(
                 continue;
             }
 
-            notification.MarkAsSent(dueAt);
+            notification.MarkAsSent(sentAt);
             sentCount++;
         }
 

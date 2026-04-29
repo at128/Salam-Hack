@@ -7,7 +7,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace SalamHack.Application.Features.Invoices.Commands.RecordPayment;
 
-public sealed class RecordPaymentCommandHandler(IAppDbContext context)
+public sealed class RecordPaymentCommandHandler(
+    IAppDbContext context,
+    TimeProvider timeProvider)
     : IRequestHandler<RecordPaymentCommand, Result<InvoiceDto>>
 {
     public async Task<Result<InvoiceDto>> Handle(RecordPaymentCommand cmd, CancellationToken ct)
@@ -16,7 +18,7 @@ public sealed class RecordPaymentCommandHandler(IAppDbContext context)
             .Include(i => i.Project)
                 .ThenInclude(p => p.Customer)
             .Include(i => i.Payments)
-            .FirstOrDefaultAsync(i => i.Id == cmd.InvoiceId && i.Project.UserId == cmd.UserId, ct);
+            .FirstOrDefaultAsync(i => i.Id == cmd.InvoiceId && i.UserId == cmd.UserId, ct);
 
         if (invoice is null)
             return ApplicationErrors.Invoices.InvoiceNotFound;
@@ -33,6 +35,6 @@ public sealed class RecordPaymentCommandHandler(IAppDbContext context)
 
         await context.SaveChangesAsync(ct);
 
-        return invoice.ToDto();
+        return invoice.ToDto(timeProvider.GetUtcNow());
     }
 }

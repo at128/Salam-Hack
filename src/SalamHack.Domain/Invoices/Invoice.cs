@@ -16,6 +16,7 @@ public class Invoice : AuditableEntity, ISoftDeletable
 
     private Invoice(
         Guid id,
+        Guid userId,
         Guid projectId,
         Guid customerId,
         string invoiceNumber,
@@ -29,6 +30,7 @@ public class Invoice : AuditableEntity, ISoftDeletable
         string? notes)
         : base(id)
     {
+        UserId = userId;
         ProjectId = projectId;
         CustomerId = customerId;
         InvoiceNumber = invoiceNumber;
@@ -44,6 +46,7 @@ public class Invoice : AuditableEntity, ISoftDeletable
         Notes = notes;
     }
 
+    public Guid UserId { get; private set; }
     public Guid ProjectId { get; private set; }
     public Guid CustomerId { get; private set; }
     public string InvoiceNumber { get; private set; } = null!;
@@ -63,13 +66,17 @@ public class Invoice : AuditableEntity, ISoftDeletable
     public decimal AdvanceRemainingAmount => Math.Max(AdvanceAmount - PaidAmount, 0);
     public bool HasAdvanceBeenPaid => AdvanceRemainingAmount <= 0;
     public bool IsFullyPaid => RemainingAmount <= 0;
-    public bool IsOverdue => !IsFullyPaid && DueDate < DateTimeOffset.UtcNow;
+    public bool IsOverdue => Status != InvoiceStatus.Draft &&
+                             Status != InvoiceStatus.Cancelled &&
+                             !IsFullyPaid &&
+                             DueDate < DateTimeOffset.UtcNow;
 
     public Project Project { get; private set; } = null!;
     public ICollection<Payment> Payments { get; private set; } = [];
     public ICollection<Notification> Notifications { get; private set; } = [];
 
     public static Result<Invoice> Create(
+        Guid userId,
         Guid projectId,
         Guid customerId,
         string invoiceNumber,
@@ -80,6 +87,9 @@ public class Invoice : AuditableEntity, ISoftDeletable
         string currency,
         string? notes = null)
     {
+        if (userId == Guid.Empty)
+            return InvoiceErrors.InvalidUserId;
+
         if (projectId == Guid.Empty)
             return InvoiceErrors.InvalidProjectId;
 
@@ -98,6 +108,7 @@ public class Invoice : AuditableEntity, ISoftDeletable
 
         return new Invoice(
             id: Guid.CreateVersion7(),
+            userId: userId,
             projectId: projectId,
             customerId: customerId,
             invoiceNumber: invoiceNumber.Trim(),
@@ -132,6 +143,9 @@ public class Invoice : AuditableEntity, ISoftDeletable
 
         if (string.IsNullOrWhiteSpace(currency))
             return InvoiceErrors.CurrencyRequired;
+
+        if (!string.Equals(currency.Trim(), Currency, StringComparison.OrdinalIgnoreCase))
+            return InvoiceErrors.PaymentCurrencyMismatch;
 
         var paymentResult = Payment.Create(Id, amount, method, paymentDate, currency, notes);
         if (paymentResult.IsError)
@@ -188,10 +202,22 @@ public class Invoice : AuditableEntity, ISoftDeletable
         return Result.Success;
     }
 
-    public void MarkAsOverdue(Guid customerId)
+    public Result<Success> MarkAsOverdue(Guid customerId, DateTimeOffset asOfUtc)
     {
-        if (IsFullyPaid || Status == InvoiceStatus.Cancelled)
-            return;
+        if (IsFullyPaid)
+            return InvoiceErrors.CannotMarkPaidInvoiceOverdue;
+
+        if (Status == InvoiceStatus.Cancelled)
+            return InvoiceErrors.CannotMarkCancelledInvoiceOverdue;
+
+        if (Status == InvoiceStatus.Draft)
+            return InvoiceErrors.CannotMarkDraftInvoiceOverdue;
+
+        if (Status == InvoiceStatus.Overdue)
+            return Result.Success;
+
+        if (DueDate >= asOfUtc)
+            return InvoiceErrors.InvoiceNotDue;
 
         Status = InvoiceStatus.Overdue;
 
@@ -201,14 +227,25 @@ public class Invoice : AuditableEntity, ISoftDeletable
             customerId: customerId,
             remainingAmount: RemainingAmount,
             dueDate: DueDate));
+
+        return Result.Success;
     }
 
-    public void Send()
+    public Result<Success> Send(DateTimeOffset asOfUtc)
     {
-        if (Status != InvoiceStatus.Draft)
-            return;
+        if (Status != InvoiceStatus.Draft &&
+            Status != InvoiceStatus.Cancelled &&
+            !IsFullyPaid &&
+            DueDate < asOfUtc)
+        {
+            return InvoiceErrors.CannotSendOverdueInvoice;
+        }
 
-        Status = InvoiceStatus.Sent;
+        if (Status != InvoiceStatus.Draft && Status != InvoiceStatus.PartiallyPaid)
+            return InvoiceErrors.OnlyDraftOrPartiallyPaidCanBeSent;
+
+        if (Status == InvoiceStatus.Draft)
+            Status = InvoiceStatus.Sent;
 
         AddDomainEvent(new InvoiceSentDomainEvent(
             invoiceId: Id,
@@ -216,6 +253,8 @@ public class Invoice : AuditableEntity, ISoftDeletable
             customerId: CustomerId,
             totalWithTax: TotalWithTax,
             dueDate: DueDate));
+
+        return Result.Success;
     }
 
     public Result<Success> UpdateDetails(
@@ -255,6 +294,22 @@ public class Invoice : AuditableEntity, ISoftDeletable
     public void Restore()
     {
         DeletedAtUtc = null;
+    }
+
+    public InvoiceStatus GetEffectiveStatus(DateTimeOffset asOfUtc)
+    {
+        if (Status == InvoiceStatus.Draft ||
+            Status == InvoiceStatus.Cancelled)
+        {
+            return Status;
+        }
+
+        if (IsFullyPaid)
+            return InvoiceStatus.Paid;
+
+        return DueDate < asOfUtc
+            ? InvoiceStatus.Overdue
+            : Status;
     }
 
     public static decimal CalculateTax(decimal amount)
@@ -299,13 +354,16 @@ public class Invoice : AuditableEntity, ISoftDeletable
             return;
         }
 
+        if (IsOverdue)
+        {
+            Status = InvoiceStatus.Overdue;
+            return;
+        }
+
         if (PaidAmount > 0)
         {
             Status = InvoiceStatus.PartiallyPaid;
             return;
         }
-
-        if (IsOverdue)
-            Status = InvoiceStatus.Overdue;
     }
 }

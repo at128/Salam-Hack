@@ -6,6 +6,7 @@ public enum ExpenseCategory
     Tools,
     Marketing,
     ProfessionalDevelopment,
+    Transportation,
     Communications,
     Other
 }

@@ -6,7 +6,7 @@ namespace SalamHack.Application.Features.Invoices;
 
 internal static class InvoiceMappings
 {
-    public static InvoiceDto ToDto(this Invoice invoice)
+    public static InvoiceDto ToDto(this Invoice invoice, DateTimeOffset? asOfUtc = null)
         => new(
             invoice.Id,
             invoice.ProjectId,
@@ -21,7 +21,7 @@ internal static class InvoiceMappings
             invoice.PaidAmount,
             invoice.RemainingAmount,
             invoice.AdvanceRemainingAmount,
-            invoice.Status,
+            asOfUtc.HasValue ? invoice.GetEffectiveStatus(asOfUtc.Value) : invoice.Status,
             invoice.IssueDate,
             invoice.DueDate,
             invoice.Notes,

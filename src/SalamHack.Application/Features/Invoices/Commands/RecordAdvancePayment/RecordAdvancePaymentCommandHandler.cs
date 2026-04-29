@@ -7,7 +7,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace SalamHack.Application.Features.Invoices.Commands.RecordAdvancePayment;
 
-public sealed class RecordAdvancePaymentCommandHandler(IAppDbContext context)
+public sealed class RecordAdvancePaymentCommandHandler(
+    IAppDbContext context,
+    TimeProvider timeProvider)
     : IRequestHandler<RecordAdvancePaymentCommand, Result<InvoiceDto>>
 {
     public async Task<Result<InvoiceDto>> Handle(RecordAdvancePaymentCommand cmd, CancellationToken ct)
@@ -16,7 +18,7 @@ public sealed class RecordAdvancePaymentCommandHandler(IAppDbContext context)
             .Include(i => i.Project)
                 .ThenInclude(p => p.Customer)
             .Include(i => i.Payments)
-            .FirstOrDefaultAsync(i => i.Id == cmd.InvoiceId && i.Project.UserId == cmd.UserId, ct);
+            .FirstOrDefaultAsync(i => i.Id == cmd.InvoiceId && i.UserId == cmd.UserId, ct);
 
         if (invoice is null)
             return ApplicationErrors.Invoices.InvoiceNotFound;
@@ -32,6 +34,6 @@ public sealed class RecordAdvancePaymentCommandHandler(IAppDbContext context)
 
         await context.SaveChangesAsync(ct);
 
-        return invoice.ToDto();
+        return invoice.ToDto(timeProvider.GetUtcNow());
     }
 }

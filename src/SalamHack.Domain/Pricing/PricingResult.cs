@@ -8,9 +8,22 @@ public record PricingResult(
     decimal AdvanceAmount,
     decimal RealCost,
     decimal AdjustedHours,
-    decimal TargetMarginPercent)
+    decimal TargetMarginPercent,
+    decimal ComplexityMultiplier,
+    decimal HistoricalHoursFactor,
+    decimal AppliedCostFactor,
+    decimal HourlyFloorPrice,
+    decimal CostBasedPrice,
+    decimal BaseRecommendedPrice,
+    int IncludedRevisions,
+    int RequestedRevisions,
+    int ExtraRevisionCount,
+    bool IsUrgent,
+    decimal RevisionMultiplier,
+    decimal UrgencyMultiplier,
+    decimal ConfidenceMultiplier)
 {
-    public decimal EconomyMarginPercent => MarketPrice > 0
+    public decimal EconomyMarginPercent => EconomyPrice > 0
         ? Math.Round((EconomyPrice - RealCost) / EconomyPrice * 100, 1)
         : 0;
 
