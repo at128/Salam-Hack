@@ -1,8 +1,16 @@
 import { useEffect, useState } from "react";
-import { Bell, ChevronDown, KeyRound, LogOut, Search, UserRound } from "lucide-react";
+import { Bell, ChevronDown, KeyRound, Loader2, LogOut, Plus, Search, Trash2, UserRound } from "lucide-react";
 import { Outlet, useNavigate } from "react-router-dom";
 import Sidebar from "@/components/dashboard/Sidebar";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,12 +19,97 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { clearAuthSession, fetchCurrentProfile, getCurrentUser, storeCurrentUser, type AuthUser } from "@/lib/auth";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import {
+  clearAuthSession,
+  fetchCurrentProfile,
+  getApiErrorMessage,
+  getCurrentUser,
+  getValidAccessToken,
+  storeCurrentUser,
+  unwrapApiResponse,
+  type AuthUser,
+} from "@/lib/auth";
 
 type Props = {
   title?: string;
   subtitle?: string;
 };
+
+type ServiceCategory = "Design" | "Development" | "Consulting" | "Marketing" | "Content" | "Other";
+
+type ServiceOnboardingRow = {
+  id: string;
+  serviceName: string;
+  category: ServiceCategory;
+  defaultHourlyRate: string;
+  defaultRevisions: string;
+  isActive: boolean;
+};
+
+type PaginatedList<T> = {
+  totalCount: number;
+  items: T[];
+};
+
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/+$/, "");
+const SERVICES_API_URL = `${API_BASE_URL}/api/v1/services`;
+
+const CATEGORY_OPTIONS: { value: ServiceCategory; label: string }[] = [
+  { value: "Design", label: "تصميم" },
+  { value: "Development", label: "تطوير" },
+  { value: "Consulting", label: "استشارات" },
+  { value: "Marketing", label: "تسويق" },
+  { value: "Content", label: "محتوى" },
+  { value: "Other", label: "أخرى" },
+];
+
+function createEmptyServiceRow(): ServiceOnboardingRow {
+  return {
+    id: crypto.randomUUID(),
+    serviceName: "",
+    category: "Design",
+    defaultHourlyRate: "",
+    defaultRevisions: "0",
+    isActive: true,
+  };
+}
+
+async function servicesRequest<T>(path = "", init?: RequestInit): Promise<T> {
+  const token = await getValidAccessToken();
+  if (!token) throw new Error("Missing access token.");
+
+  const response = await fetch(`${SERVICES_API_URL}${path}`, {
+    ...init,
+    headers: {
+      Accept: "application/json",
+      Authorization: `Bearer ${token}`,
+      ...(init?.body ? { "Content-Type": "application/json" } : {}),
+      ...init?.headers,
+    },
+  });
+
+  const payload = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    throw payload ?? new Error(getApiErrorMessage(payload, "تعذر تنفيذ الطلب."));
+  }
+
+  return unwrapApiResponse<T>(payload);
+}
+
+function RequiredMark() {
+  return <span className="text-danger">*</span>;
+}
 
 export default function DashboardLayout({
   title,
@@ -24,6 +117,11 @@ export default function DashboardLayout({
 }: Props) {
   const navigate = useNavigate();
   const [user, setUser] = useState<AuthUser | null>(() => getCurrentUser());
+  const [showServicesOnboarding, setShowServicesOnboarding] = useState(false);
+  const [hasCheckedServices, setHasCheckedServices] = useState(false);
+  const [serviceRows, setServiceRows] = useState<ServiceOnboardingRow[]>(() => [createEmptyServiceRow()]);
+  const [isSavingServices, setIsSavingServices] = useState(false);
+  const [servicesError, setServicesError] = useState("");
   const displayName = user ? `${user.firstName} ${user.lastName}`.trim() || user.email : "المستخدم";
   const headerTitle = title ?? `مرحبا، ${displayName}`;
 
@@ -50,9 +148,88 @@ export default function DashboardLayout({
     };
   }, []);
 
+  useEffect(() => {
+    let active = true;
+
+    async function checkServices() {
+      try {
+        const result = await servicesRequest<PaginatedList<unknown>>("?includeInactive=true&pageSize=1");
+        if (!active) return;
+        setHasCheckedServices(true);
+        setShowServicesOnboarding(result.totalCount === 0);
+      } catch {
+        if (!active) return;
+        setHasCheckedServices(true);
+      }
+    }
+
+    void checkServices();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const handleLogout = () => {
     clearAuthSession();
     navigate("/login", { replace: true });
+  };
+
+  const setServiceField = <K extends keyof ServiceOnboardingRow>(
+    rowId: string,
+    field: K,
+    value: ServiceOnboardingRow[K],
+  ) => {
+    setServiceRows((rows) => rows.map((row) => (row.id === rowId ? { ...row, [field]: value } : row)));
+    setServicesError("");
+  };
+
+  const addServiceRow = () => {
+    setServiceRows((rows) => [...rows, createEmptyServiceRow()]);
+  };
+
+  const removeServiceRow = (rowId: string) => {
+    setServiceRows((rows) => (rows.length > 1 ? rows.filter((row) => row.id !== rowId) : rows));
+  };
+
+  const saveServices = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setServicesError("");
+
+    const validRows = serviceRows.map((row) => ({
+      ...row,
+      serviceName: row.serviceName.trim(),
+      defaultHourlyRate: Number(row.defaultHourlyRate),
+      defaultRevisions: Number(row.defaultRevisions),
+    }));
+
+    if (validRows.some((row) => !row.serviceName || row.defaultHourlyRate <= 0 || row.defaultRevisions < 0)) {
+      setServicesError("أدخل اسم الخدمة وسعر الساعة والتعديلات بشكل صحيح.");
+      return;
+    }
+
+    setIsSavingServices(true);
+
+    try {
+      for (const row of validRows) {
+        await servicesRequest("", {
+          method: "POST",
+          body: JSON.stringify({
+            serviceName: row.serviceName,
+            category: row.category,
+            defaultHourlyRate: row.defaultHourlyRate,
+            defaultRevisions: row.defaultRevisions,
+            isActive: row.isActive,
+          }),
+        });
+      }
+
+      setShowServicesOnboarding(false);
+    } catch (error) {
+      setServicesError(getApiErrorMessage(error, "تعذر حفظ الخدمات. تحقق من البيانات وحاول مرة أخرى."));
+    } finally {
+      setIsSavingServices(false);
+    }
   };
 
   return (
@@ -126,6 +303,145 @@ export default function DashboardLayout({
           <Outlet />
         </main>
       </div>
+
+      {hasCheckedServices && (
+        <Dialog open={showServicesOnboarding} onOpenChange={setShowServicesOnboarding}>
+          <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto text-right" dir="rtl">
+            <DialogHeader className="text-right sm:text-right">
+              <DialogTitle>ما الخدمات التي تقدمها؟</DialogTitle>
+              <DialogDescription>
+                أضف خدماتك الأساسية الآن حتى نستخدمها في التسعير، المشاريع، والتحليلات.
+              </DialogDescription>
+            </DialogHeader>
+
+            <form onSubmit={saveServices} className="space-y-4">
+              {servicesError && (
+                <div className="rounded-xl border border-danger/30 bg-danger-soft p-3 text-sm text-danger">
+                  {servicesError}
+                </div>
+              )}
+
+              <div className="space-y-3">
+                {serviceRows.map((row, index) => (
+                  <div key={row.id} className="rounded-2xl border border-border/70 bg-card p-4">
+                    <div className="mb-3 flex items-center justify-between">
+                      <h3 className="font-bold text-navy">خدمة {index + 1}</h3>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8 rounded-xl text-danger hover:text-danger"
+                        disabled={serviceRows.length === 1}
+                        onClick={() => removeServiceRow(row.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label htmlFor={`serviceName-${row.id}`} className="flex items-center gap-1 text-navy">
+                          اسم الخدمة <RequiredMark />
+                        </Label>
+                        <Input
+                          id={`serviceName-${row.id}`}
+                          value={row.serviceName}
+                          onChange={(event) => setServiceField(row.id, "serviceName", event.target.value)}
+                          placeholder="مثال: تصميم واجهات"
+                          required
+                          className="rounded-xl bg-white"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="flex items-center gap-1 text-navy">
+                          التصنيف <RequiredMark />
+                        </Label>
+                        <Select
+                          dir="rtl"
+                          value={row.category}
+                          onValueChange={(value) => setServiceField(row.id, "category", value as ServiceCategory)}
+                        >
+                          <SelectTrigger className="rounded-xl bg-white text-right [&>span]:w-full [&>span]:text-right">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent dir="rtl" className="text-right">
+                            {CATEGORY_OPTIONS.map((option) => (
+                              <SelectItem key={option.value} value={option.value}>
+                                {option.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor={`rate-${row.id}`} className="flex items-center gap-1 text-navy">
+                          سعر الساعة الافتراضي <RequiredMark />
+                        </Label>
+                        <Input
+                          id={`rate-${row.id}`}
+                          type="number"
+                          min="1"
+                          step="0.01"
+                          value={row.defaultHourlyRate}
+                          onChange={(event) => setServiceField(row.id, "defaultHourlyRate", event.target.value)}
+                          required
+                          className="rounded-xl bg-white"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor={`revisions-${row.id}`} className="flex items-center gap-1 text-navy">
+                          عدد التعديلات الافتراضي <RequiredMark />
+                        </Label>
+                        <Input
+                          id={`revisions-${row.id}`}
+                          type="number"
+                          min="0"
+                          step="1"
+                          value={row.defaultRevisions}
+                          onChange={(event) => setServiceField(row.id, "defaultRevisions", event.target.value)}
+                          required
+                          className="rounded-xl bg-white"
+                        />
+                      </div>
+                    </div>
+
+                    <label className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
+                      <Switch
+                        checked={row.isActive}
+                        onCheckedChange={(checked) => setServiceField(row.id, "isActive", checked)}
+                      />
+                      خدمة نشطة
+                    </label>
+                  </div>
+                ))}
+              </div>
+
+              <Button type="button" variant="outline" className="rounded-xl" onClick={addServiceRow}>
+                <Plus className="ml-2 h-4 w-4" />
+                إضافة خدمة أخرى
+              </Button>
+
+              <DialogFooter className="gap-2 sm:justify-start sm:space-x-0">
+                <Button type="submit" disabled={isSavingServices} className="rounded-xl bg-gradient-brand shadow-glow hover:opacity-90">
+                  {isSavingServices ? <Loader2 className="ml-2 h-4 w-4 animate-spin" /> : null}
+                  حفظ الخدمات
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="rounded-xl"
+                  onClick={() => setShowServicesOnboarding(false)}
+                >
+                  لاحقاً
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

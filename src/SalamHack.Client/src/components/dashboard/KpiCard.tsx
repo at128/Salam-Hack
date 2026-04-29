@@ -1,14 +1,17 @@
-import { ArrowDownRight, ArrowUpRight, type LucideIcon } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, Minus, type LucideIcon } from "lucide-react";
 
 type Props = {
   label: string;
   value: string;
   delta: string;
   positive: boolean;
+  trend?: "up" | "down" | "neutral";
   icon: LucideIcon;
 };
 
-export default function KpiCard({ label, value, delta, positive, icon: Icon }: Props) {
+export default function KpiCard({ label, value, delta, positive, trend, icon: Icon }: Props) {
+  const resolvedTrend = trend ?? (positive ? "up" : "down");
+
   return (
     <div className="bg-card rounded-2xl p-5 border border-border/70 shadow-card">
       <div className="flex items-start justify-between">
@@ -17,12 +20,20 @@ export default function KpiCard({ label, value, delta, positive, icon: Icon }: P
         </div>
         <span
           className={`inline-flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-full ${
-            positive
+            resolvedTrend === "up"
               ? "bg-success-soft text-success"
+              : resolvedTrend === "neutral"
+              ? "bg-muted text-muted-foreground"
               : "bg-warning-soft text-warning"
           }`}
         >
-          {positive ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
+          {resolvedTrend === "up" ? (
+            <ArrowUpRight className="w-3 h-3" />
+          ) : resolvedTrend === "neutral" ? (
+            <Minus className="w-3 h-3" />
+          ) : (
+            <ArrowDownRight className="w-3 h-3" />
+          )}
           {delta}
         </span>
       </div>

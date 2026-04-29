@@ -16,8 +16,11 @@ import ProfitPage from "./pages/dashboard/Profit.tsx";
 import BreakdownPage from "./pages/dashboard/Breakdown.tsx";
 import CashflowPage from "./pages/dashboard/Cashflow.tsx";
 import PricingPage from "./pages/dashboard/Pricing.tsx";
+import ServicesPage from "./pages/dashboard/Services.tsx";
 import AiAnalyzerPage from "./pages/dashboard/AiAnalyzer.tsx";
 import ClientRiskAnalyzerPage from "./pages/dashboard/ClientRiskAnalyzer.tsx";
+import CustomersPage from "./pages/dashboard/Customers.tsx";
+import ProjectsPage from "./pages/dashboard/Projects.tsx";
 import ProfilePage from "./pages/dashboard/Profile.tsx";
 import ChangePasswordPage from "./pages/dashboard/ChangePassword.tsx";
 import { isAccessTokenExpired, isAuthenticated, refreshAccessToken } from "./lib/auth.ts";
@@ -67,6 +70,9 @@ const App = () => (
           <Route element={<RequireAuth />}>
             <Route path="/dashboard" element={<DashboardLayout />}>
               <Route index element={<Dashboard />} />
+              <Route path="services" element={<ServicesPage />} />
+              <Route path="customers" element={<CustomersPage />} />
+              <Route path="projects" element={<ProjectsPage />} />
               <Route path="invoices" element={<InvoicesPage />} />
               <Route path="payments" element={<PaymentsPage />} />
               <Route path="profit" element={<ProfitPage />} />

@@ -27,6 +27,13 @@ public sealed class ProjectStatusChangedDomainEventHandler(IAppDbContext context
             message);
 
         await DomainEventHandlerHelpers.AddNotificationIfMissingAsync(context, statusNotification, ct);
-        await context.SaveChangesAsync(ct);
+        try
+        {
+            await context.SaveChangesAsync(ct);
+        }
+        catch
+        {
+            // Avoid failing the main request if notifications cannot be saved.
+        }
     }
 }

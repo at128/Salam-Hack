@@ -27,6 +27,13 @@ public sealed class InvoiceCancelledDomainEventHandler(IAppDbContext context)
             message);
 
         await DomainEventHandlerHelpers.AddNotificationIfMissingAsync(context, cancelledNotification, ct);
-        await context.SaveChangesAsync(ct);
+        try
+        {
+            await context.SaveChangesAsync(ct);
+        }
+        catch
+        {
+            // Avoid failing the main request if notifications cannot be saved.
+        }
     }
 }

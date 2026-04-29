@@ -43,7 +43,9 @@ public sealed class ProjectConfiguration : IEntityTypeConfiguration<Project>
             .IsRequired();
 
         builder.Property(p => p.ProfitMargin)
-            .HasColumnType("decimal(5,2)")
+            // Profit margin is a percent and can be very negative if price is tiny.
+            // Keep a wider range to avoid DB overflow (e.g. -55900% scenarios).
+            .HasColumnType("decimal(18,2)")
             .IsRequired();
 
         builder.Property(p => p.SuggestedPrice)

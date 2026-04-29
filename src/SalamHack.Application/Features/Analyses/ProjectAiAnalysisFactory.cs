@@ -18,51 +18,51 @@ internal static class ProjectAiAnalysisFactory
     {
         var riskSeverity = input.SystemHealthStatus switch
         {
-            nameof(ProjectHealthStatus.Critical) => "Critical",
-            nameof(ProjectHealthStatus.AtRisk) => "High",
-            _ => "Low"
+            nameof(ProjectHealthStatus.Critical) => "حرج",
+            nameof(ProjectHealthStatus.AtRisk) => "مرتفع",
+            _ => "منخفض"
         };
 
         var risks = new List<ProjectAiAnalysisRiskDto>();
         if (input.MarginPercent < ApplicationConstants.BusinessRules.HealthyMarginThreshold)
         {
             risks.Add(new ProjectAiAnalysisRiskDto(
-                "Profit margin pressure",
+                "ضغط على هامش الربح",
                 riskSeverity,
-                $"Margin is {input.MarginPercent:0.##}%, below the healthy threshold of {input.HealthyMarginThreshold:0.##}%."));
+                $"هامش الربح {input.MarginPercent:0.##}% وهو أقل من الحد الصحي {input.HealthyMarginThreshold:0.##}%."));
         }
 
         if (input.HoursOverrunPercent > 20)
         {
             risks.Add(new ProjectAiAnalysisRiskDto(
-                "Scope or time overrun",
-                "High",
-                $"Actual hours are {input.HoursOverrunPercent:0.##}% above the estimate."));
+                "تجاوز في النطاق أو الوقت",
+                "مرتفع",
+                $"الساعات الفعلية أعلى من التقدير بنسبة {input.HoursOverrunPercent:0.##}%."));
         }
 
         if (input.InvoiceSummary.OverdueAmount > 0)
         {
             risks.Add(new ProjectAiAnalysisRiskDto(
-                "Collection risk",
-                "High",
-                $"Overdue amount is {input.InvoiceSummary.OverdueAmount:0.##}."));
+                "مخاطر تحصيل",
+                "مرتفع",
+                $"المبلغ المتأخر هو {input.InvoiceSummary.OverdueAmount:0.##}."));
         }
 
         if (risks.Count == 0)
         {
             risks.Add(new ProjectAiAnalysisRiskDto(
-                "No major profitability risk",
-                "Low",
-                "The current numbers are above the healthy margin threshold."));
+                "لا توجد مخاطر ربحية كبيرة",
+                "منخفض",
+                "الأرقام الحالية أعلى من حد هامش الربح الصحي."));
         }
 
         var opportunities = new[]
         {
             new ProjectAiAnalysisOpportunityDto(
-                "Use this project as pricing evidence",
+                "استخدم هذا المشروع كدليل للتسعير",
                 input.MarginPercent >= input.HealthyMarginThreshold
-                    ? "It can guide future quotes for similar work."
-                    : "It shows where pricing or scope controls need to improve.")
+                    ? "يمكن الاعتماد عليه لتسعير الأعمال المشابهة مستقبلا."
+                    : "يوضح أين يحتاج التسعير أو ضبط النطاق إلى تحسين.")
         };
 
         var actions = BuildFallbackActions(input);
@@ -70,7 +70,7 @@ internal static class ProjectAiAnalysisFactory
         return new ProjectAiAnalysisDto(
             input.SystemHealthStatus,
             CalculateScore(input.MarginPercent),
-            $"{input.ProjectName} margin is {input.MarginPercent:0.##}% with profit of {input.Profit:0.##}.",
+            $"هامش المشروع {input.ProjectName} هو {input.MarginPercent:0.##}% مع ربح بقيمة {input.Profit:0.##}.",
             risks,
             opportunities,
             actions,
@@ -130,33 +130,33 @@ internal static class ProjectAiAnalysisFactory
         if (input.MarginPercent < input.HealthyMarginThreshold)
         {
             actions.Add(new ProjectAiAnalysisActionDto(
-                "Review pricing before repeating similar work",
-                "High",
-                "Protects the next project from the same margin pressure."));
+                "راجع التسعير قبل تكرار عمل مشابه",
+                "مرتفع",
+                "يحمي المشروع القادم من ضغط هامش الربح نفسه."));
         }
 
         if (input.HoursOverrunPercent > 20)
         {
             actions.Add(new ProjectAiAnalysisActionDto(
-                "Document extra scope and approve change requests earlier",
-                "High",
-                "Reduces unpaid hours and protects hourly profit."));
+                "وثق النطاق الإضافي واعتمد طلبات التغيير مبكرا",
+                "مرتفع",
+                "يقلل الساعات غير المدفوعة ويحمي ربحية الساعة."));
         }
 
         if (input.InvoiceSummary.RemainingAmount > 0)
         {
             actions.Add(new ProjectAiAnalysisActionDto(
-                "Follow up on remaining invoice balance",
-                input.InvoiceSummary.OverdueAmount > 0 ? "High" : "Medium",
-                "Improves cashflow and reduces collection risk."));
+                "تابع الرصيد المتبقي من الفاتورة",
+                input.InvoiceSummary.OverdueAmount > 0 ? "مرتفع" : "متوسط",
+                "يحسن التدفق النقدي ويقلل مخاطر التحصيل."));
         }
 
         if (actions.Count == 0)
         {
             actions.Add(new ProjectAiAnalysisActionDto(
-                "Keep the current pricing and delivery pattern",
-                "Medium",
-                "Maintains healthy profitability on similar projects."));
+                "حافظ على نمط التسعير والتنفيذ الحالي",
+                "متوسط",
+                "يحافظ على ربحية صحية في المشاريع المشابهة."));
         }
 
         return actions;
@@ -164,7 +164,7 @@ internal static class ProjectAiAnalysisFactory
 
     private static string? BuildClientMessage(ProjectAiAnalysisInputDto input)
         => input.HoursOverrunPercent > 20
-            ? "The project required more time than initially estimated, so any additional scope should be confirmed before continuing."
+            ? "احتاج المشروع وقتا أكثر من التقدير الأولي، لذلك يجب تأكيد أي نطاق إضافي قبل الاستمرار."
             : null;
 
     private static int CalculateScore(decimal marginPercent)
