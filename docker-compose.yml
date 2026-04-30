@@ -40,7 +40,7 @@ services:
       - salamhack-net
 
   api:
-    image: ghcr.io/mohammedzom/salamhack-api:latest
+    image: ghcr.io/at128/salamhack-api:latest
     build:
       context: .
       dockerfile: src/SalamHack.Api/Dockerfile
