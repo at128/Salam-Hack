@@ -4,48 +4,25 @@ on:
   push:
     branches: [ "master" ]
 
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   API_IMAGE: ghcr.io/at128/salamhack-api:latest
 
 jobs:
-  build-test-and-push:
-    runs-on: ubuntu-latest
+  build-test-deploy:
+    runs-on: ubuntu-24.04-arm
     permissions:
       contents: read
       packages: write
-
     steps:
     - name: Checkout Code
       uses: actions/checkout@v4
 
-    - name: Setup Dummy Environment for CI
-      run: |
-        echo "SA_PASSWORD=TestPassword123!" >> .env
-        echo "JWT_SECRET=SuperSecretTestKey123456789012345" >> .env
-        echo "SEQ_ADMIN_PASSWORD=SeqTestPass123!" >> .env
-        mkdir -p ./dummy_db/mssql
-        mkdir -p ./dummy_backups/mssql
-        echo 'volume1="./dummy_db/mssql:/var/opt/mssql"' >> .env
-        echo 'volume2="./dummy_backups/mssql:/var/opt/mssql/backups"' >> .env
-
-    - name: Build and Start API Container
-      run: docker compose up -d --build
-
-    - name: Wait for API to Start
-      run: sleep 20
-
-    - name: Test /health/live Endpoint
-      run: |
-        echo "Testing Health Endpoint..."
-        STATUS_CODE=$(curl -o /dev/null -s -w "%{http_code}\n" http://localhost:5009/api/v1/health/live)
-        if [ "$STATUS_CODE" -eq 200 ]; then
-          echo "✅ Health check passed! API is live."
-        else
-          echo "❌ Health check failed! Status Code: $STATUS_CODE"
-          echo "--- API Logs ---"
-          docker compose logs api
-          exit 1
-        fi
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
 
     - name: Log in to GitHub Container Registry
       uses: docker/login-action@v3
@@ -54,28 +31,49 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Set up QEMU
-      uses: docker/setup-qemu-action@v3
+    - name: Build and Push API Image (linux/arm64)
+      uses: docker/build-push-action@v6
+      with:
+        context: .
+        file: src/SalamHack.Api/Dockerfile
+        platforms: linux/arm64
+        push: true
+        load: true
+        tags: ${{ env.API_IMAGE }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        provenance: false
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
-
-    - name: Build and Push Multi-Arch API Image
+    - name: Smoke-Test API Image
       run: |
-        docker buildx build \
-          --platform linux/amd64,linux/arm64 \
-          --tag "$API_IMAGE" \
-          --file src/SalamHack.Api/Dockerfile \
-          --push \
-          .
+        docker run -d --name api-smoke \
+          -e ASPNETCORE_ENVIRONMENT=Development \
+          -e DatabaseMigration__Enabled=false \
+          -e DatabaseMigration__LegacyCompatibilityEnabled=false \
+          -e Monitoring__AllowAnonymousHealthEndpoints=true \
+          -e Swagger__Enabled=false \
+          -e JWT__Secret=SmokeTestSecretKey1234567890123456 \
+          -e JWT__Issuer=smoke -e JWT__Audience=smoke \
+          -e ConnectionStrings__DefaultConnection="Server=tcp:127.0.0.1,1;Database=Smoke;User Id=sa;Password=Smoke;Encrypt=False;TrustServerCertificate=True;" \
+          -p 5010:8080 \
+          "$API_IMAGE"
 
-  deploy-to-server:
-    needs: build-test-and-push
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: read
-    steps:
+        echo "Polling /api/v1/health/live..."
+        for i in $(seq 1 30); do
+          code=$(curl -o /dev/null -s -w '%{http_code}' http://localhost:5010/api/v1/health/live || true)
+          if [ "$code" = "200" ]; then
+            echo "Health check passed on attempt $i."
+            docker rm -f api-smoke >/dev/null
+            exit 0
+          fi
+          sleep 1
+        done
+
+        echo "Health check failed."
+        docker logs api-smoke || true
+        docker rm -f api-smoke >/dev/null || true
+        exit 1
+
     - name: Deploy via SSH
       uses: appleboy/ssh-action@v1.0.3
       with:
@@ -83,9 +81,9 @@ jobs:
         username: ${{ secrets.SERVER_USER }}
         key: ${{ secrets.SERVER_SSH_KEY }}
         script: |
+          set -e
           cd ${{ secrets.PROJECT_PATH }}
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
           docker compose pull api
           docker compose up -d --no-deps api
           docker image prune -f
-
