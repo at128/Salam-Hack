@@ -1,0 +1,95 @@
+services:
+  sqlserver:
+    image: mcr.microsoft.com/azure-sql-edge:latest
+    container_name: salamhack-sql
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "${SA_PASSWORD}"
+      SA_PASSWORD: "${SA_PASSWORD}"
+      MSSQL_PID: "Developer"
+    ports:
+      - "${SQL_PORT:-14333}:1433"
+    volumes:
+      - "${volume1:-sql_data:/var/opt/mssql}"
+      - "${volume2:-sql_backups:/var/opt/mssql/backups}"
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/localhost/1433' >/dev/null 2>&1 || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 30s
+    restart: unless-stopped
+    networks: [salamhack-net]
+
+  seq:
+    image: datalust/seq:latest
+    container_name: salamhack-seq
+    environment:
+      ACCEPT_EULA: "Y"
+      SEQ_FIRSTRUN_ADMINPASSWORD: "${SEQ_ADMIN_PASSWORD}"
+    ports:
+      - "${SEQ_PORT:-5341}:80"
+    volumes:
+      - seq_data:/data
+    restart: unless-stopped
+    networks: [salamhack-net]
+
+  otel-collector:
+    image: otel/opentelemetry-collector:0.98.0
+    container_name: salamhack-otel
+    command: ["--config=/etc/otel-collector-config.yml"]
+    volumes:
+      - ./otel-collector-config.yml:/etc/otel-collector-config.yml:ro
+    ports:
+      - "4317:4317"
+      - "8889:8889"
+    restart: unless-stopped
+    networks: [salamhack-net]
+
+  api:
+    image: ghcr.io/at128/salamhack-api:latest
+    container_name: salamhack-api
+    environment:
+      ASPNETCORE_ENVIRONMENT: "Development"
+      ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=SalamHackDb;User Id=sa;Password=${SA_PASSWORD};Encrypt=False;TrustServerCertificate=True;"
+      DatabaseMigration__Enabled: "true"
+      DatabaseMigration__LegacyCompatibilityEnabled: "true"
+      DatabaseMigration__LegacyScriptPath: "deploy.sql"
+      JWT__Secret: "${JWT_SECRET}"
+      JWT__Issuer: "SalamHackApi"
+      JWT__Audience: "SalamHackClient"
+      JWT__ExpiryMinutes: "15"
+      RefreshToken__ExpiryDays: "7"
+      RefreshToken__TokenBytes: "64"
+      CookieSettings__SecureOnly: "false"
+      DataProtection__KeysPath: "/app/.aspnet/DataProtection-Keys"
+      Swagger__Enabled: "true"
+      Monitoring__AllowAnonymousHealthEndpoints: "true"
+      Serilog__WriteTo__1__Args__serverUrl: "http://seq"
+      OpenTelemetry__Enabled: "true"
+      OpenTelemetry__ServiceName: "SalamHack.Api"
+      OpenTelemetry__ServiceVersion: "1.0.0"
+      OpenTelemetry__OtlpEndpoint: "http://otel-collector:4317"
+    ports:
+      - "${API_HTTP_PORT:-5009}:8080"
+    volumes:
+      - data_protection_keys:/app/.aspnet/DataProtection-Keys
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      seq:
+        condition: service_started
+      otel-collector:
+        condition: service_started
+    restart: unless-stopped
+    networks: [salamhack-net]
+
+volumes:
+  sql_data:
+  sql_backups:
+  seq_data:
+  data_protection_keys:
+
+networks:
+  salamhack-net:
+    driver: bridge

@@ -83,7 +83,9 @@ jobs:
         script: |
           set -e
           cd ${{ secrets.PROJECT_PATH }}
+          git fetch --quiet origin master
+          git reset --hard origin/master
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-          docker compose pull api
-          docker compose up -d --no-deps api
+          docker compose -f docker-compose.prod.yml pull api
+          docker compose -f docker-compose.prod.yml up -d --remove-orphans
           docker image prune -f
