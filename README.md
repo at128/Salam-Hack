@@ -1,4 +1,4 @@
-# SalamHack
+# SalamHack [![CI/CD Pipeline](https://github.com/at128/Salam-Hack/actions/workflows/ci-cd.yml/badge.svg?branch=master)](https://github.com/at128/Salam-Hack/actions/workflows/ci-cd.yml)
 
 Backend API for the SalamHack project.
 
