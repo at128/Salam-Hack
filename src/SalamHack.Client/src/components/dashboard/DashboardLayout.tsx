@@ -340,7 +340,7 @@ export default function DashboardLayout({
             </div>
 
             <div className="flex justify-end gap-2">
-              <DropdownMenu>
+              <DropdownMenu dir="rtl">
                 <DropdownMenuTrigger asChild>
                   <button
                     type="button"
@@ -354,7 +354,7 @@ export default function DashboardLayout({
                     <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56 text-right" dir="rtl">
+                <DropdownMenuContent align="end" className="w-56 text-right">
                   <DropdownMenuLabel>
                     <div className="min-w-0">
                       <p className="truncate text-sm font-semibold text-navy">{displayName}</p>
