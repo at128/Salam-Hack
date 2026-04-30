@@ -1,4 +1,4 @@
-using FluentValidation;
+﻿using FluentValidation;
 
 namespace SalamHack.Application.Features.Projects.Commands.SetProjectActualHours;
 
@@ -7,10 +7,10 @@ public sealed class SetProjectActualHoursCommandValidator : AbstractValidator<Se
     public SetProjectActualHoursCommandValidator()
     {
         RuleFor(x => x.UserId)
-            .NotEmpty().WithMessage("User ID is required.");
+            .NotEmpty().WithMessage("معرف المستخدم مطلوب.");
 
         RuleFor(x => x.ProjectId)
-            .NotEmpty().WithMessage("Project ID is required.");
+            .NotEmpty().WithMessage("معرف المشروع مطلوب.");
 
         RuleFor(x => x.ActualHours)
             .GreaterThanOrEqualTo(0);

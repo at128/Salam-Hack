@@ -1,4 +1,4 @@
-using FluentValidation;
+﻿using FluentValidation;
 
 namespace SalamHack.Application.Features.Invoices.Commands.UpdateInvoiceDetails;
 
@@ -7,10 +7,10 @@ public sealed class UpdateInvoiceDetailsCommandValidator : AbstractValidator<Upd
     public UpdateInvoiceDetailsCommandValidator()
     {
         RuleFor(x => x.UserId)
-            .NotEmpty().WithMessage("User ID is required.");
+            .NotEmpty().WithMessage("معرف المستخدم مطلوب.");
 
         RuleFor(x => x.InvoiceId)
-            .NotEmpty().WithMessage("Invoice ID is required.");
+            .NotEmpty().WithMessage("معرف الفاتورة مطلوب.");
 
         RuleFor(x => x.TotalAmount)
             .GreaterThan(0);
@@ -20,10 +20,10 @@ public sealed class UpdateInvoiceDetailsCommandValidator : AbstractValidator<Upd
 
         RuleFor(x => x.DueDate)
             .GreaterThanOrEqualTo(x => x.IssueDate)
-            .WithMessage("Due date cannot be earlier than issue date.");
+            .WithMessage("لا يمكن أن يكون تاريخ الاستحقاق قبل تاريخ الإصدار.");
 
         RuleFor(x => x.Currency)
-            .NotEmpty().WithMessage("Currency is required.")
+            .NotEmpty().WithMessage("العملة مطلوبة.")
             .MaximumLength(10);
 
         RuleFor(x => x.Notes)

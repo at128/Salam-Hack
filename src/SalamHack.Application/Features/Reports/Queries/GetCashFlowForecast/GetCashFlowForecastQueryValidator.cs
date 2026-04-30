@@ -1,4 +1,4 @@
-using FluentValidation;
+﻿using FluentValidation;
 
 namespace SalamHack.Application.Features.Reports.Queries.GetCashFlowForecast;
 
@@ -7,6 +7,6 @@ public sealed class GetCashFlowForecastQueryValidator : AbstractValidator<GetCas
     public GetCashFlowForecastQueryValidator()
     {
         RuleFor(x => x.UserId)
-            .NotEmpty().WithMessage("User ID is required.");
+            .NotEmpty().WithMessage("معرف المستخدم مطلوب.");
     }
 }

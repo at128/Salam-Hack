@@ -1,4 +1,4 @@
-using FluentValidation;
+﻿using FluentValidation;
 
 namespace SalamHack.Application.Features.Services.Commands.SetServiceActiveStatus;
 
@@ -7,9 +7,9 @@ public sealed class SetServiceActiveStatusCommandValidator : AbstractValidator<S
     public SetServiceActiveStatusCommandValidator()
     {
         RuleFor(x => x.UserId)
-            .NotEmpty().WithMessage("User ID is required.");
+            .NotEmpty().WithMessage("معرف المستخدم مطلوب.");
 
         RuleFor(x => x.ServiceId)
-            .NotEmpty().WithMessage("Service ID is required.");
+            .NotEmpty().WithMessage("معرف الخدمة مطلوب.");
     }
 }

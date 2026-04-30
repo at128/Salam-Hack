@@ -1,4 +1,4 @@
-using FluentValidation;
+﻿using FluentValidation;
 
 namespace SalamHack.Application.Features.Customers.Queries.GetCustomerById;
 
@@ -7,9 +7,9 @@ public sealed class GetCustomerByIdQueryValidator : AbstractValidator<GetCustome
     public GetCustomerByIdQueryValidator()
     {
         RuleFor(x => x.UserId)
-            .NotEmpty().WithMessage("User ID is required.");
+            .NotEmpty().WithMessage("معرف المستخدم مطلوب.");
 
         RuleFor(x => x.CustomerId)
-            .NotEmpty().WithMessage("Customer ID is required.");
+            .NotEmpty().WithMessage("معرف العميل مطلوب.");
     }
 }

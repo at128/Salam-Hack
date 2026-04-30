@@ -1,4 +1,4 @@
-using FluentValidation;
+﻿using FluentValidation;
 
 namespace SalamHack.Application.Features.Customers.Commands.DeleteCustomer;
 
@@ -7,9 +7,9 @@ public sealed class DeleteCustomerCommandValidator : AbstractValidator<DeleteCus
     public DeleteCustomerCommandValidator()
     {
         RuleFor(x => x.UserId)
-            .NotEmpty().WithMessage("User ID is required.");
+            .NotEmpty().WithMessage("معرف المستخدم مطلوب.");
 
         RuleFor(x => x.CustomerId)
-            .NotEmpty().WithMessage("Customer ID is required.");
+            .NotEmpty().WithMessage("معرف العميل مطلوب.");
     }
 }

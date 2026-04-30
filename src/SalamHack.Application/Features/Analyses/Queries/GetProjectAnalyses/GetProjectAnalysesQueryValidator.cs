@@ -1,4 +1,4 @@
-using FluentValidation;
+﻿using FluentValidation;
 
 namespace SalamHack.Application.Features.Analyses.Queries.GetProjectAnalyses;
 
@@ -7,10 +7,10 @@ public sealed class GetProjectAnalysesQueryValidator : AbstractValidator<GetProj
     public GetProjectAnalysesQueryValidator()
     {
         RuleFor(x => x.UserId)
-            .NotEmpty().WithMessage("User ID is required.");
+            .NotEmpty().WithMessage("معرف المستخدم مطلوب.");
 
         RuleFor(x => x.ProjectId)
-            .NotEmpty().WithMessage("Project ID is required.");
+            .NotEmpty().WithMessage("معرف المشروع مطلوب.");
 
         RuleFor(x => x.Type)
             .IsInEnum()

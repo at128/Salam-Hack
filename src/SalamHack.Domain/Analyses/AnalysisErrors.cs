@@ -6,25 +6,25 @@ public static class AnalysisErrors
 {
     public static readonly Error InvalidProjectId = Error.Validation(
         "Analysis.InvalidProjectId",
-        "Project id is required.");
+        "معرف المشروع مطلوب.");
 
     public static readonly Error WhatHappenedRequired = Error.Validation(
         "Analysis.WhatHappenedRequired",
-        "What happened is required.");
+        "وصف ما حدث مطلوب.");
 
     public static readonly Error WhatItMeansRequired = Error.Validation(
         "Analysis.WhatItMeansRequired",
-        "What it means is required.");
+        "وصف ما يعنيه الأمر مطلوب.");
 
     public static readonly Error WhatToDoRequired = Error.Validation(
         "Analysis.WhatToDoRequired",
-        "What to do is required.");
+        "وصف ما يجب فعله مطلوب.");
 
     public static readonly Error HealthStatusRequired = Error.Validation(
         "Analysis.HealthStatusRequired",
-        "Health status is required.");
+        "حالة الصحة مطلوبة.");
 
     public static readonly Error ConfidenceScoreOutOfRange = Error.Validation(
         "Analysis.ConfidenceScoreOutOfRange",
-        "Confidence score must be between 0 and 1.");
+        "يجب أن تكون درجة الثقة بين 0 و1.");
 }

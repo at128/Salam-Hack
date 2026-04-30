@@ -6,13 +6,13 @@ public static class PaymentErrors
 {
     public static readonly Error InvalidInvoiceId = Error.Validation(
         "Payment.InvalidInvoiceId",
-        "Invoice id is required.");
+        "معرف الفاتورة مطلوب.");
 
     public static readonly Error AmountMustBePositive = Error.Validation(
         "Payment.AmountMustBePositive",
-        "Payment amount must be greater than zero.");
+        "يجب أن يكون مبلغ الدفع أكبر من صفر.");
 
     public static readonly Error CurrencyRequired = Error.Validation(
         "Payment.CurrencyRequired",
-        "Currency is required.");
+        "العملة مطلوبة.");
 }

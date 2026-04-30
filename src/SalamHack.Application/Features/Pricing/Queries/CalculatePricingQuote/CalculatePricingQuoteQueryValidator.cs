@@ -1,4 +1,4 @@
-using FluentValidation;
+﻿using FluentValidation;
 
 namespace SalamHack.Application.Features.Pricing.Queries.CalculatePricingQuote;
 
@@ -7,10 +7,10 @@ public sealed class CalculatePricingQuoteQueryValidator : AbstractValidator<Calc
     public CalculatePricingQuoteQueryValidator()
     {
         RuleFor(x => x.UserId)
-            .NotEmpty().WithMessage("User ID is required.");
+            .NotEmpty().WithMessage("معرف المستخدم مطلوب.");
 
         RuleFor(x => x.ServiceId)
-            .NotEmpty().WithMessage("Service ID is required.");
+            .NotEmpty().WithMessage("معرف الخدمة مطلوب.");
 
         RuleFor(x => x.EstimatedHours)
             .GreaterThan(0);

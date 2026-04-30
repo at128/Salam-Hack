@@ -1,4 +1,4 @@
-using FluentValidation;
+﻿using FluentValidation;
 
 namespace SalamHack.Application.Features.Services.Commands.UpdateService;
 
@@ -7,13 +7,13 @@ public sealed class UpdateServiceCommandValidator : AbstractValidator<UpdateServ
     public UpdateServiceCommandValidator()
     {
         RuleFor(x => x.UserId)
-            .NotEmpty().WithMessage("User ID is required.");
+            .NotEmpty().WithMessage("معرف المستخدم مطلوب.");
 
         RuleFor(x => x.ServiceId)
-            .NotEmpty().WithMessage("Service ID is required.");
+            .NotEmpty().WithMessage("معرف الخدمة مطلوب.");
 
         RuleFor(x => x.ServiceName)
-            .NotEmpty().WithMessage("Service name is required.")
+            .NotEmpty().WithMessage("اسم الخدمة مطلوب.")
             .MaximumLength(200);
 
         RuleFor(x => x.Category)

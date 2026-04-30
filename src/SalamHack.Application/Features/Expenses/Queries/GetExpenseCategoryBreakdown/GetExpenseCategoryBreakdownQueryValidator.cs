@@ -1,4 +1,4 @@
-using FluentValidation;
+﻿using FluentValidation;
 
 namespace SalamHack.Application.Features.Expenses.Queries.GetExpenseCategoryBreakdown;
 
@@ -7,7 +7,7 @@ public sealed class GetExpenseCategoryBreakdownQueryValidator : AbstractValidato
     public GetExpenseCategoryBreakdownQueryValidator()
     {
         RuleFor(x => x.UserId)
-            .NotEmpty().WithMessage("User ID is required.");
+            .NotEmpty().WithMessage("معرف المستخدم مطلوب.");
 
         RuleFor(x => x.ToUtc)
             .GreaterThanOrEqualTo(x => x.FromUtc)

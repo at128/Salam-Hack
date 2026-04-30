@@ -11,9 +11,11 @@ public sealed class ClientRiskController(
     IConfiguration configuration,
     ILogger<ClientRiskController> logger) : ApiController
 {
-    private const string NvidiaApiUrl = "https://integrate.api.nvidia.com/v1/chat/completions";
-    private const string GemmaModel = "google/gemma-4-31b-it";
-    private static readonly TimeSpan GemmaRequestTimeout = TimeSpan.FromSeconds(180);
+    private const string OpenRouterApiUrl = "https://openrouter.ai/api/v1/chat/completions";
+    private const string OpenRouterModel = "openai/gpt-4o-mini";
+    private const string SiteUrl = "https://salamhack.com";
+    private const string SiteTitle = "SalamHack";
+    private static readonly TimeSpan RequestTimeout = TimeSpan.FromSeconds(60);
 
     [EnableRateLimiting("public-read")]
     [HttpPost("analyze")]
@@ -25,22 +27,18 @@ public sealed class ClientRiskController(
         if (string.IsNullOrWhiteSpace(request?.Prompt))
             return BadRequest(new { message = "Prompt is required." });
 
-        var apiKey = configuration["Nvidia:ApiKey"];
+        var apiKey = configuration["OpenRouter:ApiKey"];
         if (string.IsNullOrWhiteSpace(apiKey))
-            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Nvidia API key is not configured." });
+            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "OpenRouter API key is not configured." });
 
-        using var httpRequest = new HttpRequestMessage(HttpMethod.Post, NvidiaApiUrl);
+        using var httpRequest = new HttpRequestMessage(HttpMethod.Post, OpenRouterApiUrl);
         httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
-        httpRequest.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        httpRequest.Headers.Add("HTTP-Referer", SiteUrl);
+        httpRequest.Headers.Add("X-Title", SiteTitle);
         httpRequest.Content = JsonContent.Create(new
         {
-            model = GemmaModel,
-            messages = new[] { new { role = "user", content = request.Prompt } },
-            max_tokens = 2048,
-            temperature = 0.2,
-            top_p = 0.95,
-            stream = false,
-            chat_template_kwargs = new { enable_thinking = false }
+            model = OpenRouterModel,
+            messages = new[] { new { role = "user", content = request.Prompt } }
         });
 
         HttpResponseMessage response;
@@ -49,19 +47,19 @@ public sealed class ClientRiskController(
         try
         {
             var client = httpClientFactory.CreateClient();
-            client.Timeout = GemmaRequestTimeout;
+            client.Timeout = RequestTimeout;
             response = await client.SendAsync(httpRequest, ct);
             body = await response.Content.ReadAsStringAsync(ct);
         }
         catch (HttpRequestException ex)
         {
-            logger.LogError(ex, "NVIDIA Gemma request failed before receiving a response.");
-            return StatusCode(StatusCodes.Status502BadGateway, new { message = "Could not connect to Gemma API." });
+            logger.LogError(ex, "OpenRouter request failed before receiving a response.");
+            return StatusCode(StatusCodes.Status502BadGateway, new { message = "Could not connect to OpenRouter API." });
         }
         catch (TaskCanceledException ex) when (!ct.IsCancellationRequested)
         {
-            logger.LogError(ex, "NVIDIA Gemma request timed out.");
-            return StatusCode(StatusCodes.Status504GatewayTimeout, new { message = "Gemma API request timed out." });
+            logger.LogError(ex, "OpenRouter request timed out.");
+            return StatusCode(StatusCodes.Status504GatewayTimeout, new { message = "OpenRouter API request timed out." });
         }
 
         using (response)
@@ -69,11 +67,11 @@ public sealed class ClientRiskController(
             if (!response.IsSuccessStatusCode)
             {
                 logger.LogWarning(
-                    "NVIDIA Gemma returned non-success status {StatusCode}: {Body}",
+                    "OpenRouter returned non-success status {StatusCode}: {Body}",
                     (int)response.StatusCode,
                     body);
 
-                return StatusCode(StatusCodes.Status502BadGateway, new { message = "Gemma API request failed." });
+                return StatusCode(StatusCodes.Status502BadGateway, new { message = "OpenRouter API request failed." });
             }
         }
 
@@ -81,19 +79,19 @@ public sealed class ClientRiskController(
         try
         {
             using var document = JsonDocument.Parse(body);
-            if (!TryGetGemmaContent(document.RootElement, out content))
-                return StatusCode(StatusCodes.Status502BadGateway, new { message = "Gemma did not return analysis text." });
+            if (!TryGetContent(document.RootElement, out content))
+                return StatusCode(StatusCodes.Status502BadGateway, new { message = "OpenRouter did not return analysis text." });
         }
         catch (JsonException ex)
         {
-            logger.LogError(ex, "NVIDIA Gemma returned invalid JSON: {Body}", body);
-            return StatusCode(StatusCodes.Status502BadGateway, new { message = "Gemma API returned an invalid response." });
+            logger.LogError(ex, "OpenRouter returned invalid JSON: {Body}", body);
+            return StatusCode(StatusCodes.Status502BadGateway, new { message = "OpenRouter API returned an invalid response." });
         }
 
         return Ok(new ClientRiskAnalysisResponse(content));
     }
 
-    private static bool TryGetGemmaContent(JsonElement root, out string content)
+    private static bool TryGetContent(JsonElement root, out string content)
     {
         content = string.Empty;
 

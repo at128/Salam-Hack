@@ -1,4 +1,4 @@
-using SalamHack.Application.Features.Expenses;
+﻿using SalamHack.Application.Features.Expenses;
 using FluentValidation;
 
 namespace SalamHack.Application.Features.Expenses.Commands.UploadExpenseReceipt;
@@ -8,26 +8,26 @@ public sealed class UploadExpenseReceiptCommandValidator : AbstractValidator<Upl
     public UploadExpenseReceiptCommandValidator()
     {
         RuleFor(x => x.UserId)
-            .NotEmpty().WithMessage("User ID is required.");
+            .NotEmpty().WithMessage("معرف المستخدم مطلوب.");
 
         RuleFor(x => x.ExpenseId)
-            .NotEmpty().WithMessage("Expense ID is required.");
+            .NotEmpty().WithMessage("معرف المصروف مطلوب.");
 
         RuleFor(x => x.FileName)
-            .NotEmpty().WithMessage("Receipt file name is required.")
+            .NotEmpty().WithMessage("اسم ملف الإيصال مطلوب.")
             .MaximumLength(255);
 
         RuleFor(x => x.ContentType)
-            .NotEmpty().WithMessage("Receipt content type is required.")
+            .NotEmpty().WithMessage("نوع محتوى الإيصال مطلوب.")
             .Must(ExpenseReceiptRules.IsAllowedContentType)
-            .WithMessage("Receipt must be a PDF, JPEG, PNG, or WebP file.");
+            .WithMessage("يجب أن يكون الإيصال ملف PDF أو JPEG أو PNG أو WebP.");
 
         RuleFor(x => x.Content)
-            .NotNull().WithMessage("Receipt content is required.");
+            .NotNull().WithMessage("محتوى الإيصال مطلوب.");
 
         RuleFor(x => x.Length)
-            .GreaterThan(0).WithMessage("Receipt content is required.")
+            .GreaterThan(0).WithMessage("محتوى الإيصال مطلوب.")
             .LessThanOrEqualTo(ExpenseReceiptRules.MaxFileSizeBytes)
-            .WithMessage("Receipt file size must be 10 MB or less.");
+            .WithMessage("يجب ألا يتجاوز حجم ملف الإيصال 10 ميغابايت.");
     }
 }

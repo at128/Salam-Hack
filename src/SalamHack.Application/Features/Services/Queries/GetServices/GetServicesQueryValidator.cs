@@ -1,4 +1,4 @@
-using FluentValidation;
+﻿using FluentValidation;
 
 namespace SalamHack.Application.Features.Services.Queries.GetServices;
 
@@ -7,7 +7,7 @@ public sealed class GetServicesQueryValidator : AbstractValidator<GetServicesQue
     public GetServicesQueryValidator()
     {
         RuleFor(x => x.UserId)
-            .NotEmpty().WithMessage("User ID is required.");
+            .NotEmpty().WithMessage("معرف المستخدم مطلوب.");
 
         RuleFor(x => x.Search)
             .MaximumLength(200);

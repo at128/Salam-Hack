@@ -6,17 +6,17 @@ public static class ServiceErrors
 {
     public static readonly Error InvalidUserId = Error.Validation(
         "Service.InvalidUserId",
-        "User id is required.");
+        "معرف المستخدم مطلوب.");
 
     public static readonly Error ServiceNameRequired = Error.Validation(
         "Service.ServiceNameRequired",
-        "Service name is required.");
+        "اسم الخدمة مطلوب.");
 
     public static readonly Error DefaultHourlyRateMustBePositive = Error.Validation(
         "Service.DefaultHourlyRateMustBePositive",
-        "Default hourly rate must be greater than zero.");
+        "يجب أن يكون سعر الساعة الافتراضي أكبر من صفر.");
 
     public static readonly Error DefaultRevisionsCannotBeNegative = Error.Validation(
         "Service.DefaultRevisionsCannotBeNegative",
-        "Default revisions cannot be negative.");
+        "لا يمكن أن يكون عدد المراجعات الافتراضي سالباً.");
 }

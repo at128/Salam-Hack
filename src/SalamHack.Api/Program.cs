@@ -33,6 +33,7 @@ var app = builder.Build();
 
 app.UseCoreMiddlewares();
 app.MapControllers();
+app.MapHub<SalamHack.Infrastructure.Notifications.Hubs.NotificationHub>("/hubs/notifications");
 MapHealthEndpoints(app);
 
 Log.Information("Starting SalamHack API...");
@@ -49,6 +50,8 @@ static void AddApplicationServices(WebApplicationBuilder builder)
         .AddPresentation(builder.Configuration)
         .AddApplication()
         .AddInfrastructure(builder.Configuration);
+
+    builder.Services.AddSignalR();
 }
 
 static void AddHealthChecks(WebApplicationBuilder builder)

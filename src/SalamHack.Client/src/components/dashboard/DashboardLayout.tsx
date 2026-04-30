@@ -144,6 +144,8 @@ export default function DashboardLayout({
   const [serviceRows, setServiceRows] = useState<ServiceOnboardingRow[]>(() => [createEmptyServiceRow()]);
   const [isSavingServices, setIsSavingServices] = useState(false);
   const [servicesError, setServicesError] = useState("");
+  const [hasNewNotifications, setHasNewNotifications] = useState(false);
+  
   const displayName = user ? `${user.firstName} ${user.lastName}`.trim() || user.email : "المستخدم";
   const headerTitle = title ?? `مرحبا، ${displayName}`;
 
@@ -189,6 +191,48 @@ export default function DashboardLayout({
 
     return () => {
       active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let connection: any = null;
+    let active = true;
+
+    async function setupSignalR() {
+      const token = await getValidAccessToken();
+      if (!token || !active) return;
+
+      const signalRModule = "@microsoft/signalr";
+      const SignalR = await import(/* @vite-ignore */ signalRModule).catch(() => null);
+      if (!SignalR) return;
+
+      connection = new SignalR.HubConnectionBuilder()
+        .withUrl(`${API_BASE_URL}/hubs/notifications`, {
+          accessTokenFactory: () => token,
+        })
+        .configureLogging(SignalR.LogLevel.Information)
+        .withAutomaticReconnect()
+        .build();
+
+      connection.on("ReceiveNotification", (notification: any) => {
+        if (!active) return;
+        setHasNewNotifications(true);
+      });
+
+      try {
+        await connection.start();
+      } catch (err) {
+        console.warn("SignalR Connection failed: ", err);
+      }
+    }
+
+    void setupSignalR();
+
+    return () => {
+      active = false;
+      if (connection) {
+        void connection.stop();
+      }
     };
   }, []);
 
@@ -333,8 +377,14 @@ export default function DashboardLayout({
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-              <Button size="icon" variant="outline" className="rounded-full">
+              <Button size="icon" variant="outline" className="relative rounded-full" onClick={() => setHasNewNotifications(false)}>
                 <Bell className="h-4 w-4" />
+                {hasNewNotifications && (
+                  <span className="absolute right-1 top-1 flex h-2.5 w-2.5">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-danger opacity-75"></span>
+                    <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-danger"></span>
+                  </span>
+                )}
               </Button>
             </div>
           </div>

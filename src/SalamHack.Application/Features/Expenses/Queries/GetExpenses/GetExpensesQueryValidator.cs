@@ -1,4 +1,4 @@
-using FluentValidation;
+﻿using FluentValidation;
 
 namespace SalamHack.Application.Features.Expenses.Queries.GetExpenses;
 
@@ -7,7 +7,7 @@ public sealed class GetExpensesQueryValidator : AbstractValidator<GetExpensesQue
     public GetExpensesQueryValidator()
     {
         RuleFor(x => x.UserId)
-            .NotEmpty().WithMessage("User ID is required.");
+            .NotEmpty().WithMessage("معرف المستخدم مطلوب.");
 
         RuleFor(x => x.Search)
             .MaximumLength(200);

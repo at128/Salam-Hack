@@ -1,4 +1,4 @@
-using FluentValidation;
+﻿using FluentValidation;
 
 namespace SalamHack.Application.Features.Invoices.Commands.CreateQuickInvoice;
 
@@ -7,13 +7,13 @@ public sealed class CreateQuickInvoiceCommandValidator : AbstractValidator<Creat
     public CreateQuickInvoiceCommandValidator()
     {
         RuleFor(x => x.UserId)
-            .NotEmpty().WithMessage("User ID is required.");
+            .NotEmpty().WithMessage("معرف المستخدم مطلوب.");
 
         RuleFor(x => x.CustomerId)
-            .NotEmpty().WithMessage("Customer ID is required.");
+            .NotEmpty().WithMessage("معرف العميل مطلوب.");
 
         RuleFor(x => x.ServiceName)
-            .NotEmpty().WithMessage("Service name is required.")
+            .NotEmpty().WithMessage("اسم الخدمة مطلوب.")
             .MaximumLength(200);
 
         RuleFor(x => x.ProjectName)
@@ -29,7 +29,7 @@ public sealed class CreateQuickInvoiceCommandValidator : AbstractValidator<Creat
             .MaximumLength(50);
 
         RuleFor(x => x.Currency)
-            .NotEmpty().WithMessage("Currency is required.")
+            .NotEmpty().WithMessage("العملة مطلوبة.")
             .MaximumLength(10);
 
         RuleFor(x => x.Notes)
@@ -50,10 +50,10 @@ public sealed class CreateQuickInvoiceCommandValidator : AbstractValidator<Creat
 
         RuleFor(x => x)
             .Must(x => x.IssueDate is null || x.DueDate is null || x.IssueDate <= x.DueDate)
-            .WithMessage("Due date cannot be earlier than issue date.");
+            .WithMessage("لا يمكن أن يكون تاريخ الاستحقاق قبل تاريخ الإصدار.");
 
         RuleFor(x => x)
             .Must(x => x.StartDate is null || x.EndDate is null || x.StartDate <= x.EndDate)
-            .WithMessage("Project end date cannot be earlier than start date.");
+            .WithMessage("لا يمكن أن يكون تاريخ انتهاء المشروع قبل تاريخ البدء.");
     }
 }

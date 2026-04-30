@@ -1,4 +1,4 @@
-using FluentValidation;
+﻿using FluentValidation;
 
 namespace SalamHack.Application.Features.Expenses.Queries.ClassifyExpense;
 
@@ -7,7 +7,7 @@ public sealed class ClassifyExpenseQueryValidator : AbstractValidator<ClassifyEx
     public ClassifyExpenseQueryValidator()
     {
         RuleFor(x => x.Description)
-            .NotEmpty().WithMessage("Description is required.")
+            .NotEmpty().WithMessage("الوصف مطلوب.")
             .MaximumLength(1000);
     }
 }
