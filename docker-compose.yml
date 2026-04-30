@@ -1,7 +1,6 @@
 services:
   sqlserver:
     image: mcr.microsoft.com/azure-sql-edge:latest
-    container_name: salamhack-sql
     environment:
       ACCEPT_EULA: "Y"
       SA_PASSWORD: "${SA_PASSWORD}"
@@ -9,14 +8,18 @@ services:
     ports:
       - "14333:1433"
     volumes:
-      - ${volume1}
-      - ${volume2}
+      - sql_data:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P \"$${SA_PASSWORD}\" -Q \"SELECT 1\" -b -o /dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
     networks:
       - salamhack-net
 
   seq:
     image: datalust/seq:latest
-    container_name: salamhack-seq
     environment:
       ACCEPT_EULA: "Y"
       SEQ_FIRSTRUN_ADMINPASSWORD: "${SEQ_ADMIN_PASSWORD}"
@@ -29,7 +32,6 @@ services:
 
   otel-collector:
     image: otel/opentelemetry-collector:0.98.0
-    container_name: salamhack-otel
     command: ["--config=/etc/otel-collector-config.yml"]
     volumes:
       - ./otel-collector-config.yml:/etc/otel-collector-config.yml:ro
@@ -44,10 +46,12 @@ services:
     build:
       context: .
       dockerfile: src/SalamHack.Api/Dockerfile
-    container_name: salamhack-api
     environment:
       ASPNETCORE_ENVIRONMENT: "Development"
       ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=SalamHackDb;User Id=sa;Password=${SA_PASSWORD};Encrypt=False;TrustServerCertificate=True;"
+      DatabaseMigration__Enabled: "true"
+      DatabaseMigration__LegacyCompatibilityEnabled: "true"
+      DatabaseMigration__LegacyScriptPath: "deploy.sql"
       JWT__Secret: "${JWT_SECRET}"
       JWT__Issuer: "SalamHackApi"
       JWT__Audience: "SalamHackClient"
@@ -69,10 +73,22 @@ services:
       - data_protection_keys:/app/.aspnet/DataProtection-Keys
     depends_on:
       sqlserver:
-        condition: service_started
+        condition: service_healthy
       seq:
         condition: service_started
       otel-collector:
+        condition: service_started
+    networks:
+      - salamhack-net
+
+  client:
+    build:
+      context: ./src/SalamHack.Client
+      dockerfile: Dockerfile
+    ports:
+      - "8080:80"
+    depends_on:
+      api:
         condition: service_started
     networks:
       - salamhack-net

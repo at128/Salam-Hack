@@ -8,19 +8,26 @@ Built with ASP.NET Core, Clean Architecture, CQRS, EF Core, SQL Server, Identity
 
 ```powershell
 copy .env.example .env
-dotnet restore SalamHack.sln
-$env:MSBuildEnableWorkloadResolver='false'; dotnet build SalamHack.sln --no-restore -m:1
-docker compose up -d --build
+docker compose up -d --build --remove-orphans
+```
+
+For normal day-to-day startup after images have already been built:
+
+```powershell
+docker compose up -d --remove-orphans
 ```
 
 ## Local URLs
 
+- Frontend: `http://localhost:8080`
 - API Swagger: `http://localhost:5009/swagger/index.html`
 - Health ready: `http://localhost:5009/api/v1/health/ready`
 - Health live: `http://localhost:5009/api/v1/health/live`
 - Seq logs: `http://localhost:5341`
 - Prometheus metrics: `http://localhost:8889/metrics`
 - SQL Server: `localhost,14333`
+
+The frontend is served by Nginx in Docker and proxies `/api` requests to the API container.
 
 ## Project Structure
 
@@ -53,7 +60,7 @@ Access tokens are returned in the response body. Refresh tokens are stored in an
 Migrations live in:
 
 ```text
-src/SalamHack.Infrastructure/Data/Migrations
+src/SalamHack.Infrastructure/Migrations
 ```
 
 Add a migration:
@@ -61,7 +68,7 @@ Add a migration:
 ```powershell
 $env:MSBuildEnableWorkloadResolver='false'
 dotnet build SalamHack.sln --no-restore -m:1
-dotnet ef migrations add MigrationName --project src\SalamHack.Infrastructure\SalamHack.Infrastructure.csproj --startup-project src\SalamHack.Api\SalamHack.Api.csproj --output-dir Data\Migrations --no-build
+dotnet ef migrations add MigrationName --project src\SalamHack.Infrastructure\SalamHack.Infrastructure.csproj --startup-project src\SalamHack.Api\SalamHack.Api.csproj --output-dir Migrations --no-build
 ```
 
 Apply migrations manually:
@@ -88,7 +95,8 @@ For a new feature:
 ```powershell
 dotnet restore SalamHack.sln
 $env:MSBuildEnableWorkloadResolver='false'; dotnet build SalamHack.sln --no-restore -m:1
-docker compose up -d --build
+docker compose up -d --build --remove-orphans
+docker compose up -d --remove-orphans
 docker compose ps
 docker compose logs -f api
 docker compose down
