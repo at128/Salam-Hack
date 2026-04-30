@@ -4,6 +4,9 @@ on:
   push:
     branches: [ "master" ]
 
+env:
+  API_IMAGE: ghcr.io/at128/salamhack-api:latest
+
 jobs:
   build-test-and-push:
     runs-on: ubuntu-latest
@@ -51,12 +54,27 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Push Image to GHCR
-      run: docker compose push api
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v3
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build and Push Multi-Arch API Image
+      run: |
+        docker buildx build \
+          --platform linux/amd64,linux/arm64 \
+          --tag "$API_IMAGE" \
+          --file src/SalamHack.Api/Dockerfile \
+          --push \
+          .
 
   deploy-to-server:
     needs: build-test-and-push
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
     steps:
     - name: Deploy via SSH
       uses: appleboy/ssh-action@v1.0.3
