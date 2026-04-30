@@ -19,15 +19,16 @@ docker compose up -d --remove-orphans
 
 ## Local URLs
 
-- Frontend: `http://localhost:8080`
-- API Swagger: `http://localhost:5009/swagger/index.html`
-- Health ready: `http://localhost:5009/api/v1/health/ready`
-- Health live: `http://localhost:5009/api/v1/health/live`
+- Frontend / reverse proxy entry: `http://localhost:5009`
+- API through frontend proxy: `http://localhost:5009/api/v1/health/ready`
+- API Swagger direct: `http://localhost:5010/swagger/index.html`
+- Health ready direct: `http://localhost:5010/api/v1/health/ready`
+- Health live direct: `http://localhost:5010/api/v1/health/live`
 - Seq logs: `http://localhost:5341`
 - Prometheus metrics: `http://localhost:8889/metrics`
 - SQL Server: `localhost,14333`
 
-The frontend is served by Nginx in Docker and proxies `/api` requests to the API container.
+The frontend is served by Nginx in Docker on port `5009` and proxies `/api` requests to the API container. The API direct port `5010` is only for local Swagger/debug access.
 
 ## Project Structure
 
