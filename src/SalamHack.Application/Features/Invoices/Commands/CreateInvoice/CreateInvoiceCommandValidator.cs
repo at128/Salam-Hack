@@ -1,4 +1,4 @@
-using FluentValidation;
+﻿using FluentValidation;
 
 namespace SalamHack.Application.Features.Invoices.Commands.CreateInvoice;
 
@@ -7,13 +7,13 @@ public sealed class CreateInvoiceCommandValidator : AbstractValidator<CreateInvo
     public CreateInvoiceCommandValidator()
     {
         RuleFor(x => x.UserId)
-            .NotEmpty().WithMessage("User ID is required.");
+            .NotEmpty().WithMessage("معرف المستخدم مطلوب.");
 
         RuleFor(x => x.ProjectId)
-            .NotEmpty().WithMessage("Project ID is required.");
+            .NotEmpty().WithMessage("معرف المشروع مطلوب.");
 
         RuleFor(x => x.InvoiceNumber)
-            .NotEmpty().WithMessage("Invoice number is required.")
+            .NotEmpty().WithMessage("رقم الفاتورة مطلوب.")
             .MaximumLength(50);
 
         RuleFor(x => x.TotalAmount)
@@ -24,10 +24,10 @@ public sealed class CreateInvoiceCommandValidator : AbstractValidator<CreateInvo
 
         RuleFor(x => x.DueDate)
             .GreaterThanOrEqualTo(x => x.IssueDate)
-            .WithMessage("Due date cannot be earlier than issue date.");
+            .WithMessage("لا يمكن أن يكون تاريخ الاستحقاق قبل تاريخ الإصدار.");
 
         RuleFor(x => x.Currency)
-            .NotEmpty().WithMessage("Currency is required.")
+            .NotEmpty().WithMessage("العملة مطلوبة.")
             .MaximumLength(10);
 
         RuleFor(x => x.Notes)

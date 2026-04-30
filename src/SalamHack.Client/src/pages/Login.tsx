@@ -13,6 +13,7 @@ const LOGIN_API_URL = `${API_BASE_URL}/api/v1/Auth/login`;
 type LoginForm = {
   email: string;
   password: string;
+  rememberMe: boolean;
 };
 
 export default function Login() {
@@ -23,9 +24,10 @@ export default function Login() {
   const [form, setForm] = useState<LoginForm>({
     email: "",
     password: "",
+    rememberMe: false,
   });
 
-  const setField = (field: keyof LoginForm) => (e: React.ChangeEvent<HTMLInputElement>) => {
+  const setField = (field: "email" | "password") => (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm((prev) => ({ ...prev, [field]: e.target.value }));
     setError("");
   };
@@ -59,7 +61,7 @@ export default function Login() {
         return;
       }
 
-      storeAuthSession(unwrapApiResponse<AuthSessionResponse>(payload));
+      storeAuthSession(unwrapApiResponse<AuthSessionResponse>(payload), form.rememberMe);
       navigate("/dashboard");
     } catch {
       setError("تعذر الاتصال بالخدمة. حاول مرة أخرى بعد قليل.");
@@ -108,13 +110,10 @@ export default function Login() {
         </div>
 
         <div className="space-y-2">
-          <div className="flex items-center justify-between">
+          <div>
             <Label htmlFor="password" className="text-navy">
               كلمة المرور
             </Label>
-            <a href="#" className="text-xs text-teal hover:underline">
-              نسيت كلمة المرور؟
-            </a>
           </div>
           <div className="relative">
             <Lock className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -139,7 +138,12 @@ export default function Login() {
         </div>
 
         <label className="flex select-none items-center gap-2 text-sm text-muted-foreground">
-          <input type="checkbox" className="h-4 w-4 rounded border-border accent-teal" />
+          <input
+            type="checkbox"
+            checked={form.rememberMe}
+            onChange={(e) => setForm((prev) => ({ ...prev, rememberMe: e.target.checked }))}
+            className="h-4 w-4 rounded border-border accent-teal"
+          />
           تذكرني على هذا الجهاز
         </label>
 
@@ -161,14 +165,8 @@ export default function Login() {
           <div className="absolute inset-0 flex items-center">
             <span className="w-full border-t border-border" />
           </div>
-          <div className="relative flex justify-center text-xs">
-            <span className="bg-background px-3 text-muted-foreground">أو</span>
-          </div>
         </div>
 
-        <Button type="button" variant="outline" size="lg" className="h-11 w-full rounded-xl border-border/70">
-          المتابعة عبر Google
-        </Button>
       </form>
     </AuthLayout>
   );

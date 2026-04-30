@@ -98,21 +98,21 @@ internal static class PricingQuoteBuilder
         {
             new PricingPlanDto(
                 PricingPlanType.Economy,
-                "Economy",
+                "اقتصادي",
                 pricing.EconomyPrice,
                 pricing.EconomyMarginPercent,
                 CalculateAdvance(pricing.EconomyPrice),
                 pricing.IsViableAtEconomy),
             new PricingPlanDto(
                 PricingPlanType.Recommended,
-                "Recommended",
+                "موصى به",
                 pricing.MarketPrice,
                 pricing.MarketMarginPercent,
                 pricing.AdvanceAmount,
                 true),
             new PricingPlanDto(
                 PricingPlanType.Premium,
-                "Premium",
+                "مميز",
                 pricing.PremiumPrice,
                 pricing.PremiumMarginPercent,
                 CalculateAdvance(pricing.PremiumPrice),
@@ -200,63 +200,63 @@ internal static class PricingQuoteBuilder
         {
             insights.Add(new PricingInsightDto(
                 PricingInsightSeverity.Info,
-                "No completed project history exists for this service yet."));
+                "لا توجد مشاريع مكتملة لهذه الخدمة حتى الآن."));
 
             if (pricing.ConfidenceMultiplier > 1)
             {
                 insights.Add(new PricingInsightDto(
                     PricingInsightSeverity.Info,
-                    "A small confidence buffer was applied until enough history is available."));
+                    "تم تطبيق هامش احتياطي بسيط إلى أن تتوفر بيانات تاريخية كافية."));
             }
         }
         else
         {
             insights.Add(new PricingInsightDto(
                 history.HoursOverrunFactor > 1.1m ? PricingInsightSeverity.Warning : PricingInsightSeverity.Success,
-                $"Historical hours factor is {history.HoursOverrunFactor:0.##}x."));
+                $"معامل الساعات التاريخي هو {history.HoursOverrunFactor:0.##}x."));
             insights.Add(new PricingInsightDto(
                 history.AverageExtraExpenses > 0 ? PricingInsightSeverity.Warning : PricingInsightSeverity.Success,
-                $"Average extra expenses are {history.AverageExtraExpenses:0.##}."));
+                $"متوسط المصاريف الإضافية هو {history.AverageExtraExpenses:0.##}."));
             insights.Add(new PricingInsightDto(
                 history.AverageMarginPercent >= ApplicationConstants.BusinessRules.HealthyMarginThreshold
                     ? PricingInsightSeverity.Success
                     : PricingInsightSeverity.Warning,
-                $"Historical average margin is {history.AverageMarginPercent:0.##}%."));
+                $"متوسط هامش الربح التاريخي هو {history.AverageMarginPercent:0.##}%."));
         }
 
         if (naiveMargin < ApplicationConstants.BusinessRules.AtRiskMarginThreshold)
         {
             insights.Add(new PricingInsightDto(
                 PricingInsightSeverity.Critical,
-                "Naive pricing would put this estimate below the at-risk margin threshold."));
+                "التسعير المباشر سيجعل هذا التقدير أقل من حد الهامش الخطر."));
         }
 
         if (pricing.HourlyFloorPrice > pricing.CostBasedPrice)
         {
             insights.Add(new PricingInsightDto(
                 PricingInsightSeverity.Success,
-                "The service hourly rate protected the quote from underpricing."));
+                "سعر الساعة للخدمة حمى العرض من التسعير المنخفض."));
         }
 
         if (pricing.ExtraRevisionCount > 0)
         {
             insights.Add(new PricingInsightDto(
                 PricingInsightSeverity.Warning,
-                $"{pricing.ExtraRevisionCount} extra revision(s) added {ApplicationConstants.BusinessRules.ExtraRevisionPriceRate * 100:0.##}% each."));
+                $"تمت إضافة {pricing.ExtraRevisionCount} تعديل إضافي بنسبة {ApplicationConstants.BusinessRules.ExtraRevisionPriceRate * 100:0.##}% لكل تعديل."));
         }
 
         if (pricing.IsUrgent)
         {
             insights.Add(new PricingInsightDto(
                 PricingInsightSeverity.Warning,
-                "Urgent delivery pricing was applied."));
+                "تم تطبيق تسعير التسليم العاجل."));
         }
 
         if (pricing.EconomyPrice == pricing.MinAcceptablePrice)
         {
             insights.Add(new PricingInsightDto(
                 PricingInsightSeverity.Info,
-                "Economy pricing was raised to the minimum acceptable price."));
+                "تم رفع السعر الاقتصادي إلى الحد الأدنى المقبول."));
         }
 
         return insights;

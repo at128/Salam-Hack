@@ -1,4 +1,4 @@
-using FluentValidation;
+﻿using FluentValidation;
 
 namespace SalamHack.Application.Features.Expenses.Commands.UpdateExpenseWithImpact;
 
@@ -7,10 +7,10 @@ public sealed class UpdateExpenseWithImpactCommandValidator : AbstractValidator<
     public UpdateExpenseWithImpactCommandValidator()
     {
         RuleFor(x => x.UserId)
-            .NotEmpty().WithMessage("User ID is required.");
+            .NotEmpty().WithMessage("معرف المستخدم مطلوب.");
 
         RuleFor(x => x.ExpenseId)
-            .NotEmpty().WithMessage("Expense ID is required.");
+            .NotEmpty().WithMessage("معرف المصروف مطلوب.");
 
         RuleFor(x => x.Category)
             .IsInEnum();
@@ -29,7 +29,7 @@ public sealed class UpdateExpenseWithImpactCommandValidator : AbstractValidator<
         RuleFor(x => x.RecurrenceInterval)
             .NotNull()
             .When(x => x.IsRecurring)
-            .WithMessage("Recurring expenses must include a recurrence interval.");
+            .WithMessage("يجب أن تتضمن المصروفات المتكررة فترة التكرار.");
 
         RuleFor(x => x.RecurrenceEndDate)
             .GreaterThanOrEqualTo(x => x.ExpenseDate)

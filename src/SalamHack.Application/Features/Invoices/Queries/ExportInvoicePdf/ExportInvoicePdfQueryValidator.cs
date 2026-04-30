@@ -1,4 +1,4 @@
-using FluentValidation;
+﻿using FluentValidation;
 
 namespace SalamHack.Application.Features.Invoices.Queries.ExportInvoicePdf;
 
@@ -7,9 +7,9 @@ public sealed class ExportInvoicePdfQueryValidator : AbstractValidator<ExportInv
     public ExportInvoicePdfQueryValidator()
     {
         RuleFor(x => x.UserId)
-            .NotEmpty().WithMessage("User ID is required.");
+            .NotEmpty().WithMessage("معرف المستخدم مطلوب.");
 
         RuleFor(x => x.InvoiceId)
-            .NotEmpty().WithMessage("Invoice ID is required.");
+            .NotEmpty().WithMessage("معرف الفاتورة مطلوب.");
     }
 }

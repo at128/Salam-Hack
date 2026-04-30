@@ -1,4 +1,4 @@
-using FluentValidation;
+﻿using FluentValidation;
 
 namespace SalamHack.Application.Features.Reports.Queries.GetProfitabilityReport;
 
@@ -7,10 +7,10 @@ public sealed class GetProfitabilityReportQueryValidator : AbstractValidator<Get
     public GetProfitabilityReportQueryValidator()
     {
         RuleFor(x => x.UserId)
-            .NotEmpty().WithMessage("User ID is required.");
+            .NotEmpty().WithMessage("معرف المستخدم مطلوب.");
 
         RuleFor(x => x)
             .Must(x => x.FromUtc is null || x.ToUtc is null || x.FromUtc <= x.ToUtc)
-            .WithMessage("From date must be before or equal to To date.");
+            .WithMessage("يجب أن يكون تاريخ البداية قبل أو مساوياً لتاريخ النهاية.");
     }
 }

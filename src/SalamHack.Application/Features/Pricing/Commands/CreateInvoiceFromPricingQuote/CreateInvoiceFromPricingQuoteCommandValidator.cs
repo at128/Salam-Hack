@@ -1,4 +1,4 @@
-using FluentValidation;
+﻿using FluentValidation;
 
 namespace SalamHack.Application.Features.Pricing.Commands.CreateInvoiceFromPricingQuote;
 
@@ -7,13 +7,13 @@ public sealed class CreateInvoiceFromPricingQuoteCommandValidator : AbstractVali
     public CreateInvoiceFromPricingQuoteCommandValidator()
     {
         RuleFor(x => x.UserId)
-            .NotEmpty().WithMessage("User ID is required.");
+            .NotEmpty().WithMessage("معرف المستخدم مطلوب.");
 
         RuleFor(x => x.CustomerId)
-            .NotEmpty().WithMessage("Customer ID is required.");
+            .NotEmpty().WithMessage("معرف العميل مطلوب.");
 
         RuleFor(x => x.ServiceId)
-            .NotEmpty().WithMessage("Service ID is required.");
+            .NotEmpty().WithMessage("معرف الخدمة مطلوب.");
 
         RuleFor(x => x.ProjectName)
             .NotEmpty()

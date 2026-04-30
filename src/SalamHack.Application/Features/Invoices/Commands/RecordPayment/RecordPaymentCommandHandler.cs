@@ -15,9 +15,6 @@ public sealed class RecordPaymentCommandHandler(
     public async Task<Result<InvoiceDto>> Handle(RecordPaymentCommand cmd, CancellationToken ct)
     {
         var invoice = await context.Invoices
-            .Include(i => i.Project)
-                .ThenInclude(p => p.Customer)
-            .Include(i => i.Payments)
             .FirstOrDefaultAsync(i => i.Id == cmd.InvoiceId && i.UserId == cmd.UserId, ct);
 
         if (invoice is null)
@@ -33,8 +30,27 @@ public sealed class RecordPaymentCommandHandler(
         if (paymentResult.IsError)
             return paymentResult.Errors;
 
-        await context.SaveChangesAsync(ct);
+        context.Payments.Add(paymentResult.Value);
 
-        return invoice.ToDto(timeProvider.GetUtcNow());
+        try
+        {
+            await context.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            return ApplicationErrors.Invoices.InvoiceNotFound;
+        }
+
+        context.ClearChangeTracker();
+
+        var savedInvoice = await context.Invoices
+            .Include(i => i.Project)
+                .ThenInclude(p => p.Customer)
+            .Include(i => i.Payments)
+            .FirstOrDefaultAsync(i => i.Id == cmd.InvoiceId && i.UserId == cmd.UserId, ct);
+
+        return savedInvoice is null
+            ? ApplicationErrors.Invoices.InvoiceNotFound
+            : savedInvoice.ToDto(timeProvider.GetUtcNow());
     }
 }

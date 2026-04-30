@@ -11,6 +11,7 @@ import Login from "./pages/Login.tsx";
 import Register from "./pages/Register.tsx";
 import DashboardLayout from "./components/dashboard/DashboardLayout.tsx";
 import InvoicesPage from "./pages/dashboard/Invoices.tsx";
+import InvoiceDetailsPage from "./pages/dashboard/InvoiceDetails.tsx";
 import PaymentsPage from "./pages/dashboard/Payments.tsx";
 import ProfitPage from "./pages/dashboard/Profit.tsx";
 import BreakdownPage from "./pages/dashboard/Breakdown.tsx";
@@ -74,6 +75,7 @@ const App = () => (
               <Route path="customers" element={<CustomersPage />} />
               <Route path="projects" element={<ProjectsPage />} />
               <Route path="invoices" element={<InvoicesPage />} />
+              <Route path="invoices/:invoiceId" element={<InvoiceDetailsPage />} />
               <Route path="payments" element={<PaymentsPage />} />
               <Route path="profit" element={<ProfitPage />} />
               <Route path="breakdown" element={<BreakdownPage />} />

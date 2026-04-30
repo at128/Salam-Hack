@@ -1,4 +1,4 @@
-using FluentValidation;
+﻿using FluentValidation;
 
 namespace SalamHack.Application.Features.Expenses.Queries.GetExpenseById;
 
@@ -7,9 +7,9 @@ public sealed class GetExpenseByIdQueryValidator : AbstractValidator<GetExpenseB
     public GetExpenseByIdQueryValidator()
     {
         RuleFor(x => x.UserId)
-            .NotEmpty().WithMessage("User ID is required.");
+            .NotEmpty().WithMessage("معرف المستخدم مطلوب.");
 
         RuleFor(x => x.ExpenseId)
-            .NotEmpty().WithMessage("Expense ID is required.");
+            .NotEmpty().WithMessage("معرف المصروف مطلوب.");
     }
 }

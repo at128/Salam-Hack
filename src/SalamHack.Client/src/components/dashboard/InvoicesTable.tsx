@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Download, Eye, Loader2, Plus, RefreshCw, Send, Trash2, Wallet } from "lucide-react";
+import { Download, Eye, Loader2, Plus, Printer, RefreshCw, Send, Trash2, Wallet } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 import "sweetalert2/dist/sweetalert2.min.css";
 import { Button } from "@/components/ui/button";
@@ -27,7 +28,7 @@ import { getApiErrorMessage, getValidAccessToken, unwrapApiResponse } from "@/li
 type InvoiceStatus = "Draft" | "Sent" | "PartiallyPaid" | "Paid" | "Overdue" | "Cancelled";
 type PaymentMethod = "BankTransfer" | "Cash" | "CreditCard" | "PayPal" | "Other";
 
-type InvoiceListItem = {
+export type InvoiceListItem = {
   id: string;
   projectId: string;
   projectName: string;
@@ -37,13 +38,13 @@ type InvoiceListItem = {
   totalWithTax: number;
   paidAmount: number;
   remainingAmount: number;
-  status: InvoiceStatus;
+  status: InvoiceStatus | string;
   issueDate: string;
   dueDate: string;
   currency: string;
 };
 
-type PaymentDto = {
+export type PaymentDto = {
   id: string;
   invoiceId: string;
   amount: number;
@@ -54,7 +55,7 @@ type PaymentDto = {
   createdAtUtc: string;
 };
 
-type InvoiceDto = InvoiceListItem & {
+export type InvoiceDto = InvoiceListItem & {
   totalAmount: number;
   taxAmount: number;
   advanceAmount: number;
@@ -165,8 +166,19 @@ function wait(ms: number) {
   return new Promise((resolve) => window.setTimeout(resolve, ms));
 }
 
+function normalizeStatus(status: InvoiceStatus | string) {
+  const normalized = status.toLowerCase();
+  if (normalized === "draft" || status === "مسودة") return "Draft";
+  if (normalized === "sent" || status === "مرسلة") return "Sent";
+  if (normalized === "partiallypaid" || normalized === "partially paid" || status === "مدفوعة جزئيا" || status === "مدفوعة جزئياً") return "PartiallyPaid";
+  if (normalized === "paid" || status === "مدفوعة") return "Paid";
+  if (normalized === "overdue" || status === "متأخرة") return "Overdue";
+  if (normalized === "cancelled" || normalized === "canceled" || status === "ملغاة") return "Cancelled";
+  return status;
+}
+
 function statusLabel(status: InvoiceStatus | string) {
-  switch (status) {
+  switch (normalizeStatus(status)) {
     case "Draft":
       return "مسودة";
     case "Sent":
@@ -185,7 +197,7 @@ function statusLabel(status: InvoiceStatus | string) {
 }
 
 function statusClass(status: InvoiceStatus | string) {
-  switch (status) {
+  switch (normalizeStatus(status)) {
     case "Paid":
       return "bg-success-soft text-success";
     case "Sent":
@@ -219,43 +231,307 @@ function methodLabel(method: PaymentMethod | string) {
   }
 }
 
-async function downloadInvoicePdf(invoiceId: string) {
-  const token = await getValidAccessToken();
-  if (!token) throw new Error("Missing access token.");
-
-  const response = await fetch(`${INVOICES_API_URL}/${invoiceId}/pdf`, {
-    method: "GET",
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  if (!response.ok) {
-    const payload = await response.json().catch(() => null);
-    throw payload ?? new Error(getApiErrorMessage(payload, "تعذر تصدير ملف PDF."));
-  }
-
-  const blob = await response.blob();
-  const fileName = getFileNameFromContentDisposition(response.headers.get("content-disposition")) ?? `invoice-${invoiceId}.pdf`;
-  const url = window.URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = fileName;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  window.URL.revokeObjectURL(url);
+function escapeHtml(value: string | number | null | undefined) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
-function getFileNameFromContentDisposition(value: string | null) {
-  if (!value) return null;
-  const match = /filename\*?=(?:UTF-8''|")?([^;"\n]+)"?/i.exec(value);
-  if (!match?.[1]) return null;
-  try {
-    return decodeURIComponent(match[1]);
-  } catch {
-    return match[1];
-  }
+function invoiceItemName(invoice: InvoiceDto) {
+  return invoice.projectName || invoice.notes || "خدمة مستقلة";
+}
+
+function buildInvoicePrintHtml(invoice: InvoiceDto, autoPrint = false) {
+  const currency = invoice.currency || "SAR";
+  const itemName = invoiceItemName(invoice);
+  const safeInvoiceNumber = escapeHtml(invoice.invoiceNumber);
+
+  return `<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>فاتورة ضريبية - ${safeInvoiceNumber}</title>
+  <style>
+    @page { size: A4 portrait; margin: 8mm 10mm; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: Tahoma, Arial, sans-serif;
+      color: #000;
+      background: #e9e9e9;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .screen-toolbar {
+      position: fixed;
+      top: 14px;
+      left: 14px;
+      z-index: 9999;
+      display: flex;
+      gap: 8px;
+      padding: 10px;
+      background: rgba(255,255,255,0.96);
+      border: 1px solid #cfcfcf;
+      border-radius: 10px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.14);
+    }
+    .toolbar-btn {
+      border: none;
+      border-radius: 8px;
+      padding: 8px 14px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .toolbar-btn-primary { background: #0f766e; color: #fff; }
+    .toolbar-btn-secondary { background: #f4f4f4; color: #000; border: 1px solid #cfcfcf; }
+    .page {
+      width: 190mm;
+      min-height: 278mm;
+      margin: 8px auto;
+      background: #fff;
+      padding: 8mm 6mm 10mm;
+      display: flex;
+      flex-direction: column;
+    }
+    .header-grid {
+      direction: ltr;
+      display: grid;
+      grid-template-columns: 26% 48% 26%;
+      align-items: start;
+      gap: 12px;
+      border-bottom: 1px solid #000;
+      padding-bottom: 8px;
+    }
+    .header-left, .header-center, .header-right { min-height: 150px; }
+    .header-left { text-align: center; font-size: 15px; font-weight: 700; }
+    .qr-box {
+      width: 120px;
+      height: 120px;
+      margin: 8px auto 0;
+      border: 1px solid #000;
+      display: grid;
+      place-items: center;
+      font-size: 11px;
+      color: #555;
+    }
+    .header-center {
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .invoice-title { font-size: 22px; font-weight: 800; }
+    .invoice-subtitle { margin-top: 8px; font-size: 13px; font-weight: 700; }
+    .header-right {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      justify-content: flex-start;
+      padding-top: 5px;
+      text-align: right;
+    }
+    .brand-box {
+      width: 150px;
+      min-height: 64px;
+      border: 1px solid #000;
+      display: grid;
+      place-items: center;
+      font-size: 20px;
+      font-weight: 800;
+    }
+    .company-vat { margin-top: 8px; font-size: 13px; font-weight: 700; }
+    .meta {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 9px;
+      font-size: 13px;
+    }
+    .meta td { padding: 4px 5px; vertical-align: top; }
+    .meta .label, .meta .customer-label { font-weight: 700; white-space: nowrap; }
+    .meta .label { width: 11%; }
+    .meta .value { width: 16%; }
+    .meta .customer-label { width: 12%; }
+    .meta .customer-value { width: 35%; }
+    .items {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 8px;
+      font-size: 12px;
+    }
+    .items th, .items td {
+      border: 1px solid #000;
+      padding: 6px 4px;
+      text-align: center;
+      vertical-align: middle;
+    }
+    .items thead th { font-weight: 700; background: #fff; }
+    .items td.item-name { text-align: right; line-height: 1.45; }
+    .after-items {
+      display: grid;
+      grid-template-columns: 170px 1fr;
+      gap: 16px;
+      margin-top: 8px;
+      direction: ltr;
+    }
+    .totals-box {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      direction: rtl;
+    }
+    .totals-box td { border: 1px solid #000; padding: 5px 7px; }
+    .totals-box .t-label { font-weight: 700; text-align: right; width: 58%; }
+    .totals-box .t-value { text-align: center; width: 42%; direction: ltr; }
+    .lower-section { margin-top: 26px; }
+    .signatures {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 80px;
+      text-align: center;
+      font-size: 13px;
+      padding-top: 10px;
+    }
+    .sign-box { min-height: 60px; padding-top: 22px; }
+    .bottom-wrapper { margin-top: auto; }
+    .bank-info { text-align: right; font-size: 13px; line-height: 2; }
+    .bank-line { display: block; margin-bottom: 2px; font-weight: 700; }
+    .footer {
+      margin-top: 0;
+      padding-top: 8px;
+      text-align: center;
+      font-size: 11px;
+      border-top: 1px solid #000;
+    }
+    @media print {
+      html, body { background: #fff; margin: 0; padding: 0; }
+      .screen-toolbar { display: none !important; }
+      .page {
+        margin: 0 auto;
+        width: 100%;
+        min-height: 278mm;
+        padding: 8mm 6mm 10mm;
+      }
+      .lower-section, .bank-info, .signatures, .footer, .bottom-wrapper { page-break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <div class="screen-toolbar">
+    <button type="button" class="toolbar-btn toolbar-btn-primary" onclick="window.print()">طباعة / حفظ PDF</button>
+    <button type="button" class="toolbar-btn toolbar-btn-secondary" onclick="window.close()">إغلاق</button>
+  </div>
+
+  <div class="page">
+    <div class="header-grid">
+      <div class="header-left">
+        <div>فاتورة مبيعات ضريبية</div>
+      </div>
+      <div class="header-center">
+        <div class="invoice-title">فاتورة ضريبية</div>
+        <div class="invoice-subtitle">Tax Invoice</div>
+      </div>
+      <div class="header-right">
+        <div class="brand-box">SalamHack</div>
+        <div class="company-vat">الرقم الضريبي: غير محدد</div>
+      </div>
+    </div>
+
+    <table class="meta">
+      <tr>
+        <td class="label">رقم الفاتورة</td>
+        <td class="value">${safeInvoiceNumber}</td>
+        <td class="customer-label">اسم العميل</td>
+        <td class="customer-value">${escapeHtml(invoice.customerName)}</td>
+        <td class="label">حالة الفاتورة</td>
+        <td class="value">${escapeHtml(statusLabel(invoice.status))}</td>
+      </tr>
+      <tr>
+        <td class="label">تاريخ الفاتورة</td>
+        <td class="value">${escapeHtml(formatDate(invoice.issueDate))}</td>
+        <td class="customer-label">طريقة الدفع</td>
+        <td class="customer-value">حسب الاتفاق</td>
+        <td class="label">تاريخ الاستحقاق</td>
+        <td class="value">${escapeHtml(formatDate(invoice.dueDate))}</td>
+      </tr>
+      <tr>
+        <td class="label">المشروع</td>
+        <td class="value" colspan="5">${escapeHtml(invoice.projectName)}</td>
+      </tr>
+    </table>
+
+    <table class="items">
+      <thead>
+        <tr>
+          <th style="width:8%;">م</th>
+          <th style="width:62%;">اسم المشروع</th>
+          <th style="width:30%;">تكلفة المشروع</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>1</td>
+          <td class="item-name">${escapeHtml(itemName)}</td>
+          <td style="text-align:center;">${escapeHtml(formatCurrency(invoice.totalAmount, currency))}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="after-items">
+      <table class="totals-box">
+        <tr>
+          <td class="t-label">دفعة مقدمة</td>
+          <td class="t-value">${escapeHtml(formatCurrency(invoice.advanceAmount, currency))}</td>
+        </tr>
+        <tr>
+          <td class="t-label">المجموع</td>
+          <td class="t-value">${escapeHtml(formatCurrency(invoice.totalAmount, currency))}</td>
+        </tr>
+        <tr>
+          <td class="t-label">الضريبة</td>
+          <td class="t-value">${escapeHtml(formatCurrency(invoice.taxAmount, currency))}</td>
+        </tr>
+        <tr>
+          <td class="t-label">صافي الفاتورة</td>
+          <td class="t-value">${escapeHtml(formatCurrency(invoice.totalWithTax, currency))}</td>
+        </tr>
+        <tr>
+          <td class="t-label">المدفوع</td>
+          <td class="t-value">${escapeHtml(formatCurrency(invoice.paidAmount, currency))}</td>
+        </tr>
+        <tr>
+          <td class="t-label">المتبقي</td>
+          <td class="t-value">${escapeHtml(formatCurrency(invoice.remainingAmount, currency))}</td>
+        </tr>
+      </table>
+      <div></div>
+    </div>
+
+    <div class="lower-section">
+      <div class="signatures">
+        <div class="sign-box">توقيع المستقل</div>
+        <div class="sign-box">توقيع العميل</div>
+      </div>
+    </div>
+
+    <div class="bottom-wrapper">
+      <div class="bank-info">
+        <span class="bank-line">بيانات التحويل البنكي:</span>
+        <span class="bank-line">أضف بيانات حسابك البنكي في إعدادات الحساب.</span>
+      </div>
+      <div class="footer">
+        شكرا لتعاملكم معنا - تم إنشاء هذه الفاتورة عبر SalamHack
+      </div>
+    </div>
+  </div>
+  ${autoPrint ? "<script>window.addEventListener('load', function () { window.print(); });</script>" : ""}
+</body>
+</html>`;
 }
 
 type PaymentForm = {
@@ -310,7 +586,147 @@ const CURRENCY_OPTIONS = [
   { value: "JOD", label: "دينار أردني" },
 ];
 
+export function InvoicePrintStyles() {
+  return (
+    <style>{`
+      .invoice-print-area ~ .grid,
+      .invoice-print-area ~ .rounded-xl {
+        display: none !important;
+      }
+
+      @media print {
+        body * {
+          visibility: hidden !important;
+        }
+
+        .invoice-print-area,
+        .invoice-print-area * {
+          visibility: visible !important;
+        }
+
+        .invoice-print-area {
+          position: absolute !important;
+          inset: 0 auto auto 0 !important;
+          width: 100% !important;
+          max-width: none !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          box-shadow: none !important;
+        }
+
+        .invoice-no-print {
+          display: none !important;
+        }
+      }
+    `}</style>
+  );
+}
+
+export function InvoicePrintPreview({ invoice }: { invoice: InvoiceDto }) {
+  const currency = invoice.currency || "SAR";
+
+  return (
+    <div className="invoice-print-area mx-auto flex min-h-[278mm] max-w-[820px] flex-col bg-white p-4 text-black shadow-sm" dir="rtl">
+      <div className="grid grid-cols-[26%_1fr_26%] items-start gap-3 border-b border-black pb-3">
+        <div className="text-center text-sm font-bold">
+          <div>فاتورة مبيعات ضريبية</div>
+        </div>
+        <div className="flex min-h-32 flex-col items-center justify-center text-center">
+          <div className="text-2xl font-extrabold">فاتورة ضريبية</div>
+          <div className="mt-2 text-sm font-bold">Tax Invoice</div>
+        </div>
+        <div className="flex flex-col items-end text-right">
+          <div className="grid min-h-16 w-36 place-items-center border border-black text-lg font-extrabold">
+            SalamHack
+          </div>
+          <div className="mt-2 text-xs font-bold">الرقم الضريبي: غير محدد</div>
+        </div>
+      </div>
+
+      <table className="mt-3 w-full text-xs">
+        <tbody>
+          <tr>
+            <td className="py-1 font-bold">رقم الفاتورة</td>
+            <td className="py-1">{invoice.invoiceNumber}</td>
+            <td className="py-1 font-bold">اسم العميل</td>
+            <td className="py-1">{invoice.customerName}</td>
+            <td className="py-1 font-bold">حالة الفاتورة</td>
+            <td className="py-1">{statusLabel(invoice.status)}</td>
+          </tr>
+          <tr>
+            <td className="py-1 font-bold">تاريخ الفاتورة</td>
+            <td className="py-1">{formatDate(invoice.issueDate)}</td>
+            <td className="py-1 font-bold">طريقة الدفع</td>
+            <td className="py-1">حسب الاتفاق</td>
+            <td className="py-1 font-bold">تاريخ الاستحقاق</td>
+            <td className="py-1">{formatDate(invoice.dueDate)}</td>
+          </tr>
+          <tr>
+            <td className="py-1 font-bold">المشروع</td>
+            <td className="py-1" colSpan={5}>{invoice.projectName}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <table className="mt-3 w-full border-collapse text-xs">
+        <thead>
+          <tr>
+            <th className="w-[8%] border border-black p-2">م</th>
+            <th className="w-[62%] border border-black p-2">اسم المشروع</th>
+            <th className="w-[30%] border border-black p-2 text-center">تكلفة المشروع</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td className="border border-black p-2 text-center">1</td>
+            <td className="border border-black p-2 text-right">{invoiceItemName(invoice)}</td>
+            <td className="border border-black p-2 text-center">{formatCurrency(invoice.totalAmount, currency)}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div className="mt-3 grid grid-cols-[180px_1fr] gap-4" dir="ltr">
+        <table className="w-full border-collapse text-xs" dir="rtl">
+          <tbody>
+            {[
+              ["دفعة مقدمة", invoice.advanceAmount],
+              ["المجموع", invoice.totalAmount],
+              ["الضريبة", invoice.taxAmount],
+              ["صافي الفاتورة", invoice.totalWithTax],
+              ["المدفوع", invoice.paidAmount],
+              ["المتبقي", invoice.remainingAmount],
+            ].map(([label, value]) => (
+              <tr key={String(label)}>
+                <td className="border border-black p-2 text-right font-bold">{label}</td>
+                <td className="border border-black p-2 text-center">{formatCurrency(Number(value), currency)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <div />
+      </div>
+
+      <div className="mt-8 grid grid-cols-2 gap-20 text-center text-sm">
+        <div className="min-h-16 pt-6">توقيع المستقل</div>
+        <div className="min-h-16 pt-6">توقيع العميل</div>
+      </div>
+
+      <div className="mt-auto">
+        <div className="text-right text-sm font-bold leading-8">
+          <span className="block">بيانات التحويل البنكي:</span>
+          <span className="block">أضف بيانات حسابك البنكي في إعدادات الحساب.</span>
+        </div>
+
+        <div className="mt-3 border-t border-black pt-2 text-center text-xs">
+          شكرا لتعاملكم معنا - تم إنشاء هذه الفاتورة عبر SalamHack
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function InvoicesTable() {
+  const navigate = useNavigate();
   const [invoices, setInvoices] = useState<PaginatedList<InvoiceListItem> | null>(null);
   const [projects, setProjects] = useState<ProjectOption[]>([]);
   const [search, setSearch] = useState("");
@@ -343,8 +759,8 @@ export default function InvoicesTable() {
     const items = invoices?.items ?? [];
     return {
       total: invoices?.totalCount ?? 0,
-      overdue: items.filter((i) => i.status === "Overdue").length,
-      paid: items.filter((i) => i.status === "Paid").length,
+      overdue: items.filter((i) => normalizeStatus(i.status) === "Overdue").length,
+      paid: items.filter((i) => normalizeStatus(i.status) === "Paid").length,
     };
   }, [invoices]);
 
@@ -412,9 +828,36 @@ export default function InvoicesTable() {
 
   const submitInvoice = async (event: React.FormEvent) => {
     event.preventDefault();
-    setIsBusy(true);
     setError("");
     setMessage("");
+
+    // Warn if selected currency differs from existing invoices for this project
+    if (invoiceForm.projectId) {
+      const existingForProject = invoices?.items.find(
+        (inv) => inv.projectId === invoiceForm.projectId,
+      );
+      if (
+        existingForProject &&
+        existingForProject.currency.toUpperCase() !== invoiceForm.currency.toUpperCase()
+      ) {
+        const result = await Swal.fire({
+          icon: "warning",
+          title: "تنبيه: عملة مختلفة",
+          html: `الفواتير السابقة لهذا المشروع بعملة <strong>${existingForProject.currency}</strong>،<br/>وقد اخترت <strong>${invoiceForm.currency}</strong>.<br/><br/>هل تريد المتابعة؟`,
+          confirmButtonText: "نعم، تأكيد",
+          cancelButtonText: "إلغاء",
+          showCancelButton: true,
+          customClass: {
+            popup: "rounded-2xl",
+            confirmButton: "rounded-xl",
+            cancelButton: "rounded-xl",
+          },
+        });
+        if (!result.isConfirmed) return;
+      }
+    }
+
+    setIsBusy(true);
 
     try {
       await apiRequest<InvoiceDto>(INVOICES_API_URL, {
@@ -443,16 +886,25 @@ export default function InvoicesTable() {
   };
 
   const openDetails = async (invoice: InvoiceListItem) => {
+    navigate(`/dashboard/invoices/${invoice.id}`);
+  };
+
+  const printInvoice = async (invoice: InvoiceListItem | InvoiceDto) => {
     setIsBusy(true);
     setError("");
     setMessage("");
 
     try {
-      const full = await apiRequest<InvoiceDto>(`${INVOICES_API_URL}/${invoice.id}`);
+      const full =
+        "taxAmount" in invoice
+          ? invoice
+          : await apiRequest<InvoiceDto>(`${INVOICES_API_URL}/${invoice.id}`);
+
       setSelectedInvoice(full);
       setIsDetailsOpen(true);
+      window.setTimeout(() => window.print(), 150);
     } catch (err) {
-      setError(getApiErrorMessage(err, "تعذر تحميل تفاصيل الفاتورة."));
+      setError(getApiErrorMessage(err, "تعذر تجهيز الفاتورة للطباعة."));
     } finally {
       setIsBusy(false);
     }
@@ -602,6 +1054,8 @@ export default function InvoicesTable() {
 
   return (
     <>
+      <InvoicePrintStyles />
+
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <PageHeader title="الفواتير" desc="جميع فواتيرك مع حالاتها وتفاصيل العملاء." />
         <Button onClick={openCreateInvoice} className="rounded-xl bg-gradient-brand shadow-glow hover:opacity-90">
@@ -767,22 +1221,9 @@ export default function InvoicesTable() {
                             variant="outline"
                             size="icon"
                             className="h-8 w-8 rounded-lg"
-                            onClick={() =>
-                              void (async () => {
-                                setIsBusy(true);
-                                setError("");
-                                setMessage("");
-                                try {
-                                  await downloadInvoicePdf(inv.id);
-                                } catch (err) {
-                                  setError(getApiErrorMessage(err, "تعذر تنزيل ملف PDF."));
-                                } finally {
-                                  setIsBusy(false);
-                                }
-                              })()
-                            }
+                            onClick={() => void printInvoice(inv)}
                             disabled={isBusy}
-                            title="PDF"
+                            title="طباعة / حفظ PDF"
                           >
                             <Download className="h-3.5 w-3.5" />
                           </Button>
@@ -803,7 +1244,7 @@ export default function InvoicesTable() {
                             size="icon"
                             className="h-8 w-8 rounded-lg"
                             onClick={() => void runAction("send", inv.id)}
-                            disabled={isBusy || inv.status === "Cancelled" || inv.status === "Paid"}
+                            disabled={isBusy || normalizeStatus(inv.status) === "Cancelled" || normalizeStatus(inv.status) === "Paid"}
                             title="إرسال"
                           >
                             <Send className="h-3.5 w-3.5" />
@@ -1029,12 +1470,37 @@ export default function InvoicesTable() {
       <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
         <DialogContent className="max-h-[90vh] w-[calc(100vw-2rem)] max-w-4xl overflow-y-auto overflow-x-hidden text-right" dir="rtl">
           <DialogHeader className="text-right">
-            <DialogTitle>تفاصيل الفاتورة</DialogTitle>
-            <DialogDescription>عرض تفاصيل الفاتورة والمدفوعات المرتبطة بها.</DialogDescription>
+            <DialogTitle>عرض الفاتورة</DialogTitle>
+            <DialogDescription>معاينة الفاتورة بنفس تنسيق الطباعة، مع إمكانية الطباعة أو الحفظ PDF.</DialogDescription>
           </DialogHeader>
 
           {selectedInvoice ? (
             <div className="space-y-4">
+              <div className="flex flex-wrap justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="rounded-xl"
+                  disabled={isBusy}
+                  onClick={() => window.print()}
+                >
+                  <Printer className="h-4 w-4" />
+                  طباعة
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="rounded-xl"
+                  disabled={isBusy}
+                  onClick={() => window.print()}
+                >
+                  <Download className="h-4 w-4" />
+                  حفظ PDF
+                </Button>
+              </div>
+
+              <InvoicePrintPreview invoice={selectedInvoice} />
+
               <div className="grid gap-3 rounded-xl border border-border/70 bg-muted/20 p-4 sm:grid-cols-2">
                 <div>
                   <div className="text-xs text-muted-foreground">رقم الفاتورة</div>
@@ -1185,7 +1651,7 @@ export default function InvoicesTable() {
                   type="button"
                   variant="outline"
                   className="rounded-xl"
-                  disabled={isBusy || selectedInvoice.status === "Cancelled" || selectedInvoice.status === "Paid"}
+                  disabled={isBusy || normalizeStatus(selectedInvoice.status) === "Cancelled" || normalizeStatus(selectedInvoice.status) === "Paid"}
                   onClick={() => void runAction("send", selectedInvoice.id)}
                 >
                   إرسال
@@ -1195,22 +1661,9 @@ export default function InvoicesTable() {
                   variant="outline"
                   className="rounded-xl"
                   disabled={isBusy}
-                  onClick={() =>
-                    void (async () => {
-                      setIsBusy(true);
-                      setError("");
-                      setMessage("");
-                      try {
-                        await downloadInvoicePdf(selectedInvoice.id);
-                      } catch (err) {
-                        setError(getApiErrorMessage(err, "تعذر تنزيل ملف PDF."));
-                      } finally {
-                        setIsBusy(false);
-                      }
-                    })()
-                  }
+                  onClick={() => window.print()}
                 >
-                  تنزيل PDF
+                  حفظ PDF
                 </Button>
                 <Button type="button" className="rounded-xl bg-gradient-brand shadow-glow hover:opacity-90" disabled={isBusy} onClick={() => openPaymentDialog(selectedInvoice, "payment")}>
                   تسجيل دفعة

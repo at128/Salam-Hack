@@ -26,7 +26,7 @@ internal static class InvoiceMappings
             invoice.PaidAmount,
             invoice.RemainingAmount,
             invoice.AdvanceRemainingAmount,
-            asOfUtc.HasValue ? invoice.GetEffectiveStatus(asOfUtc.Value) : invoice.Status,
+            ToArabicStatus(asOfUtc.HasValue ? invoice.GetEffectiveStatus(asOfUtc.Value) : invoice.Status),
             invoice.IssueDate,
             invoice.DueDate,
             invoice.Notes,
@@ -50,7 +50,7 @@ internal static class InvoiceMappings
             invoice.PaidAmount,
             invoice.RemainingAmount,
             invoice.AdvanceRemainingAmount,
-            asOfUtc.HasValue ? invoice.GetEffectiveStatus(asOfUtc.Value) : invoice.Status,
+            ToArabicStatus(asOfUtc.HasValue ? invoice.GetEffectiveStatus(asOfUtc.Value) : invoice.Status),
             invoice.IssueDate,
             invoice.DueDate,
             invoice.Notes,
@@ -90,13 +90,35 @@ internal static class InvoiceMappings
             i.PaidAmount,
             i.TotalWithTax - i.PaidAmount,
             i.Status == InvoiceStatus.Draft || i.Status == InvoiceStatus.Cancelled
-                ? i.Status
+                ? i.Status == InvoiceStatus.Draft
+                    ? "مسودة"
+                    : "ملغاة"
                 : i.TotalWithTax <= i.PaidAmount
-                    ? InvoiceStatus.Paid
+                    ? "مدفوعة"
                     : i.DueDate < asOfUtc
-                        ? InvoiceStatus.Overdue
-                        : i.Status,
+                        ? "متأخرة"
+                        : i.Status == InvoiceStatus.Sent
+                            ? "مرسلة"
+                            : i.Status == InvoiceStatus.PartiallyPaid
+                                ? "مدفوعة جزئيا"
+                                : i.Status == InvoiceStatus.Paid
+                                    ? "مدفوعة"
+                                    : i.Status == InvoiceStatus.Overdue
+                                        ? "متأخرة"
+                                        : "مسودة",
             i.IssueDate,
             i.DueDate,
             i.Currency);
+
+    private static string ToArabicStatus(InvoiceStatus status)
+        => status switch
+        {
+            InvoiceStatus.Draft => "مسودة",
+            InvoiceStatus.Sent => "مرسلة",
+            InvoiceStatus.PartiallyPaid => "مدفوعة جزئيا",
+            InvoiceStatus.Paid => "مدفوعة",
+            InvoiceStatus.Overdue => "متأخرة",
+            InvoiceStatus.Cancelled => "ملغاة",
+            _ => status.ToString()
+        };
 }

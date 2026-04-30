@@ -1,4 +1,4 @@
-using FluentValidation;
+﻿using FluentValidation;
 using SalamHack.Domain.Common.Constants;
 
 namespace SalamHack.Application.Features.Auth.Commands.ChangePassword;
@@ -8,20 +8,20 @@ public sealed class ChangePasswordCommandValidator : AbstractValidator<ChangePas
     public ChangePasswordCommandValidator()
     {
         RuleFor(x => x.UserId)
-            .NotEmpty().WithMessage("User ID is required");
+            .NotEmpty().WithMessage("معرف المستخدم مطلوب");
 
         RuleFor(x => x.CurrentPassword)
-            .NotEmpty().WithMessage("Current password is required");
+            .NotEmpty().WithMessage("كلمة المرور الحالية مطلوبة");
 
         RuleFor(x => x.NewPassword)
-            .NotEmpty().WithMessage("New password is required")
+            .NotEmpty().WithMessage("كلمة المرور الجديدة مطلوبة")
             .MinimumLength(ApplicationConstants.FieldLengths.PasswordMinLength)
-                .WithMessage($"Password must be at least {ApplicationConstants.FieldLengths.PasswordMinLength} characters")
-            .Matches("[A-Z]").WithMessage("Password must contain at least one uppercase letter")
-            .Matches("[a-z]").WithMessage("Password must contain at least one lowercase letter")
-            .Matches("[0-9]").WithMessage("Password must contain at least one digit")
-            .Matches("[^a-zA-Z0-9]").WithMessage("Password must contain at least one special character")
+                .WithMessage($"يجب أن تكون كلمة المرور {ApplicationConstants.FieldLengths.PasswordMinLength} أحرف على الأقل")
+            .Matches("[A-Z]").WithMessage("يجب أن تحتوي كلمة المرور على حرف كبير واحد على الأقل")
+            .Matches("[a-z]").WithMessage("يجب أن تحتوي كلمة المرور على حرف صغير واحد على الأقل")
+            .Matches("[0-9]").WithMessage("يجب أن تحتوي كلمة المرور على رقم واحد على الأقل")
+            .Matches("[^a-zA-Z0-9]").WithMessage("يجب أن تحتوي كلمة المرور على رمز خاص واحد على الأقل")
             .NotEqual(x => x.CurrentPassword)
-                .WithMessage("New password must be different from current password");
+                .WithMessage("يجب أن تكون كلمة المرور الجديدة مختلفة عن الحالية");
     }
 }

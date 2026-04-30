@@ -1,4 +1,4 @@
-using FluentValidation;
+﻿using FluentValidation;
 
 namespace SalamHack.Application.Features.Customers.Queries.GetCustomers;
 
@@ -7,7 +7,7 @@ public sealed class GetCustomersQueryValidator : AbstractValidator<GetCustomersQ
     public GetCustomersQueryValidator()
     {
         RuleFor(x => x.UserId)
-            .NotEmpty().WithMessage("User ID is required.");
+            .NotEmpty().WithMessage("معرف المستخدم مطلوب.");
 
         RuleFor(x => x.Search)
             .MaximumLength(200);

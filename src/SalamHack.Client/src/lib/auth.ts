@@ -30,6 +30,18 @@ export type ApiResponse<T> = {
   traceId?: string;
 };
 
+const AUTH_STORAGE_KEYS = ["accessToken", "accessTokenExpiresOnUtc", "currentUser"] as const;
+
+function clearAuthStorage(storage: Storage) {
+  AUTH_STORAGE_KEYS.forEach((key) => storage.removeItem(key));
+}
+
+function getStorageWithAccessToken() {
+  if (localStorage.getItem("accessToken")) return localStorage;
+  if (sessionStorage.getItem("accessToken")) return sessionStorage;
+  return null;
+}
+
 export function unwrapApiResponse<T>(payload: unknown): T {
   if (payload && typeof payload === "object" && "data" in payload) {
     return (payload as ApiResponse<T>).data as T;
@@ -49,12 +61,16 @@ export function getApiErrorMessage(payload: unknown, fallback: string) {
   return response.message ?? response.detail ?? response.title ?? fallback;
 }
 
-export function storeAuthSession(result: AuthSessionResponse) {
+export function storeAuthSession(result: AuthSessionResponse, rememberMe = true) {
   if (!result.token?.accessToken) return;
 
-  localStorage.setItem("accessToken", result.token.accessToken);
-  localStorage.setItem("accessTokenExpiresOnUtc", result.token.expiresOnUtc ?? "");
-  localStorage.setItem(
+  const storage = rememberMe ? localStorage : sessionStorage;
+  clearAuthStorage(localStorage);
+  clearAuthStorage(sessionStorage);
+
+  storage.setItem("accessToken", result.token.accessToken);
+  storage.setItem("accessTokenExpiresOnUtc", result.token.expiresOnUtc ?? "");
+  storage.setItem(
     "currentUser",
     JSON.stringify({
       id: result.id,
@@ -70,19 +86,19 @@ export function storeAuthSession(result: AuthSessionResponse) {
 }
 
 export function storeCurrentUser(user: AuthUser) {
-  localStorage.setItem("currentUser", JSON.stringify(user));
+  const storage = getStorageWithAccessToken() ?? localStorage;
+  storage.setItem("currentUser", JSON.stringify(user));
   window.dispatchEvent(new Event("auth:user-updated"));
 }
 
 export function clearAuthSession() {
-  localStorage.removeItem("accessToken");
-  localStorage.removeItem("accessTokenExpiresOnUtc");
-  localStorage.removeItem("currentUser");
+  clearAuthStorage(localStorage);
+  clearAuthStorage(sessionStorage);
   window.dispatchEvent(new Event("auth:user-updated"));
 }
 
 export function getCurrentUser(): AuthUser | null {
-  const raw = localStorage.getItem("currentUser");
+  const raw = localStorage.getItem("currentUser") ?? sessionStorage.getItem("currentUser");
   if (!raw) return null;
 
   try {
@@ -94,15 +110,15 @@ export function getCurrentUser(): AuthUser | null {
 }
 
 export function isAuthenticated() {
-  const token = localStorage.getItem("accessToken");
-  return !!token;
+  return !!getAccessToken();
 }
 
 export function isAccessTokenExpired(bufferMs = 30_000) {
-  const token = localStorage.getItem("accessToken");
+  const storage = getStorageWithAccessToken();
+  const token = storage?.getItem("accessToken");
   if (!token) return true;
 
-  const expiresOnUtc = localStorage.getItem("accessTokenExpiresOnUtc");
+  const expiresOnUtc = storage.getItem("accessTokenExpiresOnUtc");
   if (!expiresOnUtc) return false;
 
   const expiresAt = Date.parse(expiresOnUtc);
@@ -112,7 +128,7 @@ export function isAccessTokenExpired(bufferMs = 30_000) {
 }
 
 export function getAccessToken() {
-  return localStorage.getItem("accessToken");
+  return localStorage.getItem("accessToken") ?? sessionStorage.getItem("accessToken");
 }
 
 export async function refreshAccessToken() {
@@ -136,8 +152,9 @@ export async function refreshAccessToken() {
     return false;
   }
 
-  localStorage.setItem("accessToken", token.accessToken);
-  localStorage.setItem("accessTokenExpiresOnUtc", token.expiresOnUtc ?? "");
+  const storage = getStorageWithAccessToken() ?? localStorage;
+  storage.setItem("accessToken", token.accessToken);
+  storage.setItem("accessTokenExpiresOnUtc", token.expiresOnUtc ?? "");
   return true;
 }
 

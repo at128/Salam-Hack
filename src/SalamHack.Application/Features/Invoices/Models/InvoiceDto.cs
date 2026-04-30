@@ -1,5 +1,3 @@
-using SalamHack.Domain.Invoices;
-
 namespace SalamHack.Application.Features.Invoices.Models;
 
 public sealed record InvoiceDto(
@@ -16,7 +14,7 @@ public sealed record InvoiceDto(
     decimal PaidAmount,
     decimal RemainingAmount,
     decimal AdvanceRemainingAmount,
-    InvoiceStatus Status,
+    string Status,
     DateTimeOffset IssueDate,
     DateTimeOffset DueDate,
     string? Notes,

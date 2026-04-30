@@ -1,4 +1,4 @@
-using FluentValidation;
+﻿using FluentValidation;
 
 namespace SalamHack.Application.Features.Invoices.Queries.GetPayments;
 
@@ -7,7 +7,7 @@ public sealed class GetPaymentsQueryValidator : AbstractValidator<GetPaymentsQue
     public GetPaymentsQueryValidator()
     {
         RuleFor(x => x.UserId)
-            .NotEmpty().WithMessage("User ID is required.");
+            .NotEmpty().WithMessage("معرف المستخدم مطلوب.");
 
         RuleFor(x => x.ToDate)
             .GreaterThanOrEqualTo(x => x.FromDate)

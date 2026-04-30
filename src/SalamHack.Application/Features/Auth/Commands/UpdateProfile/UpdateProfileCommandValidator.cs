@@ -1,4 +1,4 @@
-using FluentValidation;
+﻿using FluentValidation;
 using SalamHack.Domain.Common.Constants;
 
 namespace SalamHack.Application.Features.Auth.Commands.UpdateProfile;
@@ -8,14 +8,14 @@ public sealed class UpdateProfileCommandValidator : AbstractValidator<UpdateProf
     public UpdateProfileCommandValidator()
     {
         RuleFor(x => x.UserId)
-            .NotEmpty().WithMessage("User ID is required");
+            .NotEmpty().WithMessage("معرف المستخدم مطلوب");
 
         RuleFor(x => x.FirstName)
-            .NotEmpty().WithMessage("First name is required")
+            .NotEmpty().WithMessage("الاسم الأول مطلوب")
             .MaximumLength(ApplicationConstants.FieldLengths.FirstNameMaxLength);
 
         RuleFor(x => x.LastName)
-            .NotEmpty().WithMessage("Last name is required")
+            .NotEmpty().WithMessage("اسم العائلة مطلوب")
             .MaximumLength(ApplicationConstants.FieldLengths.LastNameMaxLength);
 
         RuleFor(x => x.PhoneNumber)

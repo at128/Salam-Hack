@@ -6,77 +6,77 @@ public static class ProjectErrors
 {
     public static readonly Error CannotStartCancelledProject = Error.Failure(
         "Project.CannotStartCancelledProject",
-        "Cannot start a cancelled project.");
+        "لا يمكن بدء مشروع ملغى.");
 
     public static readonly Error CannotCompleteCancelledProject = Error.Failure(
         "Project.CannotCompleteCancelledProject",
-        "Cannot complete a cancelled project.");
+        "لا يمكن إكمال مشروع ملغى.");
 
     public static readonly Error CannotCancelCompletedProject = Error.Failure(
         "Project.CannotCancelCompletedProject",
-        "Cannot cancel a completed project.");
+        "لا يمكن إلغاء مشروع مكتمل.");
 
     public static readonly Error AlreadyInProgress = Error.Failure(
         "Project.AlreadyInProgress",
-        "Project is already in progress.");
+        "المشروع قيد التنفيذ بالفعل.");
 
     public static readonly Error AlreadyCompleted = Error.Failure(
         "Project.AlreadyCompleted",
-        "Project is already completed.");
+        "المشروع مكتمل بالفعل.");
 
     public static readonly Error AlreadyCancelled = Error.Failure(
         "Project.AlreadyCancelled",
-        "Project is already cancelled.");
+        "المشروع ملغى بالفعل.");
 
     public static readonly Error PriceCannotBeZero = Error.Validation(
         "Project.PriceCannotBeZero",
-        "Project price cannot be zero when calculating health.");
+        "لا يمكن أن يكون سعر المشروع صفراً عند حساب الصحة.");
 
     public static readonly Error ProjectNameRequired = Error.Validation(
         "Project.ProjectNameRequired",
-        "Project name is required.");
+        "اسم المشروع مطلوب.");
 
     public static readonly Error InvalidUserId = Error.Validation(
         "Project.InvalidUserId",
-        "User id is required.");
+        "معرف المستخدم مطلوب.");
 
     public static readonly Error InvalidCustomerId = Error.Validation(
         "Project.InvalidCustomerId",
-        "Customer id is required.");
+        "معرف العميل مطلوب.");
 
     public static readonly Error InvalidServiceId = Error.Validation(
         "Project.InvalidServiceId",
-        "Service id is required.");
+        "معرف الخدمة مطلوب.");
 
     public static readonly Error EstimatedHoursMustBePositive = Error.Validation(
         "Project.EstimatedHoursMustBePositive",
-        "Estimated hours must be greater than zero.");
+        "يجب أن تكون الساعات المقدرة أكبر من صفر.");
 
     public static readonly Error ToolCostCannotBeNegative = Error.Validation(
         "Project.ToolCostCannotBeNegative",
-        "Tool cost cannot be negative.");
+        "لا يمكن أن تكون تكلفة الأدوات سالبة.");
 
     public static readonly Error RevisionCannotBeNegative = Error.Validation(
         "Project.RevisionCannotBeNegative",
-        "Revision cannot be negative.");
+        "لا يمكن أن تكون المراجعة سالبة.");
 
     public static readonly Error SuggestedPriceMustBePositive = Error.Validation(
         "Project.SuggestedPriceMustBePositive",
-        "Suggested price must be greater than zero.");
+        "يجب أن يكون السعر المقترح أكبر من صفر.");
 
     public static readonly Error EndDateBeforeStartDate = Error.Validation(
         "Project.EndDateBeforeStartDate",
-        "End date cannot be earlier than start date.");
+        "لا يمكن أن يكون تاريخ الانتهاء قبل تاريخ البدء.");
 
     public static readonly Error ActualHoursCannotBeNegative = Error.Validation(
         "Project.ActualHoursCannotBeNegative",
-        "Actual hours cannot be negative.");
+        "لا يمكن أن تكون الساعات الفعلية سالبة.");
 
     public static readonly Error AdditionalExpensesCannotBeNegative = Error.Validation(
         "Project.AdditionalExpensesCannotBeNegative",
-        "Additional expenses cannot be negative.");
+        "لا يمكن أن تكون المصروفات الإضافية سالبة.");
 
     public static readonly Error NotFound = Error.NotFound(
         "Project.NotFound",
-        "Project was not found.");
+        "لم يتم العثور على المشروع.");
 }

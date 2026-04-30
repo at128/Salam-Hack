@@ -1,4 +1,4 @@
-using FluentValidation;
+﻿using FluentValidation;
 
 namespace SalamHack.Application.Features.Analyses.Queries.GetProjectAnalysisDashboard;
 
@@ -7,6 +7,6 @@ public sealed class GetProjectAnalysisDashboardQueryValidator : AbstractValidato
     public GetProjectAnalysisDashboardQueryValidator()
     {
         RuleFor(x => x.UserId)
-            .NotEmpty().WithMessage("User ID is required.");
+            .NotEmpty().WithMessage("معرف المستخدم مطلوب.");
     }
 }

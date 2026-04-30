@@ -6,17 +6,17 @@ public static class CustomerErrors
 {
     public static readonly Error InvalidUserId = Error.Validation(
         "Customer.InvalidUserId",
-        "User id is required.");
+        "معرف المستخدم مطلوب.");
 
     public static readonly Error CustomerNameRequired = Error.Validation(
         "Customer.CustomerNameRequired",
-        "Customer name is required.");
+        "اسم العميل مطلوب.");
 
     public static readonly Error EmailRequired = Error.Validation(
         "Customer.EmailRequired",
-        "Email is required.");
+        "البريد الإلكتروني مطلوب.");
 
     public static readonly Error PhoneRequired = Error.Validation(
         "Customer.PhoneRequired",
-        "Phone is required.");
+        "رقم الهاتف مطلوب.");
 }

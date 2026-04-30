@@ -6,113 +6,113 @@ public static class InvoiceErrors
 {
     public static readonly Error InvalidUserId = Error.Validation(
         "Invoice.InvalidUserId",
-        "User id is required.");
+        "معرف المستخدم مطلوب.");
 
     public static readonly Error InvalidProjectId = Error.Validation(
         "Invoice.InvalidProjectId",
-        "Project id is required.");
+        "معرف المشروع مطلوب.");
 
     public static readonly Error InvalidCustomerId = Error.Validation(
         "Invoice.InvalidCustomerId",
-        "Customer id is required.");
+        "معرف العميل مطلوب.");
 
     public static readonly Error InvoiceNumberRequired = Error.Validation(
         "Invoice.InvoiceNumberRequired",
-        "Invoice number is required.");
+        "رقم الفاتورة مطلوب.");
 
     public static readonly Error CurrencyRequired = Error.Validation(
         "Invoice.CurrencyRequired",
-        "Currency is required.");
+        "العملة مطلوبة.");
 
     public static readonly Error PaymentCurrencyMismatch = Error.Validation(
         "Invoice.PaymentCurrencyMismatch",
-        "Payment currency must match the invoice currency.");
+        "يجب أن تتطابق عملة الدفع مع عملة الفاتورة.");
 
     public static readonly Error TotalAmountMustBePositive = Error.Validation(
         "Invoice.TotalAmountMustBePositive",
-        "Invoice total amount must be greater than zero.");
+        "يجب أن يكون المبلغ الإجمالي للفاتورة أكبر من صفر.");
 
     public static readonly Error AdvanceExceedsTotal = Error.Validation(
         "Invoice.AdvanceExceedsTotal",
-        "Advance amount cannot exceed the invoice total including tax.");
+        "لا يمكن أن يتجاوز مبلغ الدفعة المقدمة الإجمالي شاملاً الضريبة.");
 
     public static readonly Error AdvanceCannotBeNegative = Error.Validation(
         "Invoice.AdvanceCannotBeNegative",
-        "Advance amount cannot be negative.");
+        "لا يمكن أن يكون مبلغ الدفعة المقدمة سالباً.");
 
     public static readonly Error AdvanceNotRequired = Error.Validation(
         "Invoice.AdvanceNotRequired",
-        "This invoice does not require an advance payment.");
+        "لا تتطلب هذه الفاتورة دفعة مقدمة.");
 
     public static readonly Error AdvanceAlreadyPaid = Error.Failure(
         "Invoice.AdvanceAlreadyPaid",
-        "The required advance payment has already been paid.");
+        "تم دفع الدفعة المقدمة المطلوبة بالفعل.");
 
     public static readonly Error DueDateBeforeIssueDate = Error.Validation(
         "Invoice.DueDateBeforeIssueDate",
-        "Due date cannot be earlier than issue date.");
+        "لا يمكن أن يكون تاريخ الاستحقاق قبل تاريخ الإصدار.");
 
     public static readonly Error PaymentAmountMustBePositive = Error.Validation(
         "Invoice.PaymentAmountMustBePositive",
-        "Payment amount must be greater than zero.");
+        "يجب أن يكون مبلغ الدفع أكبر من صفر.");
 
     public static readonly Error PaymentExceedsRemainingAmount = Error.Validation(
         "Invoice.PaymentExceedsRemainingAmount",
-        "Payment amount exceeds the remaining invoice amount.");
+        "يتجاوز مبلغ الدفع المبلغ المتبقي من الفاتورة.");
 
     public static readonly Error CannotPayCancelledInvoice = Error.Failure(
         "Invoice.CannotPayCancelledInvoice",
-        "Cannot record a payment against a cancelled invoice.");
+        "لا يمكن تسجيل دفعة لفاتورة ملغاة.");
 
     public static readonly Error CannotPayFullyPaidInvoice = Error.Failure(
         "Invoice.CannotPayFullyPaidInvoice",
-        "Invoice is already fully paid.");
+        "تم دفع الفاتورة بالكامل بالفعل.");
 
     public static readonly Error CannotCancelPaidInvoice = Error.Failure(
         "Invoice.CannotCancelPaidInvoice",
-        "Cannot cancel a fully paid invoice.");
+        "لا يمكن إلغاء فاتورة مدفوعة بالكامل.");
 
     public static readonly Error AlreadyCancelled = Error.Failure(
         "Invoice.AlreadyCancelled",
-        "Invoice is already cancelled.");
+        "الفاتورة ملغاة بالفعل.");
 
     public static readonly Error OnlyDraftCanBeEdited = Error.Failure(
         "Invoice.OnlyDraftCanBeEdited",
-        "Only draft invoices can be edited.");
+        "يمكن تعديل الفواتير المسودة فقط.");
 
     public static readonly Error OnlyDraftCanBeSent = Error.Failure(
         "Invoice.OnlyDraftCanBeSent",
-        "Only draft invoices can be sent.");
+        "يمكن إرسال الفواتير المسودة فقط.");
 
     public static readonly Error OnlyDraftOrPartiallyPaidCanBeSent = Error.Failure(
         "Invoice.OnlyDraftOrPartiallyPaidCanBeSent",
-        "Only draft or partially paid invoices can be sent.");
+        "يمكن إرسال الفواتير المسودة أو المدفوعة جزئياً فقط.");
 
     public static readonly Error CannotSendOverdueInvoice = Error.Failure(
         "Invoice.CannotSendOverdueInvoice",
-        "Cannot send an overdue invoice.");
+        "لا يمكن إرسال فاتورة متأخرة.");
 
     public static readonly Error CannotMarkPaidInvoiceOverdue = Error.Failure(
         "Invoice.CannotMarkPaidInvoiceOverdue",
-        "Cannot mark a paid invoice as overdue.");
+        "لا يمكن تحديد فاتورة مدفوعة كمتأخرة.");
 
     public static readonly Error CannotMarkCancelledInvoiceOverdue = Error.Failure(
         "Invoice.CannotMarkCancelledInvoiceOverdue",
-        "Cannot mark a cancelled invoice as overdue.");
+        "لا يمكن تحديد فاتورة ملغاة كمتأخرة.");
 
     public static readonly Error CannotMarkDraftInvoiceOverdue = Error.Failure(
         "Invoice.CannotMarkDraftInvoiceOverdue",
-        "Cannot mark a draft invoice as overdue.");
+        "لا يمكن تحديد فاتورة مسودة كمتأخرة.");
 
     public static readonly Error InvoiceNotDue = Error.Validation(
         "Invoice.InvoiceNotDue",
-        "Invoice is not overdue yet.");
+        "الفاتورة لم تتأخر بعد.");
 
     public static readonly Error OnlyDraftCanBeDeleted = Error.Failure(
         "Invoice.OnlyDraftCanBeDeleted",
-        "Only draft invoices can be deleted. Cancel the invoice instead.");
+        "يمكن حذف الفواتير المسودة فقط. قم بإلغاء الفاتورة بدلاً من ذلك.");
 
     public static readonly Error NotFound = Error.NotFound(
         "Invoice.NotFound",
-        "Invoice was not found.");
+        "لم يتم العثور على الفاتورة.");
 }

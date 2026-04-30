@@ -1,4 +1,4 @@
-using FluentValidation;
+﻿using FluentValidation;
 
 namespace SalamHack.Application.Features.Projects.Queries.GetProjects;
 
@@ -7,7 +7,7 @@ public sealed class GetProjectsQueryValidator : AbstractValidator<GetProjectsQue
     public GetProjectsQueryValidator()
     {
         RuleFor(x => x.UserId)
-            .NotEmpty().WithMessage("User ID is required.");
+            .NotEmpty().WithMessage("معرف المستخدم مطلوب.");
 
         RuleFor(x => x.Search)
             .MaximumLength(200);

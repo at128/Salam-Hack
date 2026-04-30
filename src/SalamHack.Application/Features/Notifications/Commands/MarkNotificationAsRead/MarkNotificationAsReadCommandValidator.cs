@@ -1,4 +1,4 @@
-using FluentValidation;
+﻿using FluentValidation;
 
 namespace SalamHack.Application.Features.Notifications.Commands.MarkNotificationAsRead;
 
@@ -7,9 +7,9 @@ public sealed class MarkNotificationAsReadCommandValidator : AbstractValidator<M
     public MarkNotificationAsReadCommandValidator()
     {
         RuleFor(x => x.UserId)
-            .NotEmpty().WithMessage("User ID is required.");
+            .NotEmpty().WithMessage("معرف المستخدم مطلوب.");
 
         RuleFor(x => x.NotificationId)
-            .NotEmpty().WithMessage("Notification ID is required.");
+            .NotEmpty().WithMessage("معرف الإشعار مطلوب.");
     }
 }

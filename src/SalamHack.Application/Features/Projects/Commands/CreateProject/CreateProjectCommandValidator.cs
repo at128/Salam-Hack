@@ -1,4 +1,4 @@
-using FluentValidation;
+﻿using FluentValidation;
 
 namespace SalamHack.Application.Features.Projects.Commands.CreateProject;
 
@@ -7,16 +7,16 @@ public sealed class CreateProjectCommandValidator : AbstractValidator<CreateProj
     public CreateProjectCommandValidator()
     {
         RuleFor(x => x.UserId)
-            .NotEmpty().WithMessage("User ID is required.");
+            .NotEmpty().WithMessage("معرف المستخدم مطلوب.");
 
         RuleFor(x => x.CustomerId)
-            .NotEmpty().WithMessage("Customer ID is required.");
+            .NotEmpty().WithMessage("معرف العميل مطلوب.");
 
         RuleFor(x => x.ServiceId)
-            .NotEmpty().WithMessage("Service ID is required.");
+            .NotEmpty().WithMessage("معرف الخدمة مطلوب.");
 
         RuleFor(x => x.ProjectName)
-            .NotEmpty().WithMessage("Project name is required.")
+            .NotEmpty().WithMessage("اسم المشروع مطلوب.")
             .MaximumLength(200);
 
         RuleFor(x => x.EstimatedHours)
@@ -33,6 +33,6 @@ public sealed class CreateProjectCommandValidator : AbstractValidator<CreateProj
 
         RuleFor(x => x.EndDate)
             .GreaterThanOrEqualTo(x => x.StartDate)
-            .WithMessage("End date cannot be earlier than start date.");
+            .WithMessage("لا يمكن أن يكون تاريخ الانتهاء قبل تاريخ البدء.");
     }
 }

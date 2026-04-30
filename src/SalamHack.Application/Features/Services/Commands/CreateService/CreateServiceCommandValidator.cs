@@ -1,4 +1,4 @@
-using FluentValidation;
+﻿using FluentValidation;
 
 namespace SalamHack.Application.Features.Services.Commands.CreateService;
 
@@ -7,10 +7,10 @@ public sealed class CreateServiceCommandValidator : AbstractValidator<CreateServ
     public CreateServiceCommandValidator()
     {
         RuleFor(x => x.UserId)
-            .NotEmpty().WithMessage("User ID is required.");
+            .NotEmpty().WithMessage("معرف المستخدم مطلوب.");
 
         RuleFor(x => x.ServiceName)
-            .NotEmpty().WithMessage("Service name is required.")
+            .NotEmpty().WithMessage("اسم الخدمة مطلوب.")
             .MaximumLength(200);
 
         RuleFor(x => x.Category)

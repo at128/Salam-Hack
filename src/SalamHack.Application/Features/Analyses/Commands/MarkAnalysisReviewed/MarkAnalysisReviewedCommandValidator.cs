@@ -1,4 +1,4 @@
-using FluentValidation;
+﻿using FluentValidation;
 
 namespace SalamHack.Application.Features.Analyses.Commands.MarkAnalysisReviewed;
 
@@ -7,9 +7,9 @@ public sealed class MarkAnalysisReviewedCommandValidator : AbstractValidator<Mar
     public MarkAnalysisReviewedCommandValidator()
     {
         RuleFor(x => x.UserId)
-            .NotEmpty().WithMessage("User ID is required.");
+            .NotEmpty().WithMessage("معرف المستخدم مطلوب.");
 
         RuleFor(x => x.AnalysisId)
-            .NotEmpty().WithMessage("Analysis ID is required.");
+            .NotEmpty().WithMessage("معرف التحليل مطلوب.");
     }
 }

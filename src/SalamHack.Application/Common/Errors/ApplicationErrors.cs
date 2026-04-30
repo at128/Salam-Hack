@@ -7,102 +7,102 @@ public static class ApplicationErrors
     public static class Customers
     {
         public static readonly Error CustomerNotFound =
-            Error.NotFound("Customers.CustomerNotFound", "Customer was not found.");
+            Error.NotFound("Customers.CustomerNotFound", "لم يتم العثور على العميل.");
 
         public static readonly Error EmailAlreadyExists =
-            Error.Conflict("Customers.EmailAlreadyExists", "A customer with the same email already exists.");
+            Error.Conflict("Customers.EmailAlreadyExists", "يوجد عميل بنفس البريد الإلكتروني بالفعل.");
     }
 
     public static class Services
     {
         public static readonly Error ServiceNotFound =
-            Error.NotFound("Services.ServiceNotFound", "Service was not found.");
+            Error.NotFound("Services.ServiceNotFound", "لم يتم العثور على الخدمة.");
 
         public static readonly Error ServiceNameAlreadyExists =
-            Error.Conflict("Services.ServiceNameAlreadyExists", "A service with the same name already exists.");
+            Error.Conflict("Services.ServiceNameAlreadyExists", "توجد خدمة بنفس الاسم بالفعل.");
 
         public static readonly Error InactiveServiceCannotBeUsed =
-            Error.Conflict("Services.InactiveServiceCannotBeUsed", "Inactive service cannot be used for a new project.");
+            Error.Conflict("Services.InactiveServiceCannotBeUsed", "لا يمكن استخدام خدمة غير نشطة لمشروع جديد.");
     }
 
     public static class Projects
     {
         public static readonly Error ProjectNotFound =
-            Error.NotFound("Projects.ProjectNotFound", "Project was not found.");
+            Error.NotFound("Projects.ProjectNotFound", "لم يتم العثور على المشروع.");
 
         public static readonly Error ProjectNameAlreadyExists =
-            Error.Conflict("Projects.ProjectNameAlreadyExists", "A project with the same name already exists.");
+            Error.Conflict("Projects.ProjectNameAlreadyExists", "يوجد مشروع بنفس الاسم بالفعل.");
 
         public static readonly Error UnsupportedStatusTransition =
-            Error.Validation("Projects.UnsupportedStatusTransition", "Requested project status transition is not supported.");
+            Error.Validation("Projects.UnsupportedStatusTransition", "تحويل حالة المشروع المطلوب غير مدعوم.");
     }
 
     public static class Expenses
     {
         public static readonly Error ExpenseNotFound =
-            Error.NotFound("Expenses.ExpenseNotFound", "Expense was not found.");
+            Error.NotFound("Expenses.ExpenseNotFound", "لم يتم العثور على المصروف.");
 
         public static readonly Error ExpenseReceiptNotFound =
-            Error.NotFound("Expenses.ExpenseReceiptNotFound", "Expense receipt was not found.");
+            Error.NotFound("Expenses.ExpenseReceiptNotFound", "لم يتم العثور على إيصال المصروف.");
     }
 
     public static class Invoices
     {
         public static readonly Error InvoiceNotFound =
-            Error.NotFound("Invoices.InvoiceNotFound", "Invoice was not found.");
+            Error.NotFound("Invoices.InvoiceNotFound", "لم يتم العثور على الفاتورة.");
 
         public static readonly Error InvoiceNumberAlreadyExists =
-            Error.Conflict("Invoices.InvoiceNumberAlreadyExists", "An invoice with the same number already exists.");
+            Error.Conflict("Invoices.InvoiceNumberAlreadyExists", "توجد فاتورة بنفس الرقم بالفعل.");
     }
 
     public static class Pricing
     {
         public static readonly Error PricingPlanCannotBeUsed =
-            Error.Validation("Pricing.PricingPlanCannotBeUsed", "Selected pricing plan cannot be used for this quote.");
+            Error.Validation("Pricing.PricingPlanCannotBeUsed", "لا يمكن استخدام خطة التسعير المحددة لهذا العرض.");
     }
 
     public static class Analyses
     {
         public static readonly Error AnalysisNotFound =
-            Error.NotFound("Analyses.AnalysisNotFound", "Analysis was not found.");
+            Error.NotFound("Analyses.AnalysisNotFound", "لم يتم العثور على التحليل.");
     }
 
     public static class Notifications
     {
         public static readonly Error NotificationNotFound =
-            Error.NotFound("Notifications.NotificationNotFound", "Notification was not found.");
+            Error.NotFound("Notifications.NotificationNotFound", "لم يتم العثور على الإشعار.");
     }
 
     public static class Auth
     {
         public static readonly Error EmailAlreadyRegistered =
-            Error.Conflict("Auth.EmailAlreadyRegistered", "Email is already registered.");
+            Error.Conflict("Auth.EmailAlreadyRegistered", "البريد الإلكتروني مسجل بالفعل.");
 
         public static Error RegistrationFailed(string details) =>
-            Error.Failure("Auth.RegistrationFailed", $"Registration failed: {details}");
+            Error.Failure("Auth.RegistrationFailed", $"فشل التسجيل: {details}");
 
         public static readonly Error InvalidCredentials =
-            Error.Unauthorized("Auth.InvalidCredentials", "Invalid email or password.");
+            Error.Unauthorized("Auth.InvalidCredentials", "البريد الإلكتروني أو كلمة المرور غير صحيحة.");
 
         public static readonly Error AccountLocked =
-            Error.Unauthorized("Auth.AccountLocked", "Account is temporarily locked. Please try again later.");
+            Error.Unauthorized("Auth.AccountLocked", "الحساب مقفل مؤقتاً. يرجى المحاولة لاحقاً.");
 
         public static readonly Error UserNotFound =
-            Error.NotFound("Auth.UserNotFound", "User not found.");
+            Error.NotFound("Auth.UserNotFound", "لم يتم العثور على المستخدم.");
 
         public static readonly Error UpdateFailed =
-            Error.Failure("Auth.UpdateFailed", "Profile update failed.");
+            Error.Failure("Auth.UpdateFailed", "فشل تحديث الملف الشخصي.");
 
         public static readonly Error InvalidRefreshToken =
-            Error.Unauthorized("Auth.InvalidRefreshToken", "Refresh token is invalid.");
+            Error.Unauthorized("Auth.InvalidRefreshToken", "رمز التحديث غير صالح.");
 
         public static readonly Error RefreshTokenReuse =
-            Error.Unauthorized("Auth.RefreshTokenReuse", "Refresh token reuse detected. Please login again.");
+            Error.Unauthorized("Auth.RefreshTokenReuse", "تم اكتشاف إعادة استخدام رمز التحديث. يرجى تسجيل الدخول مجدداً.");
 
         public static readonly Error InvalidCurrentPassword =
-            Error.Unauthorized("Auth.InvalidCurrentPassword", "Current password is incorrect.");
+            Error.Unauthorized("Auth.InvalidCurrentPassword", "كلمة المرور الحالية غير صحيحة.");
 
         public static Error PasswordChangeFailed(string details) =>
-            Error.Validation("Auth.PasswordChangeFailed", $"Password change failed: {details}");
+            Error.Validation("Auth.PasswordChangeFailed", $"فشل تغيير كلمة المرور: {details}");
     }
 }
