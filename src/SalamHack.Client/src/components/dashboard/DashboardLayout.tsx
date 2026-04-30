@@ -1,6 +1,20 @@
 import { useEffect, useState } from "react";
-import { Bell, ChevronDown, KeyRound, Loader2, LogOut, Plus, Search, Trash2, UserRound } from "lucide-react";
-import { Outlet, useNavigate } from "react-router-dom";
+import {
+  Bell,
+  ChevronDown,
+  FileText,
+  FolderKanban,
+  KeyRound,
+  LayoutDashboard,
+  Loader2,
+  LogOut,
+  Plus,
+  ReceiptText,
+  Trash2,
+  UserRound,
+  Users,
+} from "lucide-react";
+import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import Sidebar from "@/components/dashboard/Sidebar";
 import { Button } from "@/components/ui/button";
 import {
@@ -71,6 +85,14 @@ const CATEGORY_OPTIONS: { value: ServiceCategory; label: string }[] = [
   { value: "Marketing", label: "تسويق" },
   { value: "Content", label: "محتوى" },
   { value: "Other", label: "أخرى" },
+];
+
+const mobileNavItems = [
+  { label: "الرئيسية", href: "/dashboard", icon: LayoutDashboard },
+  { label: "المشاريع", href: "/dashboard/projects", icon: FolderKanban },
+  { label: "العملاء", href: "/dashboard/customers", icon: Users },
+  { label: "الفواتير", href: "/dashboard/invoices", icon: FileText },
+  { label: "المصاريف", href: "/dashboard/expenses", icon: ReceiptText },
 ];
 
 function createEmptyServiceRow(): ServiceOnboardingRow {
@@ -289,12 +311,31 @@ export default function DashboardLayout({
             </div>
 
             <div className="flex justify-center">
-              <div className="hidden items-center gap-2 rounded-full bg-muted/60 px-3 py-1.5 text-sm md:flex">
-                <Search className="h-4 w-4 text-muted-foreground" />
-                <input
-                  className="w-44 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-                  placeholder="ابحث عن فاتورة، عميل..."
-                />
+              <div className="hidden items-center gap-2 md:flex">
+                <button
+                  type="button"
+                  onClick={() => navigate("/dashboard/projects")}
+                  className="inline-flex h-9 items-center gap-2 rounded-xl border border-border/70 bg-card px-3 text-sm font-semibold text-navy transition-colors hover:bg-muted/40"
+                >
+                  <FolderKanban className="h-4 w-4" />
+                  مشروع
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate("/dashboard/invoices")}
+                  className="inline-flex h-9 items-center gap-2 rounded-xl border border-border/70 bg-card px-3 text-sm font-semibold text-navy transition-colors hover:bg-muted/40"
+                >
+                  <FileText className="h-4 w-4" />
+                  فاتورة
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate("/dashboard/expenses")}
+                  className="inline-flex h-9 items-center gap-2 rounded-xl border border-border/70 bg-card px-3 text-sm font-semibold text-navy transition-colors hover:bg-muted/40"
+                >
+                  <ReceiptText className="h-4 w-4" />
+                  مصروف
+                </button>
               </div>
             </div>
 
@@ -349,9 +390,30 @@ export default function DashboardLayout({
           </div>
         </header>
 
-        <main className="space-y-6 p-6">
+        <main className="space-y-6 p-6 pb-24 lg:pb-6">
           <Outlet />
         </main>
+
+        <nav className="fixed inset-x-3 bottom-3 z-40 grid grid-cols-5 rounded-2xl border border-border/70 bg-card/95 p-1 shadow-elevated backdrop-blur lg:hidden" dir="rtl">
+          {mobileNavItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <NavLink
+                key={item.href}
+                to={item.href}
+                end={item.href === "/dashboard"}
+                className={({ isActive }) =>
+                  `flex flex-col items-center justify-center gap-1 rounded-xl px-1 py-2 text-[11px] font-semibold transition-colors ${
+                    isActive ? "bg-navy text-white" : "text-muted-foreground hover:bg-muted/50 hover:text-navy"
+                  }`
+                }
+              >
+                <Icon className="h-4 w-4" />
+                <span>{item.label}</span>
+              </NavLink>
+            );
+          })}
+        </nav>
       </div>
 
       {hasCheckedServices && (
@@ -443,7 +505,7 @@ export default function DashboardLayout({
 
                       <div className="space-y-2">
                         <Label htmlFor={`revisions-${row.id}`} className="flex items-center gap-1 text-navy">
-                          عدد التعديلات الافتراضي <RequiredMark />
+                          عدد مرات التعديل الافتراضية <RequiredMark />
                         </Label>
                         <Input
                           id={`revisions-${row.id}`}

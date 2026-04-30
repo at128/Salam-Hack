@@ -1,3 +1,5 @@
+# syntax=docker/dockerfile:1.7
+
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 
@@ -10,14 +12,13 @@ COPY ["src/SalamHack.Infrastructure/SalamHack.Infrastructure.csproj", "src/Salam
 COPY ["src/SalamHack.Domain/SalamHack.Domain.csproj", "src/SalamHack.Domain/"]
 COPY ["src/SalamHack.Contracts/SalamHack.Contracts.csproj", "src/SalamHack.Contracts/"]
 
-RUN dotnet restore "src/SalamHack.Api/SalamHack.Api.csproj"
+RUN --mount=type=cache,id=nuget,target=/root/.nuget/packages \
+    dotnet restore "src/SalamHack.Api/SalamHack.Api.csproj"
 
 COPY . .
-WORKDIR "/src/src/SalamHack.Api"
-RUN dotnet build "SalamHack.Api.csproj" -c Release -o /app/build
-
-FROM build AS publish
-RUN dotnet publish "SalamHack.Api.csproj" -c Release -o /app/publish --no-restore /p:UseAppHost=false
+WORKDIR /src/src/SalamHack.Api
+RUN --mount=type=cache,id=nuget,target=/root/.nuget/packages \
+    dotnet publish "SalamHack.Api.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
 FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS final
 WORKDIR /app
@@ -27,7 +28,7 @@ RUN addgroup --system --gid 1001 appgroup \
     && mkdir -p /app/.aspnet/DataProtection-Keys \
     && chown -R appuser:appgroup /app/.aspnet
 
-COPY --from=publish /app/publish .
+COPY --from=build /app/publish .
 USER appuser
 
 EXPOSE 8080

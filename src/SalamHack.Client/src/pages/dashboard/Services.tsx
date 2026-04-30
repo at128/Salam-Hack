@@ -638,7 +638,7 @@ export default function ServicesPage() {
               </div>
 
               <div className="space-y-2">
-                <RequiredLabel htmlFor="defaultRevisions">عدد التعديلات الافتراضي</RequiredLabel>
+                <RequiredLabel htmlFor="defaultRevisions">عدد مرات التعديل الافتراضية</RequiredLabel>
                 <Input
                   id="defaultRevisions"
                   type="number"
@@ -709,7 +709,7 @@ export default function ServicesPage() {
                 <div className="mt-1 font-semibold text-navy">{formatCurrency(selectedService.defaultHourlyRate)}</div>
               </div>
               <div className="rounded-xl border border-border/70 bg-muted/30 p-3">
-                <div className="text-xs text-muted-foreground">التعديلات الافتراضية</div>
+                <div className="text-xs text-muted-foreground">عدد مرات التعديل الافتراضية</div>
                 <div className="mt-1 font-semibold text-navy">{selectedService.defaultRevisions}</div>
               </div>
               <div className="rounded-xl border border-border/70 bg-muted/30 p-3">
