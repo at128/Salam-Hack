@@ -9,7 +9,8 @@ services:
     ports:
       - "14333:1433"
     volumes:
-      - sql_data:/var/opt/mssql
+      - ${volume1}
+      - ${volume2}
     networks:
       - salamhack-net
 
