@@ -1,0 +1,73 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ "master" ]
+
+jobs:
+  build-test-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Setup Dummy Environment for CI
+      run: |
+        echo "SA_PASSWORD=TestPassword123!" >> .env
+        echo "JWT_SECRET=SuperSecretTestKey123456789012345" >> .env
+        echo "SEQ_ADMIN_PASSWORD=SeqTestPass123!" >> .env
+        mkdir -p ./dummy_db/mssql
+        mkdir -p ./dummy_backups/mssql
+        echo 'volume1="./dummy_db/mssql:/var/opt/mssql"' >> .env
+        echo 'volume2="./dummy_backups/mssql:/var/opt/mssql/backups"' >> .env
+
+    - name: Build and Start API Container
+      run: docker compose up -d --build
+
+    - name: Wait for API to Start
+      run: sleep 20
+
+    - name: Test /health/live Endpoint
+      run: |
+        echo "Testing Health Endpoint..."
+        STATUS_CODE=$(curl -o /dev/null -s -w "%{http_code}\n" http://localhost:5009/api/v1/health/live)
+        if [ "$STATUS_CODE" -eq 200 ]; then
+          echo "✅ Health check passed! API is live."
+        else
+          echo "❌ Health check failed! Status Code: $STATUS_CODE"
+          echo "--- API Logs ---"
+          docker compose logs api
+          exit 1
+        fi
+
+    - name: Log in to GitHub Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Push Image to GHCR
+      run: docker compose push api
+
+  deploy-to-server:
+    needs: build-test-and-push
+    runs-on: ubuntu-latest
+    steps:
+    - name: Deploy via SSH
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.SERVER_IP }}
+        username: ${{ secrets.SERVER_USER }}
+        key: ${{ secrets.SERVER_SSH_KEY }}
+        script: |
+          cd ${{ secrets.PROJECT_PATH }}
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          docker compose pull api
+          docker compose up -d --no-deps api
+          docker image prune -f
+
