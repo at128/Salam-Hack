@@ -70,8 +70,8 @@ services:
       OpenTelemetry__ServiceName: "SalamHack.Api"
       OpenTelemetry__ServiceVersion: "1.0.0"
       OpenTelemetry__OtlpEndpoint: "http://otel-collector:4317"
-    ports:
-      - "${API_HTTP_PORT:-5009}:8080"
+    expose:
+      - "8080"
     volumes:
       - data_protection_keys:/app/.aspnet/DataProtection-Keys
     depends_on:
@@ -80,6 +80,17 @@ services:
       seq:
         condition: service_started
       otel-collector:
+        condition: service_started
+    restart: unless-stopped
+    networks: [salamhack-net]
+
+  client:
+    image: ghcr.io/at128/salamhack-client:latest
+    container_name: salamhack-client
+    ports:
+      - "${API_HTTP_PORT:-5009}:80"
+    depends_on:
+      api:
         condition: service_started
     restart: unless-stopped
     networks: [salamhack-net]
