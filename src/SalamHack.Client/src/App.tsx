@@ -21,6 +21,7 @@ import PricingPage from "./pages/dashboard/Pricing.tsx";
 
 import ServicesPage from "./pages/dashboard/Services.tsx";
 import ClientRiskAnalyzerPage from "./pages/dashboard/ClientRiskAnalyzer.tsx";
+import AiAnalyzerPage from "./pages/dashboard/AiAnalyzer.tsx";
 import CustomersPage from "./pages/dashboard/Customers.tsx";
 import ProjectsPage from "./pages/dashboard/Projects.tsx";
 import ExpensesPage from "./pages/dashboard/Expenses.tsx";
