@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { fetchProfitabilityReport, ProfitabilityReportDto } from "@/lib/reports";
 
-interface ServiceProfitBreakdown {
+interface CustomerProfitBreakdown {
   entityId: string;
   name: string;
   revenue: number;
@@ -16,8 +16,8 @@ interface Props {
   toUtc?: string;
 }
 
-export default function ServiceProfits({ fromUtc, toUtc }: Props) {
-  const [data, setData] = useState<ServiceProfitBreakdown[]>([]);
+export default function CustomerProfits({ fromUtc, toUtc }: Props) {
+  const [data, setData] = useState<CustomerProfitBreakdown[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -27,8 +27,8 @@ export default function ServiceProfits({ fromUtc, toUtc }: Props) {
     
     fetchProfitabilityReport(fromUtc, toUtc)
       .then((report) => {
-        const services = (report.byService || []) as ServiceProfitBreakdown[];
-        setData(services.sort((a, b) => b.profit - a.profit));
+        const customers = (report.byCustomer || []) as CustomerProfitBreakdown[];
+        setData(customers.sort((a, b) => b.profit - a.profit));
       })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
@@ -45,7 +45,7 @@ export default function ServiceProfits({ fromUtc, toUtc }: Props) {
   if (error) {
     return (
       <div className="bg-card rounded-2xl p-6 border border-border/70 shadow-card">
-        <h3 className="font-bold text-navy mb-1">الأرباح حسب الخدمة</h3>
+        <h3 className="font-bold text-navy mb-1">الأرباح حسب العميل</h3>
         <p className="text-xs text-destructive">{error}</p>
       </div>
     );
@@ -54,39 +54,39 @@ export default function ServiceProfits({ fromUtc, toUtc }: Props) {
   if (data.length === 0) {
     return (
       <div className="bg-card rounded-2xl p-6 border border-border/70 shadow-card">
-        <h3 className="font-bold text-navy mb-1">الأرباح حسب الخدمة</h3>
+        <h3 className="font-bold text-navy mb-1">الأرباح حسب العميل</h3>
         <p className="text-xs text-muted-foreground">لا توجد بيانات متاحة للفترة المختارة</p>
       </div>
     );
   }
 
-  const max = Math.max(...data.map((s) => s.profit));
+  const max = Math.max(...data.map((c) => c.profit));
   
   return (
     <div className="bg-card rounded-2xl p-6 border border-border/70 shadow-card">
-      <h3 className="font-bold text-navy mb-1">الأرباح حسب الخدمة</h3>
+      <h3 className="font-bold text-navy mb-1">الأرباح حسب العميل</h3>
       <p className="text-xs text-muted-foreground mb-5">
-        أي خدماتك تجلب أعلى ربحية؟
+        أي عملاء يجلبون أعلى ربحية؟
       </p>
       <div className="space-y-4">
-        {data.map((s) => (
-          <div key={s.entityId || s.name}>
+        {data.map((c) => (
+          <div key={c.entityId}>
             <div className="flex items-center justify-between text-sm mb-1.5">
-              <span className="text-navy font-medium">{s.name}</span>
+              <span className="text-navy font-medium">{c.name}</span>
               <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground">{s.marginPercent.toFixed(1)}٪</span>
-                <span className="font-bold text-navy">{Math.round(s.profit).toLocaleString()} ر.س</span>
+                <span className="text-xs text-muted-foreground">{c.marginPercent.toFixed(1)}٪</span>
+                <span className="font-bold text-navy">{Math.round(c.profit).toLocaleString()} ر.س</span>
               </div>
             </div>
             <div className="h-2 rounded-full bg-muted overflow-hidden">
               <div
                 className="h-full bg-gradient-brand rounded-full transition-all duration-300"
-                style={{ width: `${max > 0 ? (s.profit / max) * 100 : 0}%` }}
+                style={{ width: `${max > 0 ? (c.profit / max) * 100 : 0}%` }}
               />
             </div>
             <div className="flex justify-between text-xs text-muted-foreground mt-1">
-              <span>إيراد: {Math.round(s.revenue).toLocaleString()} ر.س</span>
-              <span>مصاريف: {Math.round(s.cost).toLocaleString()} ر.س</span>
+              <span>إيراد: {Math.round(c.revenue).toLocaleString()} ر.س</span>
+              <span>مصاريف: {Math.round(c.cost).toLocaleString()} ر.س</span>
             </div>
           </div>
         ))}

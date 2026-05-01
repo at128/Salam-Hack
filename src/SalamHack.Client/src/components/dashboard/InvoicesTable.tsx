@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { PageHeader } from "@/components/dashboard/DashboardLayout";
-import { getApiErrorMessage, getValidAccessToken, unwrapApiResponse } from "@/lib/auth";
+import { getApiErrorMessage, getCurrentUser, getValidAccessToken, unwrapApiResponse } from "@/lib/auth";
 
 type InvoiceStatus = "Draft" | "Sent" | "PartiallyPaid" | "Paid" | "Overdue" | "Cancelled";
 type PaymentMethod = "BankTransfer" | "Cash" | "CreditCard" | "PayPal" | "Other";
@@ -64,6 +64,12 @@ export type InvoiceDto = InvoiceListItem & {
   payments: PaymentDto[];
   createdAtUtc: string;
   lastModifiedUtc: string;
+};
+
+type BankTransferInfo = {
+  bankName?: string | null;
+  bankAccountName?: string | null;
+  bankIban?: string | null;
 };
 
 type ProjectOption = {
@@ -240,6 +246,26 @@ function escapeHtml(value: string | number | null | undefined) {
     .replace(/'/g, "&#039;");
 }
 
+function getBankTransferInfo(): BankTransferInfo {
+  return getCurrentUser() ?? {};
+}
+
+function hasBankTransferInfo(info: BankTransferInfo) {
+  return !!(info.bankName?.trim() || info.bankAccountName?.trim() || info.bankIban?.trim());
+}
+
+function bankTransferLines(info: BankTransferInfo) {
+  if (!hasBankTransferInfo(info)) {
+    return ["أضف بيانات حسابك البنكي في إعدادات الحساب."];
+  }
+
+  return [
+    info.bankName ? `البنك: ${info.bankName}` : null,
+    info.bankAccountName ? `اسم المستفيد: ${info.bankAccountName}` : null,
+    info.bankIban ? `الآيبان / رقم الحساب: ${info.bankIban}` : null,
+  ].filter((line): line is string => !!line);
+}
+
 function invoiceItemName(invoice: InvoiceDto) {
   return invoice.projectName || invoice.notes || "خدمة مستقلة";
 }
@@ -248,6 +274,9 @@ function buildInvoicePrintHtml(invoice: InvoiceDto, autoPrint = false) {
   const currency = invoice.currency || "SAR";
   const itemName = invoiceItemName(invoice);
   const safeInvoiceNumber = escapeHtml(invoice.invoiceNumber);
+  const bankLines = bankTransferLines(getBankTransferInfo())
+    .map((line) => `<span class="bank-line">${escapeHtml(line)}</span>`)
+    .join("");
 
   return `<!DOCTYPE html>
 <html lang="ar" dir="rtl">
@@ -437,7 +466,7 @@ function buildInvoicePrintHtml(invoice: InvoiceDto, autoPrint = false) {
         <div class="invoice-subtitle">Tax Invoice</div>
       </div>
       <div class="header-right">
-        <div class="brand-box">SalamHack</div>
+        <div class="brand-box">منصة مالي</div>
         <div class="company-vat">الرقم الضريبي: غير محدد</div>
       </div>
     </div>
@@ -522,10 +551,10 @@ function buildInvoicePrintHtml(invoice: InvoiceDto, autoPrint = false) {
     <div class="bottom-wrapper">
       <div class="bank-info">
         <span class="bank-line">بيانات التحويل البنكي:</span>
-        <span class="bank-line">أضف بيانات حسابك البنكي في إعدادات الحساب.</span>
+        ${bankLines}
       </div>
       <div class="footer">
-        شكرا لتعاملكم معنا - تم إنشاء هذه الفاتورة عبر SalamHack
+        شكرا لتعاملكم معنا - تم إنشاء هذه الفاتورة عبر منصة مالي
       </div>
     </div>
   </div>
@@ -624,6 +653,7 @@ export function InvoicePrintStyles() {
 
 export function InvoicePrintPreview({ invoice }: { invoice: InvoiceDto }) {
   const currency = invoice.currency || "SAR";
+  const bankLines = bankTransferLines(getBankTransferInfo());
 
   return (
     <div className="invoice-print-area mx-auto flex min-h-[278mm] max-w-[820px] flex-col bg-white p-4 text-black shadow-sm" dir="rtl">
@@ -637,7 +667,7 @@ export function InvoicePrintPreview({ invoice }: { invoice: InvoiceDto }) {
         </div>
         <div className="flex flex-col items-end text-right">
           <div className="grid min-h-16 w-36 place-items-center border border-black text-lg font-extrabold">
-            SalamHack
+            منصة مالي
           </div>
           <div className="mt-2 text-xs font-bold">الرقم الضريبي: غير محدد</div>
         </div>
@@ -714,11 +744,15 @@ export function InvoicePrintPreview({ invoice }: { invoice: InvoiceDto }) {
       <div className="mt-auto">
         <div className="text-right text-sm font-bold leading-8">
           <span className="block">بيانات التحويل البنكي:</span>
-          <span className="block">أضف بيانات حسابك البنكي في إعدادات الحساب.</span>
+          {bankLines.map((line) => (
+            <span key={line} className="block">
+              {line}
+            </span>
+          ))}
         </div>
 
         <div className="mt-3 border-t border-black pt-2 text-center text-xs">
-          شكرا لتعاملكم معنا - تم إنشاء هذه الفاتورة عبر SalamHack
+          شكرا لتعاملكم معنا - تم إنشاء هذه الفاتورة عبر منصة مالي
         </div>
       </div>
     </div>
@@ -1058,7 +1092,7 @@ export default function InvoicesTable() {
 
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <PageHeader title="الفواتير" desc="جميع فواتيرك مع حالاتها وتفاصيل العملاء." />
-        <Button onClick={openCreateInvoice} className="rounded-xl bg-gradient-brand shadow-glow hover:opacity-90">
+        <Button onClick={openCreateInvoice} className="rounded-xl bg-teal font-bold text-white hover:bg-teal/90">
           <Plus className="ml-2 h-4 w-4" />
           فاتورة جديدة
         </Button>
@@ -1216,17 +1250,7 @@ export default function InvoicesTable() {
                           >
                             <Eye className="h-3.5 w-3.5" />
                           </Button>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="icon"
-                            className="h-8 w-8 rounded-lg"
-                            onClick={() => void printInvoice(inv)}
-                            disabled={isBusy}
-                            title="طباعة / حفظ PDF"
-                          >
-                            <Download className="h-3.5 w-3.5" />
-                          </Button>
+
                           <Button
                             type="button"
                             variant="outline"
@@ -1455,7 +1479,7 @@ export default function InvoicesTable() {
             </div>
 
             <DialogFooter className="gap-2 sm:justify-start sm:space-x-0">
-              <Button type="submit" disabled={isBusy} className="rounded-xl bg-gradient-brand shadow-glow hover:opacity-90">
+              <Button type="submit" disabled={isBusy} className="rounded-xl bg-teal font-bold text-white hover:bg-teal/90">
                 {isBusy ? <Loader2 className="ml-2 h-4 w-4 animate-spin" /> : null}
                 إنشاء الفاتورة
               </Button>
@@ -1665,7 +1689,7 @@ export default function InvoicesTable() {
                 >
                   حفظ PDF
                 </Button>
-                <Button type="button" className="rounded-xl bg-gradient-brand shadow-glow hover:opacity-90" disabled={isBusy} onClick={() => openPaymentDialog(selectedInvoice, "payment")}>
+                <Button type="button" className="rounded-xl bg-teal font-bold text-white hover:bg-teal/90" disabled={isBusy} onClick={() => openPaymentDialog(selectedInvoice, "payment")}>
                   تسجيل دفعة
                 </Button>
                 <Button type="button" variant="outline" className="rounded-xl" disabled={isBusy} onClick={() => openPaymentDialog(selectedInvoice, "advance")}>
@@ -1788,7 +1812,7 @@ export default function InvoicesTable() {
             </div>
 
             <DialogFooter className="gap-2 sm:justify-start sm:space-x-0">
-              <Button type="submit" disabled={isBusy} className="rounded-xl bg-gradient-brand shadow-glow hover:opacity-90">
+              <Button type="submit" disabled={isBusy} className="rounded-xl bg-teal font-bold text-white hover:bg-teal/90">
                 {isBusy ? <Loader2 className="ml-2 h-4 w-4 animate-spin" /> : null}
                 حفظ
               </Button>

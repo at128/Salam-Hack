@@ -11,7 +11,14 @@ public sealed class UpdateProfileCommandHandler(IIdentityService identityService
     public async Task<Result<ProfileResponse>> Handle(UpdateProfileCommand cmd, CancellationToken ct)
     {
         var result = await identityService.UpdateUserAsync(
-            cmd.UserId, cmd.FirstName, cmd.LastName, cmd.PhoneNumber, ct);
+            cmd.UserId,
+            cmd.FirstName,
+            cmd.LastName,
+            cmd.PhoneNumber,
+            cmd.BankName,
+            cmd.BankAccountName,
+            cmd.BankIban,
+            ct);
 
         if (result.IsError)
             return result.TopError;
@@ -19,7 +26,16 @@ public sealed class UpdateProfileCommandHandler(IIdentityService identityService
         var user = result.Value;
 
         return new ProfileResponse(
-            user.Id, user.Email, user.FirstName, user.LastName,
-            user.PhoneNumber, user.Role, user.CreatedAtUtc, user.UpdatedAtUtc);
+            user.Id,
+            user.Email,
+            user.FirstName,
+            user.LastName,
+            user.PhoneNumber,
+            user.BankName,
+            user.BankAccountName,
+            user.BankIban,
+            user.Role,
+            user.CreatedAtUtc,
+            user.UpdatedAtUtc);
     }
 }

@@ -4,6 +4,9 @@ export type AuthUser = {
   firstName: string;
   lastName: string;
   phoneNumber?: string | null;
+  bankName?: string | null;
+  bankAccountName?: string | null;
+  bankIban?: string | null;
   role: string;
   createdAt?: string;
   updatedAt?: string | null;
@@ -31,6 +34,7 @@ export type ApiResponse<T> = {
 };
 
 const AUTH_STORAGE_KEYS = ["accessToken", "accessTokenExpiresOnUtc", "currentUser"] as const;
+const PUBLIC_AUTH_PATHS = new Set(["/login", "/register", "/register/verify", "/forgot-password", "/reset-password"]);
 
 function clearAuthStorage(storage: Storage) {
   AUTH_STORAGE_KEYS.forEach((key) => storage.removeItem(key));
@@ -78,6 +82,9 @@ export function storeAuthSession(result: AuthSessionResponse, rememberMe = true)
       firstName: result.firstName,
       lastName: result.lastName,
       phoneNumber: result.phoneNumber,
+      bankName: result.bankName,
+      bankAccountName: result.bankAccountName,
+      bankIban: result.bankIban,
       role: result.role,
       createdAt: result.createdAt,
     } satisfies AuthUser),
@@ -95,6 +102,18 @@ export function clearAuthSession() {
   clearAuthStorage(localStorage);
   clearAuthStorage(sessionStorage);
   window.dispatchEvent(new Event("auth:user-updated"));
+}
+
+export function redirectToLogin() {
+  if (typeof window === "undefined") return;
+
+  const { pathname, search } = window.location;
+  if (PUBLIC_AUTH_PATHS.has(pathname)) return;
+
+  clearAuthSession();
+  const returnUrl = `${pathname}${search}`;
+  const loginUrl = `/login?returnUrl=${encodeURIComponent(returnUrl)}`;
+  window.location.replace(loginUrl);
 }
 
 export function getCurrentUser(): AuthUser | null {
@@ -159,14 +178,22 @@ export async function refreshAccessToken() {
 }
 
 export async function getValidAccessToken() {
-  if (!getAccessToken()) return null;
+  if (!getAccessToken()) {
+    redirectToLogin();
+    return null;
+  }
 
   if (isAccessTokenExpired()) {
     const refreshed = await refreshAccessToken();
-    if (!refreshed) return null;
+    if (!refreshed) {
+      redirectToLogin();
+      return null;
+    }
   }
 
-  return getAccessToken();
+  const token = getAccessToken();
+  if (!token) redirectToLogin();
+  return token;
 }
 
 export async function fetchCurrentProfile(): Promise<AuthUser> {
@@ -192,6 +219,9 @@ export async function updateCurrentProfile(input: {
   firstName: string;
   lastName: string;
   phoneNumber: string;
+  bankName?: string;
+  bankAccountName?: string;
+  bankIban?: string;
 }): Promise<AuthUser> {
   const token = await getValidAccessToken();
   if (!token) throw new Error("Missing access token.");

@@ -190,6 +190,47 @@ public class Invoice : AuditableEntity, ISoftDeletable
             currency);
     }
 
+    public Result<Success> UpdatePayment(
+        Payment payment,
+        decimal amount,
+        PaymentMethod method,
+        DateTimeOffset paymentDate,
+        string? notes,
+        string currency,
+        DateTimeOffset asOfUtc)
+    {
+        if (payment.InvoiceId != Id)
+            return PaymentErrors.InvalidInvoiceId;
+
+        if (Status == InvoiceStatus.Cancelled)
+            return InvoiceErrors.CannotPayCancelledInvoice;
+
+        if (amount <= 0)
+            return InvoiceErrors.PaymentAmountMustBePositive;
+
+        if (string.IsNullOrWhiteSpace(currency))
+            return InvoiceErrors.CurrencyRequired;
+
+        if (!string.Equals(currency.Trim(), Currency, StringComparison.OrdinalIgnoreCase))
+            return InvoiceErrors.PaymentCurrencyMismatch;
+
+        var updatedPaidAmount = PaidAmount - payment.Amount + amount;
+        if (updatedPaidAmount < 0)
+            updatedPaidAmount = 0;
+
+        if (updatedPaidAmount > TotalWithTax)
+            return InvoiceErrors.PaymentExceedsRemainingAmount;
+
+        var paymentUpdate = payment.Update(amount, method, paymentDate, notes, currency);
+        if (paymentUpdate.IsError)
+            return paymentUpdate.Errors;
+
+        PaidAmount = updatedPaidAmount;
+        RefreshStatusAfterPaymentChange(asOfUtc);
+
+        return Result.Success;
+    }
+
     public Result<Success> Cancel()
     {
         if (IsFullyPaid)
@@ -356,5 +397,22 @@ public class Invoice : AuditableEntity, ISoftDeletable
             Status = InvoiceStatus.PartiallyPaid;
             return;
         }
+    }
+
+    private void RefreshStatusAfterPaymentChange(DateTimeOffset asOfUtc)
+    {
+        if (IsFullyPaid)
+        {
+            Status = InvoiceStatus.Paid;
+            return;
+        }
+
+        if (PaidAmount > 0)
+        {
+            Status = DueDate < asOfUtc ? InvoiceStatus.Overdue : InvoiceStatus.PartiallyPaid;
+            return;
+        }
+
+        Status = Status == InvoiceStatus.Draft ? InvoiceStatus.Draft : InvoiceStatus.Sent;
     }
 }

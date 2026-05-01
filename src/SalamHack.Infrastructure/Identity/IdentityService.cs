@@ -116,13 +116,18 @@ public class IdentityService(
 
         return new UserProfileResult(
             user.Id, user.Email!, user.FirstName, user.LastName,
-            user.PhoneNumber, roles.FirstOrDefault() ?? ApplicationConstants.Roles.User,
+            user.PhoneNumber, user.BankName, user.BankAccountName, user.BankIban,
+            roles.FirstOrDefault() ?? ApplicationConstants.Roles.User,
             user.CreatedAtUtc, user.UpdatedAtUtc);
     }
 
     public async Task<Result<UserProfileResult>> UpdateUserAsync(
         Guid userId, string firstName, string lastName,
-        string? phoneNumber, CancellationToken ct = default)
+        string? phoneNumber,
+        string? bankName,
+        string? bankAccountName,
+        string? bankIban,
+        CancellationToken ct = default)
     {
         var user = await userManager.FindByIdAsync(userId.ToString());
         if (user is null)
@@ -130,7 +135,10 @@ public class IdentityService(
 
         user.FirstName = firstName;
         user.LastName = lastName;
-        user.PhoneNumber = phoneNumber;
+        user.PhoneNumber = NormalizeOptional(phoneNumber);
+        user.BankName = NormalizeOptional(bankName);
+        user.BankAccountName = NormalizeOptional(bankAccountName);
+        user.BankIban = NormalizeOptional(bankIban);
         user.UpdatedAtUtc = DateTimeOffset.UtcNow;
 
         var updateResult = await userManager.UpdateAsync(user);
@@ -141,7 +149,8 @@ public class IdentityService(
 
         return new UserProfileResult(
             user.Id, user.Email!, user.FirstName, user.LastName,
-            user.PhoneNumber, roles.FirstOrDefault() ?? ApplicationConstants.Roles.User,
+            user.PhoneNumber, user.BankName, user.BankAccountName, user.BankIban,
+            roles.FirstOrDefault() ?? ApplicationConstants.Roles.User,
             user.CreatedAtUtc, user.UpdatedAtUtc);
     }
 
@@ -201,4 +210,7 @@ public class IdentityService(
 
         return Result.Success;
     }
+
+    private static string? NormalizeOptional(string? value)
+        => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 }

@@ -25,7 +25,7 @@ public sealed class GetProfitabilityReportQueryHandler(
             .Include(p => p.Service)
             .Include(p => p.Expenses)
             .Where(p => p.UserId == query.UserId &&
-                        p.Status == ProjectStatus.Completed &&
+                        (p.Status == ProjectStatus.Completed || p.Status == ProjectStatus.InProgress) &&
                         p.EndDate >= fromUtc &&
                         p.EndDate <= toUtc)
             .ToListAsync(ct);

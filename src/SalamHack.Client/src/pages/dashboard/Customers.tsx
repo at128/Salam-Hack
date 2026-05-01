@@ -375,7 +375,7 @@ export default function CustomersPage() {
     <>
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <PageHeader title="إدارة العملاء" desc="إضافة وتحديث وحذف العملاء المرتبطين بحسابك." />
-        <Button onClick={openCreateForm} className="rounded-xl bg-gradient-brand shadow-glow hover:opacity-90">
+        <Button onClick={openCreateForm} className="rounded-xl bg-teal font-bold text-white hover:bg-teal/90">
           <Plus className="ml-2 h-4 w-4" />
           عميل جديد
         </Button>
@@ -657,7 +657,7 @@ export default function CustomersPage() {
             </div>
 
             <DialogFooter className="gap-2 sm:justify-start sm:space-x-0">
-              <Button type="submit" disabled={isSaving} className="rounded-xl bg-gradient-brand shadow-glow hover:opacity-90">
+              <Button type="submit" disabled={isSaving} className="rounded-xl bg-teal font-bold text-white hover:bg-teal/90">
                 {isSaving ? <Loader2 className="ml-2 h-4 w-4 animate-spin" /> : null}
                 حفظ
               </Button>

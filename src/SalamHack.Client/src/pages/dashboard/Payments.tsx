@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, Banknote, CalendarDays, Loader2, Plus, RefreshCw, Search, Wallet } from "lucide-react";
+import { AlertTriangle, Banknote, CalendarDays, Edit3, Loader2, Plus, RefreshCw, Search, Wallet } from "lucide-react";
 import { PageHeader } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import {
@@ -215,6 +215,7 @@ export default function PaymentsPage() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
+  const [editingPayment, setEditingPayment] = useState<PaymentDto | null>(null);
   const [paymentForm, setPaymentForm] = useState<PaymentForm>(EMPTY_PAYMENT_FORM);
 
   const pageSize = 10;
@@ -294,6 +295,7 @@ export default function PaymentsPage() {
   }, [invoiceId, fromDate, toDate, pageNumber]);
 
   const openPaymentDialog = (invoice?: InvoiceListItem) => {
+    setEditingPayment(null);
     setPaymentForm({
       ...EMPTY_PAYMENT_FORM,
       invoiceId: invoice?.id ?? "",
@@ -305,13 +307,28 @@ export default function PaymentsPage() {
     setIsPaymentOpen(true);
   };
 
+  const openEditPaymentDialog = (payment: PaymentDto) => {
+    setEditingPayment(payment);
+    setPaymentForm({
+      invoiceId: payment.invoiceId,
+      amount: String(payment.amount),
+      method: payment.method as PaymentMethod,
+      paymentDate: new Date(payment.paymentDate).toISOString().slice(0, 10),
+      currency: payment.currency,
+      notes: payment.notes ?? "",
+    });
+    setMessage("");
+    setError("");
+    setIsPaymentOpen(true);
+  };
+
   const submitPayment = async (event: React.FormEvent) => {
     event.preventDefault();
     const invoice = invoiceById.get(paymentForm.invoiceId);
-    if (!invoice) return;
+    if (!editingPayment && !invoice) return;
 
-    const currency = paymentForm.currency.trim() || invoice.currency;
-    if (currency.toUpperCase() !== invoice.currency.toUpperCase()) {
+    const currency = paymentForm.currency.trim() || invoice?.currency || "SAR";
+    if (invoice && currency.toUpperCase() !== invoice.currency.toUpperCase()) {
       setError("يجب أن تكون عملة الدفعة نفس عملة الفاتورة.");
       return;
     }
@@ -321,8 +338,8 @@ export default function PaymentsPage() {
     setMessage("");
 
     try {
-      await apiRequest(`${INVOICES_API_URL}/${invoice.id}/payments`, {
-        method: "POST",
+      await apiRequest(editingPayment ? `${PAYMENTS_API_URL}/${editingPayment.id}` : `${INVOICES_API_URL}/${invoice!.id}/payments`, {
+        method: editingPayment ? "PUT" : "POST",
         body: JSON.stringify({
           amount: Number(paymentForm.amount),
           method: paymentForm.method,
@@ -332,8 +349,9 @@ export default function PaymentsPage() {
         }),
       });
 
-      setMessage("تم تسجيل الدفعة بنجاح.");
+      setMessage(editingPayment ? "تم تعديل الدفعة بنجاح." : "تم تسجيل الدفعة بنجاح.");
       setIsPaymentOpen(false);
+      setEditingPayment(null);
       setPaymentForm(EMPTY_PAYMENT_FORM);
       await Promise.all([loadInvoices(), loadPayments()]);
     } catch (err) {
@@ -347,7 +365,7 @@ export default function PaymentsPage() {
     <>
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <PageHeader title="المدفوعات" desc="متابعة التحصيل، الدفعات المسجلة، والفواتير المتأخرة." />
-        <Button onClick={() => openPaymentDialog()} className="rounded-xl bg-gradient-brand shadow-glow hover:opacity-90">
+        <Button onClick={() => openPaymentDialog()} className="rounded-xl bg-teal font-bold text-white hover:bg-teal/90">
           <Plus className="ml-2 h-4 w-4" />
           تسجيل دفعة
         </Button>
@@ -436,6 +454,7 @@ export default function PaymentsPage() {
                       <th className="px-4 py-3 font-semibold">المبلغ</th>
                       <th className="px-4 py-3 font-semibold">الطريقة</th>
                       <th className="px-4 py-3 font-semibold">التاريخ</th>
+                      <th className="px-4 py-3 text-center font-semibold">إجراءات</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border/70">
@@ -451,6 +470,20 @@ export default function PaymentsPage() {
                           <td className="px-4 py-3 font-bold text-teal">{formatCurrency(payment.amount, payment.currency)}</td>
                           <td className="px-4 py-3 text-muted-foreground">{methodLabel(payment.method)}</td>
                           <td className="px-4 py-3 text-muted-foreground">{formatDate(payment.paymentDate)}</td>
+                          <td className="px-4 py-3">
+                            <div className="flex justify-center">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="rounded-xl"
+                                onClick={() => openEditPaymentDialog(payment)}
+                              >
+                                <Edit3 className="ml-2 h-4 w-4" />
+                                تعديل
+                              </Button>
+                            </div>
+                          </td>
                         </tr>
                       );
                     })}
@@ -522,11 +555,19 @@ export default function PaymentsPage() {
         </aside>
       </section>
 
-      <Dialog open={isPaymentOpen} onOpenChange={setIsPaymentOpen}>
+      <Dialog
+        open={isPaymentOpen}
+        onOpenChange={(open) => {
+          setIsPaymentOpen(open);
+          if (!open) setEditingPayment(null);
+        }}
+      >
         <DialogContent className="max-h-[90vh] overflow-y-auto text-right" dir="rtl">
           <DialogHeader className="text-right sm:text-right">
-            <DialogTitle>تسجيل دفعة</DialogTitle>
-            <DialogDescription>اختر الفاتورة وسجل مبلغ الدفعة بنفس عملة الفاتورة.</DialogDescription>
+            <DialogTitle>{editingPayment ? "تعديل الدفعة" : "تسجيل دفعة"}</DialogTitle>
+            <DialogDescription>
+              {editingPayment ? "عدّل بيانات الدفعة المسجلة." : "اختر الفاتورة وسجل مبلغ الدفعة بنفس عملة الفاتورة."}
+            </DialogDescription>
           </DialogHeader>
 
           <form onSubmit={submitPayment} className="space-y-4">
@@ -535,6 +576,7 @@ export default function PaymentsPage() {
               <Select
                 dir="rtl"
                 value={paymentForm.invoiceId}
+                disabled={!!editingPayment}
                 onValueChange={(value) => {
                   const invoice = invoiceById.get(value);
                   setPaymentForm((prev) => ({
@@ -639,11 +681,19 @@ export default function PaymentsPage() {
             </div>
 
             <DialogFooter className="gap-2 sm:justify-start sm:space-x-0">
-              <Button type="submit" disabled={isSaving || !paymentForm.invoiceId} className="rounded-xl bg-gradient-brand shadow-glow hover:opacity-90">
+              <Button type="submit" disabled={isSaving || !paymentForm.invoiceId} className="rounded-xl bg-teal font-bold text-white hover:bg-teal/90">
                 {isSaving ? <Loader2 className="ml-2 h-4 w-4 animate-spin" /> : null}
-                حفظ الدفعة
+                {editingPayment ? "حفظ التعديل" : "حفظ الدفعة"}
               </Button>
-              <Button type="button" variant="outline" className="rounded-xl" onClick={() => setIsPaymentOpen(false)}>
+              <Button
+                type="button"
+                variant="outline"
+                className="rounded-xl"
+                onClick={() => {
+                  setIsPaymentOpen(false);
+                  setEditingPayment(null);
+                }}
+              >
                 إلغاء
               </Button>
             </DialogFooter>

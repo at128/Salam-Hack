@@ -19,7 +19,7 @@ using Microsoft.AspNetCore.RateLimiting;
 
 namespace SalamHack.Api.Controllers;
 
-public sealed class AuthController(ISender sender) : ApiController
+public sealed class AuthController(ISender sender, ILogger<AuthController> logger) : ApiController
 {
     /// <summary>Register a new user account.</summary>
     [EnableRateLimiting("auth")]
@@ -67,13 +67,33 @@ public sealed class AuthController(ISender sender) : ApiController
     [HttpPost("login")]
     [ProducesResponseType(typeof(ApiResponse<AuthResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> Login(
         [FromBody] LoginRequest request, CancellationToken ct)
     {
-        var result = await sender.Send(
-            new LoginCommand(request.Email, request.Password), ct);
+        try
+        {
+            var result = await sender.Send(
+                new LoginCommand(request.Email, request.Password), ct);
 
-        return result.Match(response => OkResponse(response), Problem);
+            return result.Match(response => OkResponse(response), Problem);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Unexpected login endpoint failure for {Email}.", request.Email);
+
+            return StatusCode(
+                StatusCodes.Status500InternalServerError,
+                ApiResponse<object?>.Fail(
+                    $"Login failed with {ex.GetType().Name}: {ex.Message}",
+                    [
+                        new ApiErrorDto(
+                            ex.GetType().FullName ?? ex.GetType().Name,
+                            ex.ToString(),
+                            "Unexpected")
+                    ],
+                    HttpContext.TraceIdentifier));
+        }
     }
 
     /// <summary>Send a password reset OTP to the user's email.</summary>
@@ -142,7 +162,8 @@ public sealed class AuthController(ISender sender) : ApiController
             return UnauthorizedResponse();
 
         var result = await sender.Send(new UpdateProfileCommand(
-            userId, request.FirstName, request.LastName, request.PhoneNumber), ct);
+            userId, request.FirstName, request.LastName, request.PhoneNumber,
+            request.BankName, request.BankAccountName, request.BankIban), ct);
 
         return result.Match(response => OkResponse(response), Problem);
     }

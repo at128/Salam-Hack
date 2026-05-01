@@ -510,7 +510,7 @@ export default function DashboardLayout({
               </Button>
 
               <DialogFooter className="gap-2 sm:justify-start sm:space-x-0">
-                <Button type="submit" disabled={isSavingServices} className="rounded-xl bg-gradient-brand shadow-glow hover:opacity-90">
+                <Button type="submit" disabled={isSavingServices} className="rounded-xl bg-teal font-bold text-white hover:bg-teal/90">
                   {isSavingServices ? <Loader2 className="ml-2 h-4 w-4 animate-spin" /> : null}
                   حفظ الخدمات
                 </Button>

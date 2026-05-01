@@ -141,7 +141,7 @@ export default function InvoiceDetailsPage() {
           </Button>
           <Button
             type="button"
-            className="rounded-xl bg-gradient-brand shadow-glow hover:opacity-90"
+            className="rounded-xl bg-teal font-bold text-white hover:bg-teal/90"
             disabled={!invoice || isDownloading}
             onClick={() => void downloadPdf()}
           >

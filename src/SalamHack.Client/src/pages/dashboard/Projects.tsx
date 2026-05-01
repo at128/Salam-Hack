@@ -241,6 +241,55 @@ function ErrorText({ messages }: { messages?: string[] }) {
   return <p className="text-xs leading-relaxed text-danger">{messages[0]}</p>;
 }
 
+function RequiredMark() {
+  return (
+    <span aria-hidden="true" className="text-danger">
+      *
+    </span>
+  );
+}
+
+function requiredField(message: string) {
+  return [message];
+}
+
+function validateNumber(value: string, message: string, min = 0) {
+  const numberValue = Number(value);
+  if (value === "" || !Number.isFinite(numberValue) || numberValue < min) {
+    return requiredField(message);
+  }
+  return undefined;
+}
+
+function validateProjectForm(form: ProjectForm, isEditing: boolean): ValidationErrors {
+  const errors: ValidationErrors = {};
+
+  if (!form.projectName.trim()) errors.projectName = requiredField("اسم المشروع مطلوب.");
+  if (!isEditing && !form.customerId) errors.customerId = requiredField("اختر العميل قبل حفظ المشروع.");
+  if (!isEditing && !form.serviceId) errors.serviceId = requiredField("اختر الخدمة قبل حفظ المشروع.");
+
+  errors.estimatedHours = validateNumber(form.estimatedHours, "الساعات المقدرة مطلوبة ويجب أن تكون أكبر من صفر.", 0.01);
+  errors.toolCost = validateNumber(form.toolCost, "تكلفة الأدوات مطلوبة ولا يمكن أن تكون أقل من صفر.");
+  errors.revision = validateNumber(form.revision, "عدد مرات التعديل مطلوب ولا يمكن أن يكون أقل من صفر.");
+  errors.suggestedPrice = validateNumber(form.suggestedPrice, "سعر العرض مطلوب ويجب أن يكون أكبر من صفر.", 0.01);
+
+  if (form.revision && !Number.isInteger(Number(form.revision))) {
+    errors.revision = requiredField("عدد مرات التعديل يجب أن يكون رقما صحيحا.");
+  }
+
+  if (isEditing) {
+    errors.actualHours = validateNumber(form.actualHours, "الساعات الفعلية لا يمكن أن تكون أقل من صفر.");
+  }
+
+  if (!form.startDate) errors.startDate = requiredField("تاريخ البداية مطلوب.");
+  if (!form.endDate) errors.endDate = requiredField("تاريخ النهاية مطلوب.");
+  if (form.startDate && form.endDate && form.endDate < form.startDate) {
+    errors.endDate = requiredField("تاريخ النهاية يجب أن يكون بعد تاريخ البداية.");
+  }
+
+  return Object.fromEntries(Object.entries(errors).filter(([, value]) => !!value?.length)) as ValidationErrors;
+}
+
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<PaginatedList<ProjectListItem> | null>(null);
   const [customers, setCustomers] = useState<CustomerOption[]>([]);
@@ -317,6 +366,11 @@ export default function ProjectsPage() {
     setFormErrors((prev) => ({ ...prev, [field]: undefined, general: undefined }));
   };
 
+  const setSelectField = (field: keyof ProjectForm) => (value: string) => {
+    setForm((prev) => ({ ...prev, [field]: value }));
+    setFormErrors((prev) => ({ ...prev, [field]: undefined, general: undefined }));
+  };
+
   const openCreateForm = () => {
     setEditingProject(null);
     setForm(EMPTY_FORM);
@@ -376,10 +430,17 @@ export default function ProjectsPage() {
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    setIsSaving(true);
-    setFormErrors({});
     setError("");
     setMessage("");
+
+    const clientErrors = validateProjectForm(form, !!editingProject);
+    if (Object.keys(clientErrors).length) {
+      setFormErrors(clientErrors);
+      return;
+    }
+
+    setIsSaving(true);
+    setFormErrors({});
 
     const estimateBody = {
       estimatedHours: Number(form.estimatedHours),
@@ -469,7 +530,7 @@ export default function ProjectsPage() {
     <>
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <PageHeader title="إدارة المشاريع" desc="إضافة ومتابعة وتحديث مشاريعك." />
-        <Button onClick={openCreateForm} className="rounded-xl bg-gradient-brand shadow-glow hover:opacity-90">
+        <Button onClick={openCreateForm} className="rounded-xl bg-teal font-bold text-white hover:bg-teal/90">
           <Plus className="ml-2 h-4 w-4" />
           مشروع جديد
         </Button>
@@ -665,19 +726,23 @@ export default function ProjectsPage() {
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="projectName">اسم المشروع</Label>
+              <Label htmlFor="projectName" className="inline-flex items-center gap-1">
+                اسم المشروع <RequiredMark />
+              </Label>
               <Input id="projectName" value={form.projectName} onChange={setField("projectName")} required className="rounded-xl bg-white" />
               <ErrorText messages={formErrors.projectName} />
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label>العميل</Label>
+                <Label className="inline-flex items-center gap-1">
+                  العميل <RequiredMark />
+                </Label>
                 <Select
                   dir="rtl"
                   value={form.customerId}
                   disabled={!!editingProject}
-                  onValueChange={(value) => setForm((prev) => ({ ...prev, customerId: value }))}
+                  onValueChange={setSelectField("customerId")}
                 >
                   <SelectTrigger className="rounded-xl bg-white text-right [&>span]:w-full [&>span]:text-right">
                     <SelectValue placeholder="اختر العميل" />
@@ -694,12 +759,14 @@ export default function ProjectsPage() {
               </div>
 
               <div className="space-y-2">
-                <Label>الخدمة</Label>
+                <Label className="inline-flex items-center gap-1">
+                  الخدمة <RequiredMark />
+                </Label>
                 <Select
                   dir="rtl"
                   value={form.serviceId}
                   disabled={!!editingProject}
-                  onValueChange={(value) => setForm((prev) => ({ ...prev, serviceId: value }))}
+                  onValueChange={setSelectField("serviceId")}
                 >
                   <SelectTrigger className="rounded-xl bg-white text-right [&>span]:w-full [&>span]:text-right">
                     <SelectValue placeholder="اختر الخدمة" />
@@ -718,44 +785,63 @@ export default function ProjectsPage() {
 
             <div className={`grid gap-4 ${editingProject ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
               <div className="space-y-2">
-                <Label htmlFor="estimatedHours">الساعات المقدرة</Label>
+                <Label htmlFor="estimatedHours" className="inline-flex items-center gap-1">
+                  الساعات المقدرة <RequiredMark />
+                </Label>
                 <Input id="estimatedHours" type="number" min="0" step="0.25" value={form.estimatedHours} onChange={setField("estimatedHours")} required className="rounded-xl bg-white" />
+                <ErrorText messages={formErrors.estimatedHours} />
               </div>
               {editingProject ? (
                 <div className="space-y-2">
                   <Label htmlFor="actualHours">الساعات الفعلية</Label>
                   <Input id="actualHours" type="number" min="0" step="0.25" value={form.actualHours} onChange={setField("actualHours")} className="rounded-xl bg-white" />
+                  <ErrorText messages={formErrors.actualHours} />
                 </div>
               ) : null}
               <div className="space-y-2">
-                <Label htmlFor="revision">عدد مرات التعديل المسموحة للعميل</Label>
+                <Label htmlFor="revision" className="inline-flex items-center gap-1">
+                  عدد مرات التعديل المسموحة للعميل <RequiredMark />
+                </Label>
                 <Input id="revision" type="number" min="0" step="1" value={form.revision} onChange={setField("revision")} required className="rounded-xl bg-white" />
+                <ErrorText messages={formErrors.revision} />
               </div>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="toolCost">تكلفة الأدوات</Label>
+                <Label htmlFor="toolCost" className="inline-flex items-center gap-1">
+                  تكلفة الأدوات <RequiredMark />
+                </Label>
                 <Input id="toolCost" type="number" min="0" step="0.01" value={form.toolCost} onChange={setField("toolCost")} required className="rounded-xl bg-white" />
+                <ErrorText messages={formErrors.toolCost} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="suggestedPrice">سعر العرض للعميل</Label>
+                <Label htmlFor="suggestedPrice" className="inline-flex items-center gap-1">
+                  سعر العرض للعميل <RequiredMark />
+                </Label>
                 <Input id="suggestedPrice" type="number" min="0" step="0.01" value={form.suggestedPrice} onChange={setField("suggestedPrice")} required className="rounded-xl bg-white" />
+                <ErrorText messages={formErrors.suggestedPrice} />
               </div>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-3">
               <div className="space-y-2">
-                <Label htmlFor="startDate">تاريخ البداية</Label>
+                <Label htmlFor="startDate" className="inline-flex items-center gap-1">
+                  تاريخ البداية <RequiredMark />
+                </Label>
                 <Input id="startDate" type="date" value={form.startDate} onChange={setField("startDate")} required className="rounded-xl bg-white" />
+                <ErrorText messages={formErrors.startDate} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="endDate">تاريخ النهاية</Label>
+                <Label htmlFor="endDate" className="inline-flex items-center gap-1">
+                  تاريخ النهاية <RequiredMark />
+                </Label>
                 <Input id="endDate" type="date" value={form.endDate} onChange={setField("endDate")} required className="rounded-xl bg-white" />
+                <ErrorText messages={formErrors.endDate} />
               </div>
               <div className="space-y-2">
                 <Label>الحالة</Label>
-                <Select dir="rtl" value={form.status} onValueChange={(value) => setForm((prev) => ({ ...prev, status: value as ProjectStatus }))}>
+                <Select dir="rtl" value={form.status} onValueChange={(value) => setSelectField("status")(value as ProjectStatus)}>
                   <SelectTrigger className="rounded-xl bg-white text-right [&>span]:w-full [&>span]:text-right">
                     <SelectValue />
                   </SelectTrigger>
@@ -775,7 +861,7 @@ export default function ProjectsPage() {
             </label>
 
             <DialogFooter className="gap-2 sm:justify-start sm:space-x-0">
-              <Button type="submit" disabled={isSaving} className="rounded-xl bg-gradient-brand shadow-glow hover:opacity-90">
+              <Button type="submit" disabled={isSaving} className="rounded-xl bg-teal font-bold text-white hover:bg-teal/90">
                 {isSaving ? <Loader2 className="ml-2 h-4 w-4 animate-spin" /> : null}
                 حفظ
               </Button>

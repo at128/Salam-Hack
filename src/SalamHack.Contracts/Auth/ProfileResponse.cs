@@ -6,6 +6,9 @@ public sealed record ProfileResponse(
     string FirstName,
     string LastName,
     string? PhoneNumber,
+    string? BankName,
+    string? BankAccountName,
+    string? BankIban,
     string Role,
     DateTimeOffset CreatedAt,
     DateTimeOffset? UpdatedAt);

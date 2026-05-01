@@ -8,4 +8,7 @@ public sealed record UpdateProfileCommand(
     Guid UserId,
     string FirstName,
     string LastName,
-    string? PhoneNumber) : IRequest<Result<ProfileResponse>>;
+    string? PhoneNumber,
+    string? BankName,
+    string? BankAccountName,
+    string? BankIban) : IRequest<Result<ProfileResponse>>;

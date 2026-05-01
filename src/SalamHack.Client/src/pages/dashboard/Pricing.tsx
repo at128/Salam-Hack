@@ -498,7 +498,7 @@ export default function PricingPage() {
             </label>
           </div>
 
-          <Button type="submit" disabled={isCalculating || isLoadingLookups || !quoteForm.serviceId} className="mt-5 rounded-xl bg-gradient-brand shadow-glow hover:opacity-90">
+          <Button type="submit" disabled={isCalculating || isLoadingLookups || !quoteForm.serviceId} className="mt-5 rounded-xl bg-teal font-bold text-white hover:bg-teal/90">
             {isCalculating ? <Loader2 className="ml-2 h-4 w-4 animate-spin" /> : <Sparkles className="ml-2 h-4 w-4" />}
             احسب السعر
           </Button>
@@ -646,7 +646,7 @@ export default function PricingPage() {
                   </div>
                 </div>
 
-                <Button type="button" disabled={isCreatingProject || !createForm.customerId || !createForm.projectName} onClick={() => void handleCreateProject()} className="w-full rounded-xl bg-gradient-brand shadow-glow hover:opacity-90">
+                <Button type="button" disabled={isCreatingProject || !createForm.customerId || !createForm.projectName} onClick={() => void handleCreateProject()} className="w-full rounded-xl bg-teal font-bold text-white hover:bg-teal/90">
                   {isCreatingProject ? <Loader2 className="ml-2 h-4 w-4 animate-spin" /> : null}
                   إنشاء مشروع
                 </Button>

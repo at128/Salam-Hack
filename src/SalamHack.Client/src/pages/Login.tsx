@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft, Eye, EyeOff, Loader2, Lock, Mail } from "lucide-react";
 import AuthLayout from "@/components/auth/AuthLayout";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,7 @@ type LoginForm = {
 
 export default function Login() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [showPwd, setShowPwd] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -62,7 +63,7 @@ export default function Login() {
       }
 
       storeAuthSession(unwrapApiResponse<AuthSessionResponse>(payload), form.rememberMe);
-      navigate("/dashboard");
+      navigate(searchParams.get("returnUrl") || "/dashboard", { replace: true });
     } catch {
       setError("تعذر الاتصال بالخدمة. حاول مرة أخرى بعد قليل.");
     } finally {

@@ -1,18 +1,20 @@
-import { MONTHS, REVENUE_DATA, EXPENSE_DATA } from "@/data/mali";
-
-export default function RevenueChart() {
-  const max = Math.max(...REVENUE_DATA, ...EXPENSE_DATA);
+export default function RevenueChart({
+  data
+}: {
+  data: { monthName: string; revenue: number; expenses: number }[];
+}) {
+  const max = Math.max(...data.map(d => Math.max(d.revenue, d.expenses)), 100);
   const chartH = 180;
   const barW = 26;
   const gap = 48;
-  const totalW = MONTHS.length * (barW * 2 + gap);
+  const totalW = Math.max(data.length * (barW * 2 + gap), 10);
 
   return (
     <div className="bg-card rounded-2xl p-6 border border-border/70 shadow-card">
       <div className="flex items-center justify-between mb-5">
         <div>
           <h3 className="font-bold text-navy">الإيراد مقابل المصاريف</h3>
-          <p className="text-xs text-muted-foreground">آخر ٦ أشهر</p>
+          <p className="text-xs text-muted-foreground">آخر فترة</p>
         </div>
         <div className="flex gap-4 text-xs">
           <span className="flex items-center gap-1.5">
@@ -29,12 +31,12 @@ export default function RevenueChart() {
         viewBox={`0 0 ${totalW + 20} ${chartH + 40}`}
         style={{ direction: "ltr" }}
       >
-        {MONTHS.map((m, i) => {
+        {data.map((m, i) => {
           const x = i * (barW * 2 + gap) + 10;
-          const rH = (REVENUE_DATA[i] / max) * chartH;
-          const eH = (EXPENSE_DATA[i] / max) * chartH;
+          const rH = (m.revenue / max) * chartH;
+          const eH = (m.expenses / max) * chartH;
           return (
-            <g key={m}>
+            <g key={m.monthName + i}>
               <rect
                 x={x}
                 y={chartH - rH}
@@ -58,7 +60,7 @@ export default function RevenueChart() {
                 fontSize="11"
                 className="fill-muted-foreground"
               >
-                {m}
+                {m.monthName}
               </text>
             </g>
           );

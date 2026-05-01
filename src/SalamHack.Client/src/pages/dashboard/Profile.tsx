@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Loader2, Save, UserRound } from "lucide-react";
+import { CreditCard, Loader2, Save, UserRound } from "lucide-react";
 import { PageHeader } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,9 @@ type ProfileForm = {
   firstName: string;
   lastName: string;
   phoneNumber: string;
+  bankName: string;
+  bankAccountName: string;
+  bankIban: string;
 };
 
 export default function ProfilePage() {
@@ -24,6 +27,9 @@ export default function ProfilePage() {
     firstName: profile?.firstName ?? "",
     lastName: profile?.lastName ?? "",
     phoneNumber: profile?.phoneNumber ?? "",
+    bankName: profile?.bankName ?? "",
+    bankAccountName: profile?.bankAccountName ?? "",
+    bankIban: profile?.bankIban ?? "",
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -43,6 +49,9 @@ export default function ProfilePage() {
           firstName: result.firstName ?? "",
           lastName: result.lastName ?? "",
           phoneNumber: result.phoneNumber ?? "",
+          bankName: result.bankName ?? "",
+          bankAccountName: result.bankAccountName ?? "",
+          bankIban: result.bankIban ?? "",
         });
       })
       .catch(() => {
@@ -76,6 +85,9 @@ export default function ProfilePage() {
         firstName: form.firstName.trim(),
         lastName: form.lastName.trim(),
         phoneNumber: form.phoneNumber.trim(),
+        bankName: form.bankName.trim(),
+        bankAccountName: form.bankAccountName.trim(),
+        bankIban: form.bankIban.trim(),
       });
       setProfile(updated);
       storeCurrentUser(updated);
@@ -89,9 +101,9 @@ export default function ProfilePage() {
 
   return (
     <>
-      <PageHeader title="الملف الشخصي" desc="إدارة اسمك ورقم هاتفك المستخدمين داخل لوحة التحكم." />
+      <PageHeader title="الملف الشخصي" desc="إدارة بياناتك وبيانات التحويل التي تظهر في الفواتير." />
 
-      <section className="max-w-2xl rounded-2xl border border-border/70 bg-card p-6 shadow-card">
+      <section className="max-w-3xl rounded-2xl border border-border/70 bg-card p-6 shadow-card">
         <div className="mb-5 flex items-center gap-3">
           <div className="grid h-12 w-12 place-items-center rounded-xl bg-teal-soft text-teal">
             <UserRound className="h-6 w-6" />
@@ -160,6 +172,58 @@ export default function ProfilePage() {
                 required
                 className="h-11 rounded-xl border-border/70 bg-white"
               />
+            </div>
+
+            <div className="rounded-2xl border border-border/70 bg-muted/20 p-4">
+              <div className="mb-4 flex items-center gap-3">
+                <div className="grid h-10 w-10 place-items-center rounded-xl bg-teal-soft text-teal">
+                  <CreditCard className="h-5 w-5" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-navy">بيانات التحويل البنكي</h4>
+                  <p className="text-xs text-muted-foreground">ستظهر هذه البيانات في أسفل الفاتورة عند الطباعة أو حفظ PDF.</p>
+                </div>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="bankName" className="text-navy">
+                    اسم البنك
+                  </Label>
+                  <Input
+                    id="bankName"
+                    value={form.bankName}
+                    onChange={setField("bankName")}
+                    placeholder="مثال: البنك الأهلي"
+                    className="h-11 rounded-xl border-border/70 bg-white"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="bankAccountName" className="text-navy">
+                    اسم المستفيد
+                  </Label>
+                  <Input
+                    id="bankAccountName"
+                    value={form.bankAccountName}
+                    onChange={setField("bankAccountName")}
+                    placeholder="اسم صاحب الحساب"
+                    className="h-11 rounded-xl border-border/70 bg-white"
+                  />
+                </div>
+              </div>
+
+              <div className="mt-4 space-y-2">
+                <Label htmlFor="bankIban" className="text-navy">
+                  رقم الآيبان أو الحساب
+                </Label>
+                <Input
+                  id="bankIban"
+                  value={form.bankIban}
+                  onChange={setField("bankIban")}
+                  placeholder="SA00 0000 0000 0000 0000 0000"
+                  className="h-11 rounded-xl border-border/70 bg-white ltr:text-left"
+                />
+              </div>
             </div>
 
             <Button

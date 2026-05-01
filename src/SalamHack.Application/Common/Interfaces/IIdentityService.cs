@@ -18,7 +18,11 @@ public interface IIdentityService
 
     Task<Result<UserProfileResult>> UpdateUserAsync(
         Guid userId, string firstName, string lastName,
-        string? phoneNumber, CancellationToken ct = default);
+        string? phoneNumber,
+        string? bankName,
+        string? bankAccountName,
+        string? bankIban,
+        CancellationToken ct = default);
 
     Task<Result<Success>> ChangePasswordAsync(
         Guid userId,
@@ -47,6 +51,9 @@ public sealed record UserProfileResult(
     string FirstName,
     string LastName,
     string? PhoneNumber,
+    string? BankName,
+    string? BankAccountName,
+    string? BankIban,
     string Role,
     DateTimeOffset CreatedAtUtc,
     DateTimeOffset? UpdatedAtUtc);

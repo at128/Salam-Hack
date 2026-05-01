@@ -59,7 +59,7 @@ public class Payment : AuditableEntity
             NormalizeOptional(notes));
     }
 
-    internal Result<Success> Update(
+    public Result<Success> Update(
         decimal amount,
         PaymentMethod method,
         DateTimeOffset paymentDate,

@@ -19,6 +19,7 @@ public sealed class GetProfileQueryHandler(IIdentityService identityService)
 
         return new ProfileResponse(
             user.Id, user.Email, user.FirstName, user.LastName,
-            user.PhoneNumber, user.Role, user.CreatedAtUtc, user.UpdatedAtUtc);
+            user.PhoneNumber, user.BankName, user.BankAccountName, user.BankIban,
+            user.Role, user.CreatedAtUtc, user.UpdatedAtUtc);
     }
 }
