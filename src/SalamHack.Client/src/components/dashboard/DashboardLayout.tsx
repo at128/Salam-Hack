@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { Bell, ChevronDown, FileText, FolderKanban, KeyRound, Loader2, LogOut, Plus, ReceiptText, Trash2, UserRound } from "lucide-react";
-import { Link, Outlet, useNavigate } from "react-router-dom";
+import { Bell, ChevronDown, KeyRound, Loader2, LogOut, Plus, Trash2, UserRound } from "lucide-react";
+import { Outlet, useNavigate } from "react-router-dom";
 import Sidebar from "@/components/dashboard/Sidebar";
 import { Button } from "@/components/ui/button";
 import {
@@ -296,31 +296,7 @@ export default function DashboardLayout({
               <p className="text-xs text-muted-foreground">{subtitle}</p>
             </div>
 
-            <div className="flex justify-center">
-              <div className="hidden items-center gap-2 md:flex">
-                <Link
-                  to="/dashboard/projects"
-                  className="inline-flex h-9 items-center gap-2 rounded-xl border border-border/70 bg-card px-3 text-sm font-semibold text-navy transition-colors hover:bg-muted/40"
-                >
-                  <FolderKanban className="h-4 w-4" />
-                  مشروع
-                </Link>
-                <Link
-                  to="/dashboard/invoices"
-                  className="inline-flex h-9 items-center gap-2 rounded-xl border border-border/70 bg-card px-3 text-sm font-semibold text-navy transition-colors hover:bg-muted/40"
-                >
-                  <FileText className="h-4 w-4" />
-                  فاتورة
-                </Link>
-                <Link
-                  to="/dashboard/profit"
-                  className="inline-flex h-9 items-center gap-2 rounded-xl border border-border/70 bg-card px-3 text-sm font-semibold text-navy transition-colors hover:bg-muted/40"
-                >
-                  <ReceiptText className="h-4 w-4" />
-                  مصروف
-                </Link>
-              </div>
-            </div>
+            <div />
 
             <div className="flex justify-end gap-2">
               <DropdownMenu dir="rtl">

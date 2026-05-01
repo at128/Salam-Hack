@@ -9,13 +9,17 @@ import Dashboard from "./pages/Dashboard.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import Login from "./pages/Login.tsx";
 import Register from "./pages/Register.tsx";
+import RegisterVerify from "./pages/RegisterVerify.tsx";
 import ForgotPassword from "./pages/ForgotPassword.tsx";
 import ResetPassword from "./pages/ResetPassword.tsx";
+import Terms from "./pages/Terms.tsx";
+import Privacy from "./pages/Privacy.tsx";
 import DashboardLayout from "./components/dashboard/DashboardLayout.tsx";
 import InvoicesPage from "./pages/dashboard/Invoices.tsx";
 
 import InvoiceDetailsPage from "./pages/dashboard/InvoiceDetails.tsx";
 import PaymentsPage from "./pages/dashboard/Payments.tsx";
+import ExpensesPage from "./pages/dashboard/Expenses.tsx";
 import ProfitPage from "./pages/dashboard/Profit.tsx";
 import BreakdownPage from "./pages/dashboard/Breakdown.tsx";
 import CashflowPage from "./pages/dashboard/Cashflow.tsx";
@@ -83,6 +87,7 @@ const App = () => (
               <Route path="invoices" element={<InvoicesPage />} />
               <Route path="invoices/:invoiceId" element={<InvoiceDetailsPage />} />
               <Route path="payments" element={<PaymentsPage />} />
+              <Route path="expenses" element={<ExpensesPage />} />
               <Route path="profit" element={<ProfitPage />} />
               <Route path="breakdown" element={<BreakdownPage />} />
               <Route path="cashflow" element={<CashflowPage />} />
@@ -101,8 +106,11 @@ const App = () => (
           </Route>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/register/verify" element={<RegisterVerify />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/terms" element={<Terms />} />
+          <Route path="/privacy" element={<Privacy />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
