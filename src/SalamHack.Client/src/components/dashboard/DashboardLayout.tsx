@@ -24,6 +24,11 @@ import {
   BriefcaseBusiness,
 } from "lucide-react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import {
+  HubConnectionBuilder,
+  LogLevel,
+  type HubConnection,
+} from "@microsoft/signalr";
 import Sidebar from "@/components/dashboard/Sidebar";
 import { Button } from "@/components/ui/button";
 import {
@@ -215,34 +220,52 @@ export default function DashboardLayout({
   }, []);
 
   useEffect(() => {
-    let connection: any = null;
+    let connection: HubConnection | null = null;
     let active = true;
 
     async function setupSignalR() {
       const token = await getValidAccessToken();
       if (!token || !active) return;
 
-      const signalRModule = "@microsoft/signalr";
-      const SignalR = await import(/* @vite-ignore */ signalRModule).catch(() => null);
-      if (!SignalR) return;
-
-      connection = new SignalR.HubConnectionBuilder()
+      connection = new HubConnectionBuilder()
         .withUrl(`${API_BASE_URL}/hubs/notifications`, {
-          accessTokenFactory: () => token,
+          accessTokenFactory: async () => {
+            const freshToken = await getValidAccessToken();
+            return freshToken ?? "";
+          },
         })
-        .configureLogging(SignalR.LogLevel.Information)
+        .configureLogging(LogLevel.Information)
         .withAutomaticReconnect()
         .build();
 
-      connection.on("ReceiveNotification", (notification: any) => {
+      connection.on("ReceiveNotification", (notification: unknown) => {
         if (!active) return;
+
         setHasNewNotifications(true);
+
+        window.dispatchEvent(
+          new CustomEvent("notifications:received", {
+            detail: notification,
+          }),
+        );
+      });
+
+      connection.onreconnected(() => {
+        if (!active) return;
+        console.info("SignalR notifications reconnected.");
+      });
+
+      connection.onclose((error) => {
+        if (!active) return;
+        console.warn("SignalR notifications closed.", error);
       });
 
       try {
         await connection.start();
       } catch (err) {
-        console.warn("SignalR Connection failed: ", err);
+        if (active) {
+          console.warn("SignalR notifications connection failed:", err);
+        }
       }
     }
 
@@ -250,7 +273,9 @@ export default function DashboardLayout({
 
     return () => {
       active = false;
+
       if (connection) {
+        connection.off("ReceiveNotification");
         void connection.stop();
       }
     };
