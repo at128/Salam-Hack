@@ -4,7 +4,6 @@ import CashFlowSummary from "@/components/dashboard/CashFlowSummary";
 import CashFlowProjection from "@/components/dashboard/CashFlowProjection";
 import PendingInvoices from "@/components/dashboard/PendingInvoices";
 import RecurringExpenses from "@/components/dashboard/RecurringExpenses";
-import RevenueChart from "@/components/dashboard/RevenueChart";
 import { PageHeader } from "@/components/dashboard/DashboardLayout";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -133,11 +132,6 @@ export default function CashflowPage() {
       {/* Summary Cards */}
       <div className="mb-8">
         <CashFlowSummary asOfUtc={asOfUtc} openingBalance={openingBalance} />
-      </div>
-
-      {/* Chart */}
-      <div className="mb-8">
-        <RevenueChart data={[]} />
       </div>
 
       {/* Projections */}

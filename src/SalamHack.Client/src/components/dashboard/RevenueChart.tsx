@@ -3,11 +3,16 @@ export default function RevenueChart({
 }: {
   data: { monthName: string; revenue: number; expenses: number }[];
 }) {
-  const max = Math.max(...data.map(d => Math.max(d.revenue, d.expenses)), 100);
+  const safeData = data.map((item) => ({
+    ...item,
+    revenue: Number.isFinite(Number(item.revenue)) ? Number(item.revenue) : 0,
+    expenses: Number.isFinite(Number(item.expenses)) ? Number(item.expenses) : 0,
+  }));
+  const max = Math.max(...safeData.map(d => Math.max(d.revenue, d.expenses)), 100);
   const chartH = 180;
   const barW = 26;
   const gap = 48;
-  const totalW = Math.max(data.length * (barW * 2 + gap), 10);
+  const totalW = Math.max(safeData.length * (barW * 2 + gap), 10);
 
   return (
     <div className="bg-card rounded-2xl p-6 border border-border/70 shadow-card">
@@ -26,46 +31,52 @@ export default function RevenueChart({
         </div>
       </div>
 
-      <svg
-        width="100%"
-        viewBox={`0 0 ${totalW + 20} ${chartH + 40}`}
-        style={{ direction: "ltr" }}
-      >
-        {data.map((m, i) => {
-          const x = i * (barW * 2 + gap) + 10;
-          const rH = (m.revenue / max) * chartH;
-          const eH = (m.expenses / max) * chartH;
-          return (
-            <g key={m.monthName + i}>
-              <rect
-                x={x}
-                y={chartH - rH}
-                width={barW}
-                height={rH}
-                rx={6}
-                className="fill-teal"
-              />
-              <rect
-                x={x + barW + 4}
-                y={chartH - eH}
-                width={barW}
-                height={eH}
-                rx={6}
-                className="fill-navy/25"
-              />
-              <text
-                x={x + barW}
-                y={chartH + 22}
-                textAnchor="middle"
-                fontSize="11"
-                className="fill-muted-foreground"
-              >
-                {m.monthName}
-              </text>
-            </g>
-          );
-        })}
-      </svg>
+      {safeData.length === 0 ? (
+        <div className="flex h-[220px] items-center justify-center rounded-xl bg-muted/20 text-xs text-muted-foreground">
+          لا توجد بيانات كافية للرسم البياني
+        </div>
+      ) : (
+        <svg
+          width="100%"
+          viewBox={`0 0 ${totalW + 20} ${chartH + 40}`}
+          style={{ direction: "ltr" }}
+        >
+          {safeData.map((m, i) => {
+            const x = i * (barW * 2 + gap) + 10;
+            const rH = (m.revenue / max) * chartH;
+            const eH = (m.expenses / max) * chartH;
+            return (
+              <g key={m.monthName + i}>
+                <rect
+                  x={x}
+                  y={chartH - rH}
+                  width={barW}
+                  height={rH}
+                  rx={6}
+                  className="fill-teal"
+                />
+                <rect
+                  x={x + barW + 4}
+                  y={chartH - eH}
+                  width={barW}
+                  height={eH}
+                  rx={6}
+                  className="fill-navy/25"
+                />
+                <text
+                  x={x + barW}
+                  y={chartH + 22}
+                  textAnchor="middle"
+                  fontSize="11"
+                  className="fill-muted-foreground"
+                >
+                  {m.monthName}
+                </text>
+              </g>
+            );
+          })}
+        </svg>
+      )}
     </div>
   );
 }

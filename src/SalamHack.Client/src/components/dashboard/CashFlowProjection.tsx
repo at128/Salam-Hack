@@ -47,12 +47,46 @@ export default function CashFlowProjection({ asOfUtc, openingBalance = 0 }: Prop
     return null;
   }
 
-  const fromDate = new Date(projection.fromUtc);
   const toDate = new Date(projection.toUtc);
   const monthsAhead = Math.ceil((toDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24 * 30));
+  const expectedInflows = toAmount(projection.expectedInflows);
+  const expectedOutflows = toAmount(projection.expectedOutflows);
+  const expectedNetFlow = toAmount(projection.expectedNetFlow);
+  const forecastBalance = toAmount(projection.forecastBalance);
+  const projectionCards = [
+    {
+      label: "التدفقات الداخلة المتوقعة",
+      value: expectedInflows,
+      prefix: "+",
+      valueClass: "text-green-600",
+      cardClass: "bg-white/80 border-brand/10",
+    },
+    {
+      label: "التدفقات الخارجة المتوقعة",
+      value: expectedOutflows,
+      prefix: "-",
+      valueClass: "text-red-600",
+      cardClass: "bg-white/80 border-brand/10",
+    },
+    {
+      label: "صافي التدفق المتوقع",
+      value: Math.abs(expectedNetFlow),
+      prefix: expectedNetFlow >= 0 ? "+" : "-",
+      valueClass: expectedNetFlow >= 0 ? "text-green-600" : "text-red-600",
+      cardClass: expectedNetFlow >= 0 ? "bg-green-50 border-green-200" : "bg-red-50 border-red-200",
+    },
+    {
+      label: "الرصيد المتوقع",
+      value: forecastBalance,
+      prefix: "",
+      valueClass: forecastBalance >= 0 ? "text-brand" : "text-red-600",
+      cardClass: "bg-brand/10 border-brand/20",
+      hint: `بعد ~${monthsAhead} شهر`,
+    },
+  ];
 
   return (
-    <div className="grid md:grid-cols-2 gap-6">
+    <div className="space-y-6">
       {/* Main Projection */}
       <div className="bg-gradient-to-br from-brand/10 to-brand/5 rounded-2xl p-6 border border-brand/20 shadow-card">
         <div className="flex items-center gap-2 mb-5">
@@ -60,46 +94,16 @@ export default function CashFlowProjection({ asOfUtc, openingBalance = 0 }: Prop
           <h3 className="font-bold text-navy">التوقع (الأشهر القادمة)</h3>
         </div>
 
-        <div className="space-y-4">
-          <div className="bg-white/80 rounded-lg p-4 border border-brand/10">
-            <p className="text-xs text-muted-foreground mb-1">التدفقات الداخلة المتوقعة</p>
-            <p className="text-2xl font-bold text-green-600">
-              +{Math.round(projection.expectedInflows).toLocaleString()} ر.س
-            </p>
-          </div>
-
-          <div className="bg-white/80 rounded-lg p-4 border border-brand/10">
-            <p className="text-xs text-muted-foreground mb-1">التدفقات الخارجة المتوقعة</p>
-            <p className="text-2xl font-bold text-red-600">
-              -{Math.round(projection.expectedOutflows).toLocaleString()} ر.س
-            </p>
-          </div>
-
-          <div className={`rounded-lg p-4 border ${
-            projection.expectedNetFlow >= 0
-              ? "bg-green-50 border-green-200"
-              : "bg-red-50 border-red-200"
-          }`}>
-            <p className="text-xs text-muted-foreground mb-1">صافي التدفق المتوقع</p>
-            <p className={`text-2xl font-bold ${
-              projection.expectedNetFlow >= 0 ? "text-green-600" : "text-red-600"
-            }`}>
-              {projection.expectedNetFlow >= 0 ? "+" : "-"}
-              {Math.round(Math.abs(projection.expectedNetFlow)).toLocaleString()} ر.س
-            </p>
-          </div>
-
-          <div className="bg-brand/10 rounded-lg p-4 border border-brand/20">
-            <p className="text-xs text-muted-foreground mb-1">الرصيد المتوقع</p>
-            <p className={`text-2xl font-bold ${
-              projection.forecastBalance >= 0 ? "text-brand" : "text-red-600"
-            }`}>
-              {Math.round(projection.forecastBalance).toLocaleString()} ر.س
-            </p>
-            <p className="text-xs text-muted-foreground mt-2">
-              بعد ~{monthsAhead} شهر
-            </p>
-          </div>
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {projectionCards.map((card) => (
+            <div key={card.label} className={`rounded-lg p-4 border ${card.cardClass}`}>
+              <p className="text-xs text-muted-foreground mb-1">{card.label}</p>
+              <p className={`text-2xl font-bold ${card.valueClass}`}>
+                {card.prefix}{formatAmount(card.value)} ر.س
+              </p>
+              {card.hint && <p className="text-xs text-muted-foreground mt-2">{card.hint}</p>}
+            </div>
+          ))}
         </div>
       </div>
 
@@ -115,32 +119,32 @@ export default function CashFlowProjection({ asOfUtc, openingBalance = 0 }: Prop
             <div className="bg-white/80 rounded-lg p-4 border border-yellow-100">
               <p className="text-xs text-muted-foreground mb-1">مدة التأخير</p>
               <p className="text-xl font-bold text-yellow-700">
-                {delayScenario.delayDays} أيام
+                {delayScenario.customerName ?? "عميل محدد"}
               </p>
             </div>
 
             <div className="bg-white/80 rounded-lg p-4 border border-yellow-100">
               <p className="text-xs text-muted-foreground mb-1">المبلغ المتأثر</p>
               <p className="text-xl font-bold text-red-600">
-                -{Math.round(delayScenario.affectedAmount).toLocaleString()} ر.س
+                -{formatAmount(delayScenario.delayedAmount ?? delayScenario.affectedAmount)} ر.س
               </p>
             </div>
 
             <div className={`rounded-lg p-4 border transition-colors ${
-              delayScenario.projectedBalanceWithDelay >= 0
+              delayBalance(delayScenario) >= 0
                 ? "bg-yellow-100 border-yellow-300"
                 : "bg-red-50 border-red-200"
             }`}>
               <p className="text-xs text-muted-foreground mb-1">الرصيد المتوقع مع التأخير</p>
               <p className={`text-xl font-bold ${
-                delayScenario.projectedBalanceWithDelay >= 0
+                delayBalance(delayScenario) >= 0
                   ? "text-yellow-700"
                   : "text-red-600"
               }`}>
-                {Math.round(delayScenario.projectedBalanceWithDelay).toLocaleString()} ر.س
+                {formatAmount(delayBalance(delayScenario))} ر.س
               </p>
               <p className="text-xs mt-2">
-                {delayScenario.projectedBalanceWithDelay < 0 ? (
+                {delayBalance(delayScenario) < 0 ? (
                   <span className="text-red-600">⚠️ قد تواجه عجز في الرصيد</span>
                 ) : (
                   <span className="text-yellow-700">⚠️ تأثير على التدفق النقدي</span>
@@ -152,4 +156,17 @@ export default function CashFlowProjection({ asOfUtc, openingBalance = 0 }: Prop
       )}
     </div>
   );
+}
+
+function toAmount(value: unknown) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function formatAmount(value: unknown) {
+  return Math.round(toAmount(value)).toLocaleString();
+}
+
+function delayBalance(delayScenario: any) {
+  return toAmount(delayScenario.forecastBalanceAfterDelay ?? delayScenario.projectedBalanceWithDelay);
 }

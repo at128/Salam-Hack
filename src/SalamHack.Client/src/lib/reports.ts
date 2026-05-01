@@ -30,21 +30,30 @@ export interface CashFlowForecastDto {
     };
     pendingInvoices: {
         invoiceId: string;
+        invoiceNumber: string;
+        customerId: string;
         customerName: string;
-        amount: number;
-        dueUtc: string;
-        daysPastDue: number;
+        remainingAmount: number;
+        dueDate: string;
+        isOverdue: boolean;
+        currency: string;
     }[];
     recurringExpenses: {
-        name: string;
+        expenseId: string;
+        description: string;
         amount: number;
-        interval: string;
-        nextOccurrenceUtc: string;
+        recurrenceInterval: string;
+        monthlyEquivalentAmount: number;
+        expenseDate: string;
+        recurrenceEndDate?: string | null;
+        currency: string;
     }[];
     clientDelayScenario: {
-        delayDays: number;
-        affectedAmount: number;
-        projectedBalanceWithDelay: number;
+        customerId: string;
+        customerName: string;
+        delayedAmount: number;
+        forecastBalanceAfterDelay: number;
+        wouldGoNegative: boolean;
     } | null;
 }
 

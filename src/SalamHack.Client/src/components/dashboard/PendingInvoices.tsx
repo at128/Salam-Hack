@@ -4,10 +4,14 @@ import { fetchCashFlowForecast } from "@/lib/reports";
 
 interface PendingInvoice {
   invoiceId: string;
+  invoiceNumber?: string | null;
   customerName: string;
-  amount: number;
-  dueUtc: string;
-  daysPastDue: number;
+  remainingAmount?: number | null;
+  amount?: number | null;
+  dueDate?: string | null;
+  dueUtc?: string | null;
+  isOverdue?: boolean | null;
+  daysPastDue?: number | null;
 }
 
 interface Props {
@@ -58,8 +62,8 @@ export default function PendingInvoices({ asOfUtc, openingBalance = 0 }: Props) 
     );
   }
 
-  const totalPending = invoices.reduce((sum, inv) => sum + inv.amount, 0);
-  const overdueInvoices = invoices.filter((inv) => inv.daysPastDue > 0);
+  const totalPending = invoices.reduce((sum, inv) => sum + invoiceAmount(inv), 0);
+  const overdueInvoices = invoices.filter((inv) => isInvoiceOverdue(inv));
 
   return (
     <div className="bg-card rounded-2xl p-6 border border-border/70 shadow-card">
@@ -80,8 +84,9 @@ export default function PendingInvoices({ asOfUtc, openingBalance = 0 }: Props) 
 
       <div className="space-y-3">
         {invoices.map((invoice) => {
-          const dueDate = new Date(invoice.dueUtc);
-          const isOverdue = invoice.daysPastDue > 0;
+          const dueDate = new Date(invoice.dueDate ?? invoice.dueUtc ?? "");
+          const isOverdue = isInvoiceOverdue(invoice);
+          const daysPastDue = getDaysPastDue(invoice, dueDate);
           
           return (
             <div
@@ -96,13 +101,13 @@ export default function PendingInvoices({ asOfUtc, openingBalance = 0 }: Props) 
                 <div className="flex-1">
                   <p className="text-sm font-medium text-navy">{invoice.customerName}</p>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    فاتورة رقم: {invoice.invoiceId}
+                    فاتورة رقم: {invoice.invoiceNumber || invoice.invoiceId}
                   </p>
                 </div>
                 <span className={`font-bold text-sm ${
                   isOverdue ? "text-red-600" : "text-navy"
                 }`}>
-                  {Math.round(invoice.amount).toLocaleString()} ر.س
+                  {formatAmount(invoiceAmount(invoice))} ر.س
                 </span>
               </div>
               <div className="flex items-center gap-2 text-xs">
@@ -111,8 +116,8 @@ export default function PendingInvoices({ asOfUtc, openingBalance = 0 }: Props) 
                 }`} />
                 <span className={isOverdue ? "text-red-600 font-medium" : "text-muted-foreground"}>
                   {isOverdue
-                    ? `متأخرة ${invoice.daysPastDue} أيام`
-                    : `استحقاق: ${dueDate.toLocaleDateString("ar-SA")}`}
+                    ? `متأخرة ${daysPastDue} أيام`
+                    : `استحقاق: ${formatDate(dueDate)}`}
                 </span>
               </div>
             </div>
@@ -121,4 +126,33 @@ export default function PendingInvoices({ asOfUtc, openingBalance = 0 }: Props) 
       </div>
     </div>
   );
+}
+
+function invoiceAmount(invoice: PendingInvoice) {
+  const parsed = Number(invoice.remainingAmount ?? invoice.amount);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function isInvoiceOverdue(invoice: PendingInvoice) {
+  if (typeof invoice.isOverdue === "boolean") return invoice.isOverdue;
+  return getDaysPastDue(invoice, new Date(invoice.dueDate ?? invoice.dueUtc ?? "")) > 0;
+}
+
+function getDaysPastDue(invoice: PendingInvoice, dueDate: Date) {
+  const explicitDays = Number(invoice.daysPastDue);
+  if (Number.isFinite(explicitDays) && explicitDays > 0) return explicitDays;
+
+  const dueTime = dueDate.getTime();
+  if (!Number.isFinite(dueTime)) return 0;
+
+  const diff = Date.now() - dueTime;
+  return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+}
+
+function formatAmount(value: number) {
+  return Math.round(value).toLocaleString();
+}
+
+function formatDate(date: Date) {
+  return Number.isFinite(date.getTime()) ? date.toLocaleDateString("ar-SA") : "غير محدد";
 }

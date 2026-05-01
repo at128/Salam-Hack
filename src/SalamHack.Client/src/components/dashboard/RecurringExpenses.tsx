@@ -4,10 +4,14 @@ import { fetchCashFlowForecast } from "@/lib/reports";
 
 interface RecurringExpense {
   name?: string | null;
+  description?: string | null;
   amount?: number | null;
+  monthlyEquivalentAmount?: number | null;
   interval?: string | null;
   recurrenceInterval?: string | null;
   nextOccurrenceUtc?: string | null;
+  expenseDate?: string | null;
+  recurrenceEndDate?: string | null;
 }
 
 interface Props {
@@ -27,7 +31,7 @@ export default function RecurringExpenses({ asOfUtc, openingBalance = 0 }: Props
     fetchCashFlowForecast(asOfUtc, openingBalance)
       .then((data) => {
         const sorted = (data.recurringExpenses || []).sort((a, b) => {
-          return getTime(a.nextOccurrenceUtc) - getTime(b.nextOccurrenceUtc);
+          return getTime(nextOccurrence(a)) - getTime(nextOccurrence(b));
         });
         setExpenses(sorted);
       })
@@ -62,8 +66,7 @@ export default function RecurringExpenses({ asOfUtc, openingBalance = 0 }: Props
   }
 
   const totalMonthly = expenses
-    .filter((expense) => expenseInterval(expense).toLowerCase().includes("monthly"))
-    .reduce((sum, expense) => sum + (expense.amount ?? 0), 0);
+    .reduce((sum, expense) => sum + toAmount(expense.monthlyEquivalentAmount ?? expense.amount), 0);
 
   const intervalLabels: Record<string, string> = {
     "Monthly": "شهري",
@@ -84,7 +87,7 @@ export default function RecurringExpenses({ asOfUtc, openingBalance = 0 }: Props
       <div className="space-y-3">
         {expenses.map((expense, idx) => {
           const interval = expenseInterval(expense);
-          const nextDate = new Date(expense.nextOccurrenceUtc ?? "");
+          const nextDate = new Date(nextOccurrence(expense) ?? "");
           const today = new Date();
           const isValidDate = Number.isFinite(nextDate.getTime());
           const isUpcoming = isValidDate && nextDate > today;
@@ -97,12 +100,12 @@ export default function RecurringExpenses({ asOfUtc, openingBalance = 0 }: Props
             >
               <div className="flex items-start justify-between mb-2">
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-navy">{expense.name || "مصروف متكرر"}</p>
+                  <p className="text-sm font-medium text-navy">{expense.name || expense.description || "مصروف متكرر"}</p>
                   <p className="text-xs text-muted-foreground mt-0.5">
                     {intervalLabels[interval] || interval || "غير محدد"}
                   </p>
                 </div>
-                <span className="font-bold text-sm text-red-600">-{Math.round(expense.amount ?? 0).toLocaleString()} ر.س</span>
+                <span className="font-bold text-sm text-red-600">-{Math.round(toAmount(expense.amount)).toLocaleString()} ر.س</span>
               </div>
               <div className="flex items-center gap-2 text-xs">
                 <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
@@ -129,4 +132,13 @@ function expenseInterval(expense: RecurringExpense) {
 function getTime(value?: string | null) {
   const time = new Date(value ?? "").getTime();
   return Number.isFinite(time) ? time : Number.MAX_SAFE_INTEGER;
+}
+
+function nextOccurrence(expense: RecurringExpense) {
+  return expense.nextOccurrenceUtc ?? expense.expenseDate ?? expense.recurrenceEndDate ?? null;
+}
+
+function toAmount(value: unknown) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
 }

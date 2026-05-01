@@ -1,7 +1,6 @@
 using SalamHack.Application.Common.Interfaces;
 using SalamHack.Application.Features.Reports.Models;
 using SalamHack.Domain.Common.Results;
-using SalamHack.Domain.Projects;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -19,15 +18,34 @@ public sealed class GetProfitabilityReportQueryHandler(
         var toUtc = query.ToUtc ?? defaultTo;
         var fromUtc = query.FromUtc ?? new DateTimeOffset(toUtc.Year, toUtc.Month, 1, 0, 0, 0, TimeSpan.Zero).AddMonths(-5);
 
+        var paymentRows = await context.Payments
+            .AsNoTracking()
+            .Where(p => p.Invoice.UserId == query.UserId &&
+                        p.PaymentDate >= fromUtc &&
+                        p.PaymentDate <= toUtc)
+            .Select(p => new PaymentRevenueRow(
+                p.Invoice.ProjectId,
+                p.PaymentDate,
+                p.Amount))
+            .ToListAsync(ct);
+
+        var paidProjectIds = paymentRows
+            .Select(p => p.ProjectId)
+            .Distinct()
+            .ToList();
+
+        var revenueByProject = paymentRows
+            .GroupBy(p => p.ProjectId)
+            .ToDictionary(g => g.Key, g => g.Sum(p => p.Amount));
+
         var projects = await context.Projects
             .AsNoTracking()
             .Include(p => p.Customer)
             .Include(p => p.Service)
             .Include(p => p.Expenses)
             .Where(p => p.UserId == query.UserId &&
-                        (p.Status == ProjectStatus.Completed || p.Status == ProjectStatus.InProgress) &&
-                        p.EndDate >= fromUtc &&
-                        p.EndDate <= toUtc)
+                        ((p.EndDate >= fromUtc && p.EndDate <= toUtc) ||
+                         paidProjectIds.Contains(p.Id)))
             .ToListAsync(ct);
 
         var projectRows = projects
@@ -44,7 +62,7 @@ public sealed class GetProfitabilityReportQueryHandler(
                     p.ServiceId,
                     p.Service.ServiceName,
                     p.EndDate,
-                    p.SuggestedPrice,
+                    revenueByProject.GetValueOrDefault(p.Id),
                     cost);
             })
             .ToList();
@@ -78,7 +96,7 @@ public sealed class GetProfitabilityReportQueryHandler(
         return new ProfitabilityReportDto(
             new ReportPeriodDto(fromUtc, toUtc),
             summary,
-            BuildMonthlyTrend(fromUtc, toUtc, projectRows),
+            BuildMonthlyTrend(fromUtc, toUtc, projectRows, paymentRows),
             byService,
             byCustomer,
             byProject,
@@ -90,7 +108,8 @@ public sealed class GetProfitabilityReportQueryHandler(
     private static IReadOnlyCollection<ProfitabilityMonthlyPointDto> BuildMonthlyTrend(
         DateTimeOffset fromUtc,
         DateTimeOffset toUtc,
-        IReadOnlyCollection<ProjectProfitRow> rows)
+        IReadOnlyCollection<ProjectProfitRow> rows,
+        IReadOnlyCollection<PaymentRevenueRow> payments)
     {
         var start = new DateTimeOffset(fromUtc.Year, fromUtc.Month, 1, 0, 0, 0, TimeSpan.Zero);
         var end = new DateTimeOffset(toUtc.Year, toUtc.Month, 1, 0, 0, 0, TimeSpan.Zero);
@@ -98,9 +117,9 @@ public sealed class GetProfitabilityReportQueryHandler(
 
         for (var month = start; month <= end; month = month.AddMonths(1))
         {
-            var revenue = rows
-                .Where(r => r.RecognizedAt.Year == month.Year && r.RecognizedAt.Month == month.Month)
-                .Sum(r => r.Revenue);
+            var revenue = payments
+                .Where(p => p.PaidAt.Year == month.Year && p.PaidAt.Month == month.Month)
+                .Sum(p => p.Amount);
             var expenses = rows
                 .Where(r => r.RecognizedAt.Year == month.Year && r.RecognizedAt.Month == month.Month)
                 .Sum(r => r.Cost);
@@ -139,7 +158,7 @@ public sealed class GetProfitabilityReportQueryHandler(
     private static string BuildInsight(IReadOnlyCollection<ProfitabilityBreakdownItemDto> byService)
     {
         if (byService.Count == 0)
-            return "No completed project profitability data exists for the selected period.";
+            return "No project profitability data exists for the selected period.";
 
         var best = byService.OrderByDescending(s => s.MarginPercent).First();
         var weakest = byService.OrderBy(s => s.MarginPercent).First();
@@ -163,4 +182,9 @@ public sealed class GetProfitabilityReportQueryHandler(
         DateTimeOffset RecognizedAt,
         decimal Revenue,
         decimal Cost);
+
+    private sealed record PaymentRevenueRow(
+        Guid ProjectId,
+        DateTimeOffset PaidAt,
+        decimal Amount);
 }
