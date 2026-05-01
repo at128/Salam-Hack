@@ -29,8 +29,9 @@ public sealed class EmailVerificationService(
         string email,
         CancellationToken ct = default)
     {
-        if (!IsConfigured())
-            return ApplicationErrors.Auth.EmailVerificationNotConfigured;
+        var configurationError = GetConfigurationError();
+        if (configurationError is not null)
+            return configurationError.Value;
 
         var normalizedEmail = NormalizeEmail(email);
         var otp = GenerateOtp(_settings.OtpLength);
@@ -49,11 +50,11 @@ public sealed class EmailVerificationService(
                 BuildVerificationEmailBody(otp),
                 ct);
         }
-        catch (Exception ex) when (ex is SmtpException or InvalidOperationException)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             cache.Remove(GetCacheKey(RegistrationCachePrefix, normalizedEmail));
             logger.LogError(ex, "Failed to send registration OTP to {Email}.", normalizedEmail);
-            return ApplicationErrors.Auth.EmailVerificationSendFailed;
+            return ApplicationErrors.Auth.EmailVerificationSendFailedDetails(BuildSendFailureDetails(ex));
         }
 
         return new EmailVerificationChallengeResult(normalizedEmail, _settings.ExpiryMinutes);
@@ -71,8 +72,9 @@ public sealed class EmailVerificationService(
         string email,
         CancellationToken ct = default)
     {
-        if (!IsConfigured())
-            return ApplicationErrors.Auth.EmailVerificationNotConfigured;
+        var configurationError = GetConfigurationError();
+        if (configurationError is not null)
+            return configurationError.Value;
 
         var normalizedEmail = NormalizeEmail(email);
         var otp = GenerateOtp(_settings.OtpLength);
@@ -91,11 +93,11 @@ public sealed class EmailVerificationService(
                 BuildPasswordResetEmailBody(otp),
                 ct);
         }
-        catch (Exception ex) when (ex is SmtpException or InvalidOperationException)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             cache.Remove(GetCacheKey(PasswordResetCachePrefix, normalizedEmail));
             logger.LogError(ex, "Failed to send password reset OTP to {Email}.", normalizedEmail);
-            return ApplicationErrors.Auth.EmailVerificationSendFailed;
+            return ApplicationErrors.Auth.EmailVerificationSendFailedDetails(BuildSendFailureDetails(ex));
         }
 
         return new EmailVerificationChallengeResult(normalizedEmail, _settings.ExpiryMinutes);
@@ -165,12 +167,44 @@ public sealed class EmailVerificationService(
         await client.SendMailAsync(message, ct);
     }
 
-    private bool IsConfigured()
-        => _settings.Enabled
-           && !string.IsNullOrWhiteSpace(_mailSettings.Host)
-           && !string.IsNullOrWhiteSpace(_mailSettings.User)
-           && !string.IsNullOrWhiteSpace(_mailSettings.Password)
-           && !string.IsNullOrWhiteSpace(_mailSettings.FromEmail);
+    private Error? GetConfigurationError()
+    {
+        var missing = new List<string>();
+
+        if (!_settings.Enabled)
+            missing.Add($"{EmailVerificationSettings.SectionName}:Enabled is false");
+
+        if (string.IsNullOrWhiteSpace(_mailSettings.Host))
+            missing.Add($"{MailSettings.SectionName}:Host");
+
+        if (_mailSettings.Port is <= 0 or > 65535)
+            missing.Add($"{MailSettings.SectionName}:Port");
+
+        if (string.IsNullOrWhiteSpace(_mailSettings.User))
+            missing.Add($"{MailSettings.SectionName}:User");
+
+        if (string.IsNullOrWhiteSpace(_mailSettings.Password))
+            missing.Add($"{MailSettings.SectionName}:Password");
+
+        if (string.IsNullOrWhiteSpace(_mailSettings.FromEmail))
+            missing.Add($"{MailSettings.SectionName}:FromEmail");
+
+        if (missing.Count == 0)
+            return null;
+
+        return ApplicationErrors.Auth.EmailVerificationNotConfiguredDetails(
+            $"missing/invalid {string.Join(", ", missing)}.");
+    }
+
+    private string BuildSendFailureDetails(Exception exception)
+    {
+        var smtpStatus = exception is SmtpException smtpException
+            ? $" SMTP status: {smtpException.StatusCode}."
+            : string.Empty;
+
+        return
+            $"SMTP host={_mailSettings.Host}, port={_mailSettings.Port}, ssl={_mailSettings.EnableSsl}, user={_mailSettings.User}, from={_mailSettings.FromEmail}.{smtpStatus} Error: {exception.Message}";
+    }
 
     private static string BuildVerificationEmailBody(string otp)
         => $"""

@@ -81,8 +81,14 @@ public static class ApplicationErrors
         public static readonly Error EmailVerificationNotConfigured =
             Error.Failure("Auth.EmailVerificationNotConfigured", "Email verification is not configured.");
 
+        public static Error EmailVerificationNotConfiguredDetails(string details) =>
+            Error.Failure("Auth.EmailVerificationNotConfigured", $"Email verification is not configured: {details}");
+
         public static readonly Error EmailVerificationSendFailed =
             Error.Failure("Auth.EmailVerificationSendFailed", "Unable to send the email verification code.");
+
+        public static Error EmailVerificationSendFailedDetails(string details) =>
+            Error.Failure("Auth.EmailVerificationSendFailed", $"Unable to send the email verification code: {details}");
 
         public static readonly Error InvalidEmailVerificationCode =
             Error.Validation("Auth.InvalidEmailVerificationCode", "Invalid or expired email verification code.");
