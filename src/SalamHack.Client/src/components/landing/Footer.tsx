@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ArrowUpLeft, Mail, Phone } from "lucide-react";
+import { ArrowUpLeft, Mail, MapPin, Phone } from "lucide-react";
 
 const productLinks = [
   { href: "#features", label: "المميزات" },
@@ -11,11 +11,13 @@ const productLinks = [
 const companyLinks = [
   { href: "#about", label: "من نحن" },
   { href: "#contact", label: "تواصل معنا" },
+  { href: "#resources", label: "الموارد" },
 ];
 
 const legalLinks = [
   { href: "#privacy", label: "سياسة الخصوصية" },
   { href: "#terms", label: "شروط الاستخدام" },
+  { href: "#refund", label: "سياسة الاسترداد" },
 ];
 
 export default function Footer() {
@@ -31,25 +33,31 @@ export default function Footer() {
               <div>
                 <div className="text-lg font-bold text-navy">مالي</div>
                 <div className="text-xs text-muted-foreground">
-                  إدارة مالية ذكية للمستقل العربي
+                  إدارة مالية ذكية للمستقلين وأصحاب الأعمال الصغيرة
                 </div>
               </div>
             </Link>
 
             <p className="mt-4 text-sm leading-7 text-muted-foreground">
-              من شركة بطيخة: منصة مالية ذكية تساعد المستقلين وأصحاب الأعمال
-              الصغيرة على تنظيم الفواتير والمصاريف، وفهم الربح الحقيقي،
-              واتخاذ قرارات أوضح للنمو.
+              من شركة بطيخة: منصة مالية ذكية تساعد المستقلين وأصحاب الأعمال الصغيرة على تنظيم الفواتير والمصاريف،
+              كشف الربح الحقيقي، وتحويل الأرقام اليومية إلى قرارات واضحة تساعدهم على التسعير بثقة والنمو بوعي.
             </p>
 
-            <div className="mt-5 flex items-center gap-2 text-sm text-muted-foreground">
-              <Mail className="h-4 w-4 text-teal" />
-              support@batikha.site
-            </div>
+            <div className="mt-5 space-y-3 text-sm text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <Mail className="h-4 w-4 text-teal" />
+                support@batikha.site
+              </div>
 
-            <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
-              <Phone className="h-4 w-4 text-teal" />
-              +972 59 595 0015
+              <div className="flex items-center gap-2">
+                <Phone className="h-4 w-4 text-teal" />
+                +972 59 595 0015
+              </div>
+
+              <div className="flex items-center gap-2">
+                <MapPin className="h-4 w-4 text-teal" />
+                غزة، فلسطين
+              </div>
             </div>
           </div>
 
@@ -103,6 +111,7 @@ export default function Footer() {
 
         <div className="flex flex-col gap-3 pt-5 text-xs text-muted-foreground md:flex-row md:items-center md:justify-between">
           <p>© ٢٠٢٦ مالي من شركة بطيخة. جميع الحقوق محفوظة.</p>
+
           <div className="flex items-center gap-4">
             <a href="#pricing" className="transition-colors hover:text-navy">
               الأسعار
