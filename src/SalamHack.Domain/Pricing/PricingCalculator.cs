@@ -44,7 +44,8 @@ public static class PricingCalculator
         var extraRevisionCount = Math.Max(0, safeRequestedRevisions - safeIncludedRevisions);
 
         var adjustedHours = Math.Round(estimatedHours * safeHoursFactor * complexityMultiplier, 1);
-        var laborCost = adjustedHours * ApplicationConstants.BusinessRules.CostRatePerHour * appliedCostFactor;
+        var costRate = safeHourlyRate * ApplicationConstants.BusinessRules.CostToRevenueRatio;
+        var laborCost = adjustedHours * costRate * appliedCostFactor;
         var realCost = Math.Round(laborCost + avgExtraExpenses + toolCost, 2);
 
         var costBasedPrice = Math.Round(realCost / (1 - ApplicationConstants.BusinessRules.TargetProfitMarginRate), 2);
