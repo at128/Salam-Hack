@@ -67,6 +67,12 @@ services:
       OpenTelemetry__ServiceName: "SalamHack.Api"
       OpenTelemetry__ServiceVersion: "1.0.0"
       OpenTelemetry__OtlpEndpoint: "http://otel-collector:4317"
+      MailSettings__Host: "${SMTP_HOST:-smtp.resend.com}"
+      MailSettings__Port: "${SMTP_PORT:-587}"
+      MailSettings__User: "${SMTP_USER:-resend}"
+      MailSettings__Password: "${SMTP_KEY:-dev_password}"
+      MailSettings__FromEmail: "${MAIL_FROM_ADDRESS:-noreply@batikha.site}"
+      MailSettings__FromName: "${MAIL_FROM_NAME:-Mali System}"
     ports:
       - "${API_HTTP_PORT:-5010}:8080"
     volumes:
