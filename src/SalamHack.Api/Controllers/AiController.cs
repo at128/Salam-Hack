@@ -1,3 +1,4 @@
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
@@ -18,8 +19,8 @@ public sealed class AiController(
     IConfiguration configuration,
     ILogger<AiController> logger) : ApiController
 {
-    private const string GeminiApiBaseUrl = "https://generativelanguage.googleapis.com/v1beta/models";
-    private const string DefaultGeminiModel = "gemini-1.5-flash";
+    private const string DefaultEndpoint = "https://api.openai.com/v1/chat/completions";
+    private const string DefaultModel = "gpt-4o-mini";
     private static readonly TimeSpan RequestTimeout = TimeSpan.FromSeconds(60);
 
     [HttpPost("profit")]
@@ -32,9 +33,9 @@ public sealed class AiController(
         if (!TryGetUserId(out var userId))
             return UnauthorizedResponse();
 
-        var apiKey = configuration["Gemini:ApiKey"];
+        var apiKey = configuration["AI:ProjectAnalysis:ApiKey"];
         if (string.IsNullOrWhiteSpace(apiKey))
-            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Gemini API key is not configured." });
+            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "AI API key is not configured." });
 
         var dashboardResult = await sender.Send(new GetDashboardSummaryQuery(userId, null, 8), ct);
         if (dashboardResult.IsError)
@@ -49,42 +50,50 @@ public sealed class AiController(
             return Problem(projectAnalysisResult.Errors);
 
         var prompt = BuildPrompt(dashboardResult.Value, paymentsResult.Value, projectAnalysisResult.Value);
-        var model = configuration["Gemini:Model"] ?? DefaultGeminiModel;
-        var geminiResult = await RequestGeminiAsync(prompt, apiKey, model, forceJson: true, ct);
-        if (!geminiResult.Success)
+        var endpoint = configuration["AI:ProjectAnalysis:Endpoint"] ?? DefaultEndpoint;
+        var model = configuration["AI:ProjectAnalysis:Model"] ?? DefaultModel;
+        var aiResult = await RequestOpenAiAsync(prompt, apiKey, endpoint, model, forceJson: true, ct);
+        if (!aiResult.Success)
         {
             return StatusCode(StatusCodes.Status502BadGateway, new
             {
-                message = geminiResult.Message,
-                upstreamStatusCode = geminiResult.StatusCode,
-                upstreamError = geminiResult.UpstreamError,
+                message = aiResult.Message,
+                upstreamStatusCode = aiResult.StatusCode,
+                upstreamError = aiResult.UpstreamError,
                 model
             });
         }
 
-        return OkResponse(new ProfitAiAnalysisResponse(geminiResult.Content!, DateTimeOffset.UtcNow));
+        return OkResponse(new ProfitAiAnalysisResponse(aiResult.Content!, DateTimeOffset.UtcNow));
     }
 
-    private async Task<GeminiAnalysisResult> RequestGeminiAsync(string prompt, string apiKey, string model, bool forceJson, CancellationToken ct)
+    private async Task<AiAnalysisResult> RequestOpenAiAsync(string prompt, string apiKey, string endpoint, string model, bool forceJson, CancellationToken ct)
     {
-        var requestUrl = $"{GeminiApiBaseUrl}/{model}:generateContent?key={Uri.EscapeDataString(apiKey)}";
-        using var httpRequest = new HttpRequestMessage(HttpMethod.Post, requestUrl);
-        httpRequest.Content = JsonContent.Create(new
-        {
-            contents = new[]
+        using var httpRequest = new HttpRequestMessage(HttpMethod.Post, endpoint);
+        httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
+
+        object payload = forceJson
+            ? new
             {
-                new
-                {
-                    role = "user",
-                    parts = new[] { new { text = prompt } }
-                }
-            },
-            generationConfig = new
-            {
+                model,
                 temperature = 0.2,
-                responseMimeType = forceJson ? "application/json" : null
+                response_format = new { type = "json_object" },
+                messages = new[]
+                {
+                    new { role = "user", content = prompt }
+                }
             }
-        });
+            : new
+            {
+                model,
+                temperature = 0.2,
+                messages = new[]
+                {
+                    new { role = "user", content = prompt }
+                }
+            };
+
+        httpRequest.Content = JsonContent.Create(payload);
 
         HttpResponseMessage response;
         string body;
@@ -98,13 +107,13 @@ public sealed class AiController(
         }
         catch (HttpRequestException ex)
         {
-            logger.LogError(ex, "Gemini request failed before receiving a response.");
-            return GeminiAnalysisResult.Failure("Could not connect to Gemini API.", upstreamError: ex.Message);
+            logger.LogError(ex, "OpenAI request failed before receiving a response.");
+            return AiAnalysisResult.Failure("Could not connect to AI API.", upstreamError: ex.Message);
         }
         catch (TaskCanceledException ex) when (!ct.IsCancellationRequested)
         {
-            logger.LogError(ex, "Gemini request timed out.");
-            return GeminiAnalysisResult.Failure("Gemini API request timed out.", statusCode: StatusCodes.Status504GatewayTimeout, upstreamError: ex.Message);
+            logger.LogError(ex, "OpenAI request timed out.");
+            return AiAnalysisResult.Failure("AI API request timed out.", statusCode: StatusCodes.Status504GatewayTimeout, upstreamError: ex.Message);
         }
 
         using (response)
@@ -112,14 +121,14 @@ public sealed class AiController(
             if (!response.IsSuccessStatusCode)
             {
                 logger.LogWarning(
-                    "Gemini returned non-success status {StatusCode}: {Body}",
+                    "OpenAI returned non-success status {StatusCode}: {Body}",
                     (int)response.StatusCode,
                     body);
 
-                return GeminiAnalysisResult.Failure(
-                    "Gemini API request failed.",
+                return AiAnalysisResult.Failure(
+                    "AI API request failed.",
                     (int)response.StatusCode,
-                    ExtractGeminiError(body) ?? TrimForGateway(body));
+                    ExtractOpenAiError(body) ?? TrimForGateway(body));
             }
         }
 
@@ -127,24 +136,24 @@ public sealed class AiController(
         {
             using var document = JsonDocument.Parse(body);
             if (TryGetContent(document.RootElement, out var content))
-                return GeminiAnalysisResult.Ok(content);
+                return AiAnalysisResult.Ok(content);
 
             var finishReason = TryGetFinishReason(document.RootElement);
-            var upstreamError = ExtractGeminiError(document.RootElement)
+            var upstreamError = ExtractOpenAiError(document.RootElement)
                 ?? (finishReason is null ? null : $"finish_reason: {finishReason}")
                 ?? TrimForGateway(body);
 
-            logger.LogWarning("Gemini returned a successful response without message content: {Body}", body);
-            return GeminiAnalysisResult.Failure(
-                "Gemini returned a successful response, but no analysis text was found.",
+            logger.LogWarning("OpenAI returned a successful response without message content: {Body}", body);
+            return AiAnalysisResult.Failure(
+                "AI returned a successful response, but no analysis text was found.",
                 (int)response.StatusCode,
                 upstreamError);
         }
         catch (JsonException ex)
         {
-            logger.LogError(ex, "Gemini returned invalid JSON: {Body}", body);
-            return GeminiAnalysisResult.Failure(
-                "Gemini API returned an invalid JSON response.",
+            logger.LogError(ex, "OpenAI returned invalid JSON: {Body}", body);
+            return AiAnalysisResult.Failure(
+                "AI API returned an invalid JSON response.",
                 (int)response.StatusCode,
                 TrimForGateway(body));
         }
@@ -193,46 +202,28 @@ public sealed class AiController(
     {
         content = string.Empty;
 
-        if (!root.TryGetProperty("candidates", out var candidates) ||
-            candidates.ValueKind != JsonValueKind.Array ||
-            candidates.GetArrayLength() == 0)
+        if (!root.TryGetProperty("choices", out var choices) ||
+            choices.ValueKind != JsonValueKind.Array ||
+            choices.GetArrayLength() == 0)
             return false;
 
-        var firstCandidate = candidates[0];
-        if (!firstCandidate.TryGetProperty("content", out var contentElement))
+        var firstChoice = choices[0];
+        if (!firstChoice.TryGetProperty("message", out var message) ||
+            message.ValueKind != JsonValueKind.Object ||
+            !message.TryGetProperty("content", out var contentElement) ||
+            contentElement.ValueKind != JsonValueKind.String)
             return false;
 
-        content = ReadContent(contentElement);
+        content = contentElement.GetString() ?? string.Empty;
         return !string.IsNullOrWhiteSpace(content);
     }
 
-    private static string ReadContent(JsonElement contentElement)
-    {
-        if (contentElement.ValueKind != JsonValueKind.Object ||
-            !contentElement.TryGetProperty("parts", out var parts) ||
-            parts.ValueKind != JsonValueKind.Array)
-            return string.Empty;
-
-        var builder = new StringBuilder();
-        foreach (var item in parts.EnumerateArray())
-        {
-            if (item.ValueKind == JsonValueKind.Object &&
-                item.TryGetProperty("text", out var textElement) &&
-                textElement.ValueKind == JsonValueKind.String)
-            {
-                builder.Append(textElement.GetString());
-            }
-        }
-
-        return builder.ToString();
-    }
-
-    private static string? ExtractGeminiError(string body)
+    private static string? ExtractOpenAiError(string body)
     {
         try
         {
             using var document = JsonDocument.Parse(body);
-            return ExtractGeminiError(document.RootElement);
+            return ExtractOpenAiError(document.RootElement);
         }
         catch (JsonException)
         {
@@ -240,7 +231,7 @@ public sealed class AiController(
         }
     }
 
-    private static string? ExtractGeminiError(JsonElement root)
+    private static string? ExtractOpenAiError(JsonElement root)
     {
         if (!root.TryGetProperty("error", out var error))
             return null;
@@ -262,13 +253,13 @@ public sealed class AiController(
 
     private static string? TryGetFinishReason(JsonElement root)
     {
-        if (!root.TryGetProperty("candidates", out var candidates) ||
-            candidates.ValueKind != JsonValueKind.Array ||
-            candidates.GetArrayLength() == 0)
+        if (!root.TryGetProperty("choices", out var choices) ||
+            choices.ValueKind != JsonValueKind.Array ||
+            choices.GetArrayLength() == 0)
             return null;
 
-        var firstCandidate = candidates[0];
-        return firstCandidate.TryGetProperty("finishReason", out var finishReason) && finishReason.ValueKind == JsonValueKind.String
+        var firstChoice = choices[0];
+        return firstChoice.TryGetProperty("finish_reason", out var finishReason) && finishReason.ValueKind == JsonValueKind.String
             ? finishReason.GetString()
             : null;
     }
@@ -285,16 +276,16 @@ public sealed class AiController(
 
 public sealed record ProfitAiAnalysisResponse(string Content, DateTimeOffset GeneratedAt);
 
-sealed record GeminiAnalysisResult(
+sealed record AiAnalysisResult(
     bool Success,
     string? Content,
     string Message,
     int? StatusCode = null,
     string? UpstreamError = null)
 {
-    public static GeminiAnalysisResult Ok(string content) =>
-        new(true, content, "Gemini analysis completed.");
+    public static AiAnalysisResult Ok(string content) =>
+        new(true, content, "AI analysis completed.");
 
-    public static GeminiAnalysisResult Failure(string message, int? statusCode = null, string? upstreamError = null) =>
+    public static AiAnalysisResult Failure(string message, int? statusCode = null, string? upstreamError = null) =>
         new(false, null, message, statusCode, upstreamError);
 }

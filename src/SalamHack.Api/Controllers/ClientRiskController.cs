@@ -1,3 +1,4 @@
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
@@ -11,8 +12,8 @@ public sealed class ClientRiskController(
     IConfiguration configuration,
     ILogger<ClientRiskController> logger) : ApiController
 {
-    private const string GeminiApiBaseUrl = "https://generativelanguage.googleapis.com/v1beta/models";
-    private const string DefaultGeminiModel = "gemini-1.5-flash";
+    private const string DefaultEndpoint = "https://api.openai.com/v1/chat/completions";
+    private const string DefaultModel = "gpt-4o-mini";
     private static readonly TimeSpan RequestTimeout = TimeSpan.FromSeconds(60);
 
     [EnableRateLimiting("public-read")]
@@ -25,26 +26,21 @@ public sealed class ClientRiskController(
         if (string.IsNullOrWhiteSpace(request?.Prompt))
             return BadRequest(new { message = "Prompt is required." });
 
-        var apiKey = configuration["Gemini:ApiKey"];
+        var apiKey = configuration["AI:ProjectAnalysis:ApiKey"];
         if (string.IsNullOrWhiteSpace(apiKey))
-            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Gemini API key is not configured." });
+            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "AI API key is not configured." });
 
-        var model = configuration["Gemini:Model"] ?? DefaultGeminiModel;
-        var requestUrl = $"{GeminiApiBaseUrl}/{model}:generateContent?key={Uri.EscapeDataString(apiKey)}";
-        using var httpRequest = new HttpRequestMessage(HttpMethod.Post, requestUrl);
+        var endpoint = configuration["AI:ProjectAnalysis:Endpoint"] ?? DefaultEndpoint;
+        var model = configuration["AI:ProjectAnalysis:Model"] ?? DefaultModel;
+        using var httpRequest = new HttpRequestMessage(HttpMethod.Post, endpoint);
+        httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
         httpRequest.Content = JsonContent.Create(new
         {
-            contents = new[]
+            model,
+            temperature = 0.2,
+            messages = new[]
             {
-                new
-                {
-                    role = "user",
-                    parts = new[] { new { text = request.Prompt } }
-                }
-            },
-            generationConfig = new
-            {
-                temperature = 0.2
+                new { role = "user", content = request.Prompt }
             }
         });
 
@@ -60,13 +56,13 @@ public sealed class ClientRiskController(
         }
         catch (HttpRequestException ex)
         {
-            logger.LogError(ex, "Gemini request failed before receiving a response.");
-            return StatusCode(StatusCodes.Status502BadGateway, new { message = "Could not connect to Gemini API." });
+            logger.LogError(ex, "OpenAI request failed before receiving a response.");
+            return StatusCode(StatusCodes.Status502BadGateway, new { message = "Could not connect to AI API." });
         }
         catch (TaskCanceledException ex) when (!ct.IsCancellationRequested)
         {
-            logger.LogError(ex, "Gemini request timed out.");
-            return StatusCode(StatusCodes.Status504GatewayTimeout, new { message = "Gemini API request timed out." });
+            logger.LogError(ex, "OpenAI request timed out.");
+            return StatusCode(StatusCodes.Status504GatewayTimeout, new { message = "AI API request timed out." });
         }
 
         using (response)
@@ -74,15 +70,15 @@ public sealed class ClientRiskController(
             if (!response.IsSuccessStatusCode)
             {
                 logger.LogWarning(
-                    "Gemini returned non-success status {StatusCode}: {Body}",
+                    "OpenAI returned non-success status {StatusCode}: {Body}",
                     (int)response.StatusCode,
                     body);
 
                 return StatusCode(StatusCodes.Status502BadGateway, new
                 {
-                    message = "Gemini API request failed.",
+                    message = "AI API request failed.",
                     upstreamStatusCode = (int)response.StatusCode,
-                    upstreamError = ExtractGeminiError(body) ?? TrimForGateway(body),
+                    upstreamError = ExtractOpenAiError(body) ?? TrimForGateway(body),
                     model
                 });
             }
@@ -95,15 +91,15 @@ public sealed class ClientRiskController(
             if (!TryGetContent(document.RootElement, out content))
                 return StatusCode(StatusCodes.Status502BadGateway, new
                 {
-                    message = "Gemini did not return analysis text.",
+                    message = "AI did not return analysis text.",
                     upstreamError = TrimForGateway(body),
                     model
                 });
         }
         catch (JsonException ex)
         {
-            logger.LogError(ex, "Gemini returned invalid JSON: {Body}", body);
-            return StatusCode(StatusCodes.Status502BadGateway, new { message = "Gemini API returned an invalid response." });
+            logger.LogError(ex, "OpenAI returned invalid JSON: {Body}", body);
+            return StatusCode(StatusCodes.Status502BadGateway, new { message = "AI API returned an invalid response." });
         }
 
         return Ok(new ClientRiskAnalysisResponse(content));
@@ -113,34 +109,23 @@ public sealed class ClientRiskController(
     {
         content = string.Empty;
 
-        if (!root.TryGetProperty("candidates", out var candidates) ||
-            candidates.ValueKind != JsonValueKind.Array ||
-            candidates.GetArrayLength() == 0)
+        if (!root.TryGetProperty("choices", out var choices) ||
+            choices.ValueKind != JsonValueKind.Array ||
+            choices.GetArrayLength() == 0)
             return false;
 
-        var firstCandidate = candidates[0];
-        if (!firstCandidate.TryGetProperty("content", out var contentElement) ||
-            contentElement.ValueKind != JsonValueKind.Object ||
-            !contentElement.TryGetProperty("parts", out var parts) ||
-            parts.ValueKind != JsonValueKind.Array)
+        var firstChoice = choices[0];
+        if (!firstChoice.TryGetProperty("message", out var message) ||
+            message.ValueKind != JsonValueKind.Object ||
+            !message.TryGetProperty("content", out var contentElement) ||
+            contentElement.ValueKind != JsonValueKind.String)
             return false;
 
-        var builder = new StringBuilder();
-        foreach (var part in parts.EnumerateArray())
-        {
-            if (part.ValueKind == JsonValueKind.Object &&
-                part.TryGetProperty("text", out var textElement) &&
-                textElement.ValueKind == JsonValueKind.String)
-            {
-                builder.Append(textElement.GetString());
-            }
-        }
-
-        content = builder.ToString();
+        content = contentElement.GetString() ?? string.Empty;
         return !string.IsNullOrWhiteSpace(content);
     }
 
-    private static string? ExtractGeminiError(string body)
+    private static string? ExtractOpenAiError(string body)
     {
         try
         {
