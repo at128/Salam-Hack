@@ -12,9 +12,10 @@ public class RegisterCommandHandler(
     public async Task<Result<EmailVerificationChallengeResult>> Handle(
         RegisterCommand request, CancellationToken ct)
     {
-        if (!await identityService.IsEmailUniqueAsync(request.Email, ct))
+        var email = request.Email.Trim();
+        if (!await identityService.IsEmailUniqueAsync(email, ct))
             return ApplicationErrors.Auth.EmailAlreadyRegistered;
 
-        return await emailVerificationService.SendRegistrationOtpAsync(request.Email, ct);
+        return await emailVerificationService.SendRegistrationOtpAsync(email, ct);
     }
 }
