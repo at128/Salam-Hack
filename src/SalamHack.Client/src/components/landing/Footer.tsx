@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ArrowUpLeft, Mail } from "lucide-react";
+import { ArrowUpLeft, Mail, Phone } from "lucide-react";
 
 const productLinks = [
   { href: "#features", label: "المميزات" },
@@ -9,28 +9,18 @@ const productLinks = [
 ];
 
 const companyLinks = [
-  { href: "#", label: "من نحن" },
-  { href: "#", label: "المدونة" },
+  { href: "#about", label: "من نحن" },
   { href: "#contact", label: "تواصل معنا" },
 ];
 
 const legalLinks = [
-  { href: "#", label: "سياسة الخصوصية" },
-  { href: "#", label: "شروط الاستخدام" },
+  { href: "#privacy", label: "سياسة الخصوصية" },
+  { href: "#terms", label: "شروط الاستخدام" },
 ];
 
 export default function Footer() {
   return (
     <footer className="relative overflow-hidden bg-card text-navy border-t border-border">
-      <div
-        className="hidden"
-        aria-hidden="true"
-        style={{
-          background:
-            "radial-gradient(circle at 88% 18%, rgba(20, 184, 179, 0.18), transparent 22%), radial-gradient(circle at 12% 82%, rgba(14, 165, 160, 0.12), transparent 28%)",
-        }}
-      />
-
       <div className="container relative z-10 py-12 lg:py-14">
         <div className="grid gap-10 border-b border-border pb-8 md:grid-cols-2 lg:grid-cols-[1.2fr_repeat(3,minmax(0,1fr))] lg:gap-8">
           <div className="max-w-sm">
@@ -40,17 +30,26 @@ export default function Footer() {
               </div>
               <div>
                 <div className="text-lg font-bold text-navy">مالي</div>
-                <div className="text-xs text-muted-foreground">إدارة مالية ذكية للمستقل العربي</div>
+                <div className="text-xs text-muted-foreground">
+                  إدارة مالية ذكية للمستقل العربي
+                </div>
               </div>
             </Link>
 
             <p className="mt-4 text-sm leading-7 text-muted-foreground">
-              منصة تساعدك على تنظيم الفواتير والمصاريف وقراءة أرباحك بصورة واضحة وسريعة.
+              من شركة بطيخة: منصة مالية ذكية تساعد المستقلين وأصحاب الأعمال
+              الصغيرة على تنظيم الفواتير والمصاريف، وفهم الربح الحقيقي،
+              واتخاذ قرارات أوضح للنمو.
             </p>
 
             <div className="mt-5 flex items-center gap-2 text-sm text-muted-foreground">
               <Mail className="h-4 w-4 text-teal" />
-              hello@mali.app
+              support@batikha.site
+            </div>
+
+            <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
+              <Phone className="h-4 w-4 text-teal" />
+              +972 59 595 0015
             </div>
           </div>
 
@@ -103,7 +102,7 @@ export default function Footer() {
         </div>
 
         <div className="flex flex-col gap-3 pt-5 text-xs text-muted-foreground md:flex-row md:items-center md:justify-between">
-          <p>© ٢٠٢٦ مالي. جميع الحقوق محفوظة.</p>
+          <p>© ٢٠٢٦ مالي من شركة بطيخة. جميع الحقوق محفوظة.</p>
           <div className="flex items-center gap-4">
             <a href="#pricing" className="transition-colors hover:text-navy">
               الأسعار
