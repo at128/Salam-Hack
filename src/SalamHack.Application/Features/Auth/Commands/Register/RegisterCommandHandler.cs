@@ -1,72 +1,20 @@
-using SalamHack.Application.Common.Interfaces;
-using SalamHack.Application.Common.Models;
-using SalamHack.Application.Settings;
-using SalamHack.Contracts.Auth;
-using SalamHack.Domain.Common.Results;
 using MediatR;
-using Microsoft.Extensions.Options;
+using SalamHack.Application.Common.Errors;
+using SalamHack.Application.Common.Interfaces;
+using SalamHack.Domain.Common.Results;
 
 namespace SalamHack.Application.Features.Auth.Commands.Register;
 
 public class RegisterCommandHandler(
     IIdentityService identityService,
-    ITokenProvider tokenProvider,
-    IRefreshTokenRepository refreshTokenRepository,
-    ICookieService cookieService,
-    IOptions<RefreshTokenSettings> rtOptions,
-    TimeProvider timeProvider) : IRequestHandler<RegisterCommand, Result<AuthResponse>>
+    IEmailVerificationService emailVerificationService) : IRequestHandler<RegisterCommand, Result<EmailVerificationChallengeResult>>
 {
-    private readonly RefreshTokenSettings _rtSettings = rtOptions.Value;
-    public async Task<Result<AuthResponse>> Handle(
+    public async Task<Result<EmailVerificationChallengeResult>> Handle(
         RegisterCommand request, CancellationToken ct)
     {
+        if (!await identityService.IsEmailUniqueAsync(request.Email, ct))
+            return ApplicationErrors.Auth.EmailAlreadyRegistered;
 
-        var registerResult = await identityService.RegisterUserAsync(
-            request.Email, request.Password,
-            request.FirstName, request.LastName,
-            request.PhoneNumber, ct);
-
-        if (registerResult.IsError)
-            return registerResult.TopError;
-
-        var user = registerResult.Value;
-
-
-        var appUser = new AppUserDto(
-            user.Id, user.Email,
-            user.FirstName, user.LastName,
-            user.Roles);
-
-        var tokenResult = tokenProvider.GenerateJwtToken(appUser);
-        if (tokenResult.IsError)
-            return tokenResult.TopError;
-
-        var rawRT = tokenProvider.GenerateRefreshToken(_rtSettings.TokenBytes);
-        var rtHash = tokenProvider.HashToken(rawRT);
-        var family = Guid.NewGuid().ToString("N");
-
-        var rtData = new RefreshTokenData(
-            Id: Guid.CreateVersion7(),
-            UserId: user.Id,
-            TokenHash: rtHash,
-            Family: family,
-            IsActive: true,
-            IsUsed: false,
-            IsRevoked: false,
-            ExpiresAt: timeProvider.GetUtcNow().AddDays(_rtSettings.ExpiryDays));
-
-        await refreshTokenRepository.AddAsync(rtData, ct);
-
-        cookieService.SetRefreshTokenCookie(rawRT);
-
-
-        return new AuthResponse(
-            Id: user.Id,
-            Email: user.Email,
-            FirstName: user.FirstName,
-            LastName: user.LastName,
-            Role: user.Roles.FirstOrDefault() ?? "User",
-            CreatedAt: user.CreatedAt,
-            Token: tokenResult.Value);
+        return await emailVerificationService.SendRegistrationOtpAsync(request.Email, ct);
     }
 }

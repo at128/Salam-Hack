@@ -1,6 +1,5 @@
 // src/SalamHack.Application/Features/Auth/Commands/Register/RegisterCommand.cs
 using SalamHack.Application.Common.Interfaces;
-using SalamHack.Contracts.Auth;
 using SalamHack.Domain.Common.Results;
 using MediatR;
 
@@ -11,4 +10,4 @@ public sealed record RegisterCommand(
     string Password,
     string FirstName,
     string LastName,
-    string? PhoneNumber) : IRequest<Result<AuthResponse>>, ISensitiveRequest;
+    string? PhoneNumber) : IRequest<Result<EmailVerificationChallengeResult>>, ISensitiveRequest;

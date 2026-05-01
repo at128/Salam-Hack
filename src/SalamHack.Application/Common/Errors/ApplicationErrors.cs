@@ -78,6 +78,15 @@ public static class ApplicationErrors
         public static readonly Error EmailAlreadyRegistered =
             Error.Conflict("Auth.EmailAlreadyRegistered", "البريد الإلكتروني مسجل بالفعل.");
 
+        public static readonly Error EmailVerificationNotConfigured =
+            Error.Failure("Auth.EmailVerificationNotConfigured", "Email verification is not configured.");
+
+        public static readonly Error EmailVerificationSendFailed =
+            Error.Failure("Auth.EmailVerificationSendFailed", "Unable to send the email verification code.");
+
+        public static readonly Error InvalidEmailVerificationCode =
+            Error.Validation("Auth.InvalidEmailVerificationCode", "Invalid or expired email verification code.");
+
         public static Error RegistrationFailed(string details) =>
             Error.Failure("Auth.RegistrationFailed", $"فشل التسجيل: {details}");
 
@@ -104,5 +113,8 @@ public static class ApplicationErrors
 
         public static Error PasswordChangeFailed(string details) =>
             Error.Validation("Auth.PasswordChangeFailed", $"فشل تغيير كلمة المرور: {details}");
+
+        public static Error PasswordResetFailed(string details) =>
+            Error.Validation("Auth.PasswordResetFailed", $"فشل إعادة تعيين كلمة المرور: {details}");
     }
 }
