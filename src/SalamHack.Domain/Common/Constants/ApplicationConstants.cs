@@ -31,6 +31,7 @@ public static class ApplicationConstants
         public const decimal PremiumPriceMultiplier = 1.30m;
         public const decimal CostRatePerHour = 55m;
         public const decimal DefaultRevenueRatePerHour = 180m;
+        public const decimal CostToRevenueRatio = 0.35m;
         public const decimal SimpleComplexityMultiplier = 0.80m;
         public const decimal MediumComplexityMultiplier = 1.00m;
         public const decimal ComplexComplexityMultiplier = 1.40m;
