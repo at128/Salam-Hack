@@ -1,0 +1,110 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ "master" ]
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  API_IMAGE: ghcr.io/at128/salamhack-api:latest
+  CLIENT_IMAGE: ghcr.io/at128/salamhack-client:latest
+
+jobs:
+  build-test-deploy:
+    runs-on: ubuntu-24.04-arm
+    permissions:
+      contents: read
+      packages: write
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Log in to GitHub Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Build and Push API Image (linux/arm64)
+      uses: docker/build-push-action@v6
+      with:
+        context: .
+        file: src/SalamHack.Api/Dockerfile
+        platforms: linux/arm64
+        push: true
+        load: true
+        tags: ${{ env.API_IMAGE }}
+        cache-from: type=gha,scope=api
+        cache-to: type=gha,mode=max,scope=api
+        provenance: false
+
+    - name: Build and Push Client Image (linux/arm64)
+      uses: docker/build-push-action@v6
+      with:
+        context: src/SalamHack.Client
+        file: src/SalamHack.Client/Dockerfile
+        platforms: linux/arm64
+        push: true
+        tags: ${{ env.CLIENT_IMAGE }}
+        cache-from: type=gha,scope=client
+        cache-to: type=gha,mode=max,scope=client
+        provenance: false
+
+    - name: Smoke-Test API Image
+      run: |
+        docker run -d --name api-smoke \
+          -e ASPNETCORE_ENVIRONMENT=Development \
+          -e DatabaseMigration__Enabled=false \
+          -e DatabaseMigration__LegacyCompatibilityEnabled=false \
+          -e Monitoring__AllowAnonymousHealthEndpoints=true \
+          -e Swagger__Enabled=false \
+          -e JWT__Secret=SmokeTestSecretKey1234567890123456 \
+          -e JWT__Issuer=smoke -e JWT__Audience=smoke \
+          -e ConnectionStrings__DefaultConnection="Server=tcp:127.0.0.1,1;Database=Smoke;User Id=sa;Password=Smoke;Encrypt=False;TrustServerCertificate=True;" \
+          -e MailSettings__Host=smtp.resend.com \
+          -e MailSettings__Port=587 \
+          -e MailSettings__User=smoke \
+          -e MailSettings__Password=smoke \
+          -e MailSettings__FromEmail=noreply@smoke.com \
+          -e MailSettings__FromName=SmokeTest \
+          -p 5010:8080 \
+          "$API_IMAGE"
+
+        echo "Polling /api/v1/health/live..."
+        for i in $(seq 1 30); do
+          code=$(curl -o /dev/null -s -w '%{http_code}' http://localhost:5010/api/v1/health/live || true)
+          if [ "$code" = "200" ]; then
+            echo "Health check passed on attempt $i."
+            docker rm -f api-smoke >/dev/null
+            exit 0
+          fi
+          sleep 1
+        done
+
+        echo "Health check failed."
+        docker logs api-smoke || true
+        docker rm -f api-smoke >/dev/null || true
+        exit 1
+
+    - name: Deploy via SSH
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.SERVER_IP }}
+        username: ${{ secrets.SERVER_USER }}
+        key: ${{ secrets.SERVER_SSH_KEY }}
+        script: |
+          set -e
+          cd ${{ secrets.PROJECT_PATH }}
+          git fetch --quiet origin master
+          git reset --hard origin/master
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          docker compose -f docker-compose.prod.yml pull api client
+          docker compose -f docker-compose.prod.yml up -d --remove-orphans
+          docker image prune -f

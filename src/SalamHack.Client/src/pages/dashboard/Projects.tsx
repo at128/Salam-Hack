@@ -557,7 +557,7 @@ export default function ProjectsPage() {
                     <th className="px-4 py-3 font-semibold">المشروع</th>
                     <th className="px-4 py-3 font-semibold">العميل</th>
                     <th className="px-4 py-3 font-semibold">الخدمة</th>
-                    <th className="px-4 py-3 font-semibold">السعر</th>
+                    <th className="px-4 py-3 font-semibold">سعر العرض</th>
                     <th className="px-4 py-3 font-semibold">الصحة</th>
                     <th className="px-4 py-3 font-semibold">الحالة</th>
                     <th className="px-4 py-3 font-semibold">الفترة</th>
@@ -716,17 +716,19 @@ export default function ProjectsPage() {
               </div>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-3">
+            <div className={`grid gap-4 ${editingProject ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
               <div className="space-y-2">
                 <Label htmlFor="estimatedHours">الساعات المقدرة</Label>
                 <Input id="estimatedHours" type="number" min="0" step="0.25" value={form.estimatedHours} onChange={setField("estimatedHours")} required className="rounded-xl bg-white" />
               </div>
+              {editingProject ? (
+                <div className="space-y-2">
+                  <Label htmlFor="actualHours">الساعات الفعلية</Label>
+                  <Input id="actualHours" type="number" min="0" step="0.25" value={form.actualHours} onChange={setField("actualHours")} className="rounded-xl bg-white" />
+                </div>
+              ) : null}
               <div className="space-y-2">
-                <Label htmlFor="actualHours">الساعات الفعلية</Label>
-                <Input id="actualHours" type="number" min="0" step="0.25" value={form.actualHours} onChange={setField("actualHours")} className="rounded-xl bg-white" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="revision">التعديلات</Label>
+                <Label htmlFor="revision">عدد مرات التعديل المسموحة للعميل</Label>
                 <Input id="revision" type="number" min="0" step="1" value={form.revision} onChange={setField("revision")} required className="rounded-xl bg-white" />
               </div>
             </div>
@@ -737,7 +739,7 @@ export default function ProjectsPage() {
                 <Input id="toolCost" type="number" min="0" step="0.01" value={form.toolCost} onChange={setField("toolCost")} required className="rounded-xl bg-white" />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="suggestedPrice">السعر المقترح</Label>
+                <Label htmlFor="suggestedPrice">سعر العرض للعميل</Label>
                 <Input id="suggestedPrice" type="number" min="0" step="0.01" value={form.suggestedPrice} onChange={setField("suggestedPrice")} required className="rounded-xl bg-white" />
               </div>
             </div>
@@ -817,7 +819,7 @@ export default function ProjectsPage() {
                 <div className="mt-1 font-semibold text-navy">{selectedProject.serviceName}</div>
               </div>
               <div className="rounded-xl border border-border/70 bg-muted/30 p-3">
-                <div className="text-xs text-muted-foreground">السعر المقترح</div>
+                <div className="text-xs text-muted-foreground">سعر العرض للعميل</div>
                 <div className="mt-1 font-semibold text-navy">{formatCurrency(selectedProject.suggestedPrice)}</div>
               </div>
               <div className="rounded-xl border border-border/70 bg-muted/30 p-3">
@@ -853,7 +855,7 @@ export default function ProjectsPage() {
                 <div className="mt-1 font-semibold text-navy">{formatCurrency(selectedProject.toolCost)}</div>
               </div>
               <div className="rounded-xl border border-border/70 bg-muted/30 p-3">
-                <div className="text-xs text-muted-foreground">التعديلات</div>
+                <div className="text-xs text-muted-foreground">عدد مرات التعديل المسموحة للعميل</div>
                 <div className="mt-1 font-semibold text-navy">{selectedProject.revision ?? 0}</div>
               </div>
               <div className="rounded-xl border border-border/70 bg-muted/30 p-3">

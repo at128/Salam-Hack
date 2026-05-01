@@ -31,4 +31,8 @@
     <ProjectReference Include="..\SalamHack.Contracts\SalamHack.Contracts.csproj" />
     <ProjectReference Include="..\SalamHack.Infrastructure\SalamHack.Infrastructure.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="..\..\deploy.sql" Link="deploy.sql" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

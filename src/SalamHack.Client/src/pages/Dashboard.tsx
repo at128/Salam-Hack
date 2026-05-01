@@ -58,8 +58,44 @@ type AnalysisDashboard = {
   selectedProject: ProjectAnalysis | null;
 };
 
+type ActionLink = {
+  title: string;
+  desc: string;
+  href: string;
+  icon: LucideIcon;
+  primary?: boolean;
+};
+
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/+$/, "");
 const ANALYSIS_DASHBOARD_URL = `${API_BASE_URL}/api/v1/analysis/dashboard`;
+
+const quickActions: ActionLink[] = [
+  {
+    title: "مشروع جديد",
+    desc: "ابدأ من السعر والعميل والخدمة",
+    href: "/dashboard/projects",
+    icon: Plus,
+    primary: true,
+  },
+  {
+    title: "فاتورة",
+    desc: "أنشئ فاتورة أو سجل دفعة",
+    href: "/dashboard/invoices",
+    icon: FileText,
+  },
+  {
+    title: "مصروف",
+    desc: "اشتراك، أداة، أو تكلفة عامة",
+    href: "/dashboard/expenses",
+    icon: ReceiptText,
+  },
+  {
+    title: "عميل",
+    desc: "أضف عميل قبل إنشاء المشروع",
+    href: "/dashboard/customers",
+    icon: Users,
+  },
+];
 
 async function fetchAnalysisDashboard(): Promise<AnalysisDashboard> {
   const token = await getValidAccessToken();
@@ -76,7 +112,7 @@ async function fetchAnalysisDashboard(): Promise<AnalysisDashboard> {
   const payload = await response.json().catch(() => null);
 
   if (!response.ok) {
-    throw new Error(getApiErrorMessage(payload, "Unable to load dashboard statistics."));
+    throw new Error(getApiErrorMessage(payload, "تعذر تحميل ملخص لوحة التحكم."));
   }
 
   return unwrapApiResponse<AnalysisDashboard>(payload);
@@ -262,7 +298,7 @@ export default function Dashboard() {
       })
       .catch((error) => {
         if (!active) return;
-        setStatsError(error instanceof Error ? error.message : "Unable to load dashboard statistics.");
+        setStatsError(error instanceof Error ? error.message : "تعذر تحميل ملخص لوحة التحكم.");
       })
       .finally(() => {
         if (!active) return;
@@ -293,7 +329,7 @@ export default function Dashboard() {
         icon: ShieldCheck,
       },
       {
-        label: "مشاريع معرضة للخطر",
+        label: "تحتاج متابعة",
         value: isLoadingStats ? "..." : formatNumber(dashboard?.atRiskCount),
         delta: "معرضة للخطر",
         positive: false,
@@ -301,9 +337,9 @@ export default function Dashboard() {
         icon: AlertTriangle,
       },
       {
-        label: "مشاريع حرجة",
+        label: "حرجة",
         value: isLoadingStats ? "..." : formatNumber(dashboard?.criticalCount),
-        delta: "حرجة",
+        delta: "عاجلة",
         positive: false,
         trend: "down" as const,
         icon: Siren,
@@ -319,6 +355,65 @@ export default function Dashboard() {
     ],
     [isLoadingStats, dashboard],
   );
+
+  const prioritySteps = useMemo<ActionLink[]>(() => {
+    if (isLoadingStats) {
+      return [
+        {
+          title: "تحميل الأولويات",
+          desc: "نجهز ملخص اليوم من بياناتك",
+          href: "/dashboard",
+          icon: Sparkles,
+        },
+      ];
+    }
+
+    const steps: ActionLink[] = [];
+
+    if ((dashboard?.projectCount ?? 0) === 0) {
+      steps.push({
+        title: "ابدأ بمشروعك الأول",
+        desc: "المشروع هو نقطة الربط بين العميل، الفاتورة، والربح",
+        href: "/dashboard/projects",
+        icon: FolderKanban,
+      });
+    }
+
+    if ((dashboard?.criticalCount ?? 0) > 0) {
+      steps.push({
+        title: "راجع المشاريع الحرجة",
+        desc: "فيه مشاريع ممكن تأكل من ربحك لو تركتها",
+        href: "/dashboard/projects",
+        icon: Siren,
+      });
+    }
+
+    if ((dashboard?.atRiskCount ?? 0) > 0) {
+      steps.push({
+        title: "تابع المشاريع المعرضة للخطر",
+        desc: "راجع السعر، الساعات، أو المصاريف قبل ما تتراكم",
+        href: "/dashboard/projects",
+        icon: ShieldAlert,
+      });
+    }
+
+    steps.push(
+      {
+        title: "سجل مصروف جديد",
+        desc: "الاشتراكات والأدوات لازم تظهر في الربح الحقيقي",
+        href: "/dashboard/expenses",
+        icon: ReceiptText,
+      },
+      {
+        title: "راجع الفواتير والتحصيل",
+        desc: "الفواتير والدفعات صارت في صفحة واحدة",
+        href: "/dashboard/invoices",
+        icon: FileText,
+      },
+    );
+
+    return steps.slice(0, 3);
+  }, [dashboard, isLoadingStats]);
 
   const insights = dashboard?.monthlyInsights ?? [];
   const projects = dashboard?.projects ?? [];
@@ -428,8 +523,8 @@ export default function Dashboard() {
         <div className="lg:col-span-2 rounded-2xl border border-border/70 bg-card p-5 shadow-card">
           <div className="mb-4 flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-bold text-navy">تحليلات هذا الشهر</h2>
-              <p className="text-xs text-muted-foreground">النتائج القادمة مباشرة من تحليل المشاريع.</p>
+              <h2 className="text-lg font-bold text-navy">قرارات هذا الشهر</h2>
+              <p className="text-xs text-muted-foreground">تنبيهات مبنية على صحة المشاريع والمصاريف.</p>
             </div>
             <Lightbulb className="h-5 w-5 text-teal" />
           </div>
@@ -445,7 +540,9 @@ export default function Dashboard() {
                 >
                   <div className="mb-1 flex items-center justify-between gap-3">
                     <h3 className="font-bold">{insight.title}</h3>
-                    <span className="shrink-0 rounded-full bg-background/60 px-2 py-1 text-xs">{insightTypeLabel(insight.type)}</span>
+                    <span className="shrink-0 rounded-full bg-background/60 px-2 py-1 text-xs">
+                      {insightTypeLabel(insight.type)}
+                    </span>
                   </div>
                   <p className="text-sm leading-relaxed">{insight.summary}</p>
                 </article>
@@ -453,20 +550,22 @@ export default function Dashboard() {
             </div>
           ) : (
             <div className="rounded-xl bg-muted/50 p-6 text-sm text-muted-foreground">
-              لا توجد تحليلات شهرية بعد.
+              لا توجد تحليلات بعد. أضف مشروعاً وفاتورة ومصروفاً حتى تظهر قرارات أوضح.
             </div>
           )}
         </div>
 
         <div className="rounded-2xl border border-border/70 bg-card p-5 shadow-card">
-          <h2 className="mb-4 text-lg font-bold text-navy">المشروع المحدد</h2>
+          <h2 className="mb-4 text-lg font-bold text-navy">مشروع يحتاج انتباه</h2>
           {isLoadingStats ? (
             <div className="rounded-xl bg-muted/50 p-6 text-sm text-muted-foreground">جاري تحميل المشروع...</div>
           ) : selectedProject ? (
             <div className="space-y-4">
               <div>
                 <h3 className="font-bold text-navy">{selectedProject.projectName}</h3>
-                <p className="text-xs text-muted-foreground">{selectedProject.customerName} - {selectedProject.serviceName}</p>
+                <p className="text-xs text-muted-foreground">
+                  {selectedProject.customerName} - {selectedProject.serviceName}
+                </p>
               </div>
               <span className={`inline-flex rounded-full px-2 py-1 text-xs font-bold ${healthClass(selectedProject.healthStatus)}`}>
                 {healthLabel(selectedProject.healthStatus)}
@@ -486,9 +585,17 @@ export default function Dashboard() {
       </section>
 
       <section className="rounded-2xl border border-border/70 bg-card p-5 shadow-card">
-        <div className="mb-4">
-          <h2 className="text-lg font-bold text-navy">صحة المشاريع</h2>
-          <p className="text-xs text-muted-foreground">قائمة المشاريع كما ترجعها واجهة التحليل.</p>
+        <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h2 className="text-lg font-bold text-navy">صحة المشاريع</h2>
+            <p className="text-xs text-muted-foreground">أقرب قائمة تحتاج مراجعة قبل ما تتحول لخسارة.</p>
+          </div>
+          <Link
+            to="/dashboard/projects"
+            className="text-sm font-semibold text-teal transition-colors hover:text-navy"
+          >
+            فتح المشاريع
+          </Link>
         </div>
 
         {isLoadingStats ? (

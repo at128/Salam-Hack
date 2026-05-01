@@ -1,51 +1,54 @@
 services:
   sqlserver:
     image: mcr.microsoft.com/azure-sql-edge:latest
+    container_name: salamhack-sql
     environment:
       ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "${SA_PASSWORD}"
       SA_PASSWORD: "${SA_PASSWORD}"
       MSSQL_PID: "Developer"
     ports:
-      - "14333:1433"
+      - "${SQL_PORT:-14333}:1433"
     volumes:
-      - sql_data:/var/opt/mssql
+      - "${volume1:-sql_data:/var/opt/mssql}"
+      - "${volume2:-sql_backups:/var/opt/mssql/backups}"
     healthcheck:
-      test: ["CMD-SHELL", "/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P \"$${SA_PASSWORD}\" -Q \"SELECT 1\" -b -o /dev/null"]
-      interval: 10s
-      timeout: 5s
-      retries: 12
-      start_period: 20s
-    networks:
-      - salamhack-net
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/localhost/1433' >/dev/null 2>&1 || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 30s
+    restart: unless-stopped
+    networks: [salamhack-net]
 
   seq:
     image: datalust/seq:latest
+    container_name: salamhack-seq
     environment:
       ACCEPT_EULA: "Y"
       SEQ_FIRSTRUN_ADMINPASSWORD: "${SEQ_ADMIN_PASSWORD}"
     ports:
-      - "5341:80"
+      - "${SEQ_PORT:-5341}:80"
     volumes:
       - seq_data:/data
-    networks:
-      - salamhack-net
+    restart: unless-stopped
+    networks: [salamhack-net]
 
   otel-collector:
     image: otel/opentelemetry-collector:0.98.0
+    container_name: salamhack-otel
     command: ["--config=/etc/otel-collector-config.yml"]
     volumes:
       - ./otel-collector-config.yml:/etc/otel-collector-config.yml:ro
     ports:
       - "4317:4317"
       - "8889:8889"
-    networks:
-      - salamhack-net
+    restart: unless-stopped
+    networks: [salamhack-net]
 
   api:
     image: ghcr.io/at128/salamhack-api:latest
-    build:
-      context: .
-      dockerfile: src/SalamHack.Api/Dockerfile
+    container_name: salamhack-api
     environment:
       ASPNETCORE_ENVIRONMENT: "Development"
       ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=SalamHackDb;User Id=sa;Password=${SA_PASSWORD};Encrypt=False;TrustServerCertificate=True;"
@@ -67,14 +70,14 @@ services:
       OpenTelemetry__ServiceName: "SalamHack.Api"
       OpenTelemetry__ServiceVersion: "1.0.0"
       OpenTelemetry__OtlpEndpoint: "http://otel-collector:4317"
-      MailSettings__Host: "${SMTP_HOST:-smtp.resend.com}"
-      MailSettings__Port: "${SMTP_PORT:-587}"
-      MailSettings__User: "${SMTP_USER:-resend}"
-      MailSettings__Password: "${SMTP_KEY:-dev_password}"
-      MailSettings__FromEmail: "${MAIL_FROM_ADDRESS:-noreply@batikha.site}"
-      MailSettings__FromName: "${MAIL_FROM_NAME:-Mali System}"
-    ports:
-      - "${API_HTTP_PORT:-5010}:8080"
+      MailSettings__Host: "${MAIL_HOST}"
+      MailSettings__Port: "${MAIL_PORT}"
+      MailSettings__User: "${MAIL_USER}"
+      MailSettings__Password: "${MAIL_PASSWORD}"
+      MailSettings__FromEmail: "${MAIL_FROM_ADDRESS}"
+      MailSettings__FromName: "${MAIL_FROM_NAME}"
+    expose:
+      - "8080"
     volumes:
       - data_protection_keys:/app/.aspnet/DataProtection-Keys
     depends_on:
@@ -84,23 +87,23 @@ services:
         condition: service_started
       otel-collector:
         condition: service_started
-    networks:
-      - salamhack-net
+    restart: unless-stopped
+    networks: [salamhack-net]
 
   client:
-    build:
-      context: ./src/SalamHack.Client
-      dockerfile: Dockerfile
+    image: ghcr.io/at128/salamhack-client:latest
+    container_name: salamhack-client
     ports:
-      - "${CLIENT_HTTP_PORT:-5009}:80"
+      - "${API_HTTP_PORT:-5009}:80"
     depends_on:
       api:
         condition: service_started
-    networks:
-      - salamhack-net
+    restart: unless-stopped
+    networks: [salamhack-net]
 
 volumes:
   sql_data:
+  sql_backups:
   seq_data:
   data_protection_keys:
 
