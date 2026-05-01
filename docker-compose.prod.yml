@@ -41,8 +41,8 @@ services:
     volumes:
       - ./otel-collector-config.yml:/etc/otel-collector-config.yml:ro
     ports:
-      - "4317:4317"
-      - "8889:8889"
+      - "127.0.0.1:4317:4317"
+      - "127.0.0.1:8889:8889"
     restart: unless-stopped
     networks: [salamhack-net]
 
@@ -91,7 +91,7 @@ services:
     image: ghcr.io/at128/salamhack-api:latest
     container_name: salamhack-api
     environment:
-      ASPNETCORE_ENVIRONMENT: "Development"
+      ASPNETCORE_ENVIRONMENT: "Production"
       ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=SalamHackDb;User Id=sa;Password=${SA_PASSWORD};Encrypt=False;TrustServerCertificate=True;"
       DatabaseMigration__Enabled: "true"
       DatabaseMigration__LegacyCompatibilityEnabled: "true"
@@ -102,9 +102,9 @@ services:
       JWT__ExpiryMinutes: "15"
       RefreshToken__ExpiryDays: "7"
       RefreshToken__TokenBytes: "64"
-      CookieSettings__SecureOnly: "false"
+      CookieSettings__SecureOnly: "true"
       DataProtection__KeysPath: "/app/.aspnet/DataProtection-Keys"
-      Swagger__Enabled: "true"
+      Swagger__Enabled: "false"
       Monitoring__AllowAnonymousHealthEndpoints: "true"
       Serilog__WriteTo__1__Args__serverUrl: "http://seq"
       OpenTelemetry__Enabled: "true"
