@@ -22,6 +22,8 @@ public sealed class EmailVerificationService(
 {
     private const string RegistrationCachePrefix = "registration-email-otp:";
     private const string PasswordResetCachePrefix = "password-reset-email-otp:";
+    private const string UsageCountCachePrefix = "otp-usage-count:";
+    private const string LastSentCachePrefix = "otp-last-sent:";
     private readonly EmailVerificationSettings _settings = emailVerificationOptions.Value;
     private readonly MailSettings _mailSettings = mailOptions.Value;
 
@@ -34,6 +36,11 @@ public sealed class EmailVerificationService(
             return configurationError.Value;
 
         var normalizedEmail = NormalizeEmail(email);
+
+        var limitCheck = CheckAndIncrementUsage(normalizedEmail);
+        if (limitCheck.IsFailure)
+            return limitCheck.Error;
+
         var otp = GenerateOtp(_settings.OtpLength);
         var expiresAt = timeProvider.GetUtcNow().AddMinutes(_settings.ExpiryMinutes);
 
@@ -77,6 +84,11 @@ public sealed class EmailVerificationService(
             return configurationError.Value;
 
         var normalizedEmail = NormalizeEmail(email);
+
+        var limitCheck = CheckAndIncrementUsage(normalizedEmail);
+        if (limitCheck.IsFailure)
+            return limitCheck.Error;
+
         var otp = GenerateOtp(_settings.OtpLength);
         var expiresAt = timeProvider.GetUtcNow().AddMinutes(_settings.ExpiryMinutes);
 
@@ -140,6 +152,33 @@ public sealed class EmailVerificationService(
 
         cache.Remove(cacheKey);
         return Task.FromResult<Result<Success>>(Result.Success);
+    }
+
+    private Result<Success> CheckAndIncrementUsage(string normalizedEmail)
+    {
+        // 1. Check Daily Limit
+        var usageKey = $"{UsageCountCachePrefix}{normalizedEmail}";
+        if (cache.TryGetValue<int>(usageKey, out var count) && count >= _settings.MaxDailyRequests)
+        {
+            return ApplicationErrors.Auth.EmailVerificationTooManyRequests;
+        }
+
+        // 2. Check Interval (Throttling)
+        var lastSentKey = $"{LastSentCachePrefix}{normalizedEmail}";
+        if (cache.TryGetValue<DateTimeOffset>(lastSentKey, out var lastSent))
+        {
+            var timeSinceLastSend = timeProvider.GetUtcNow() - lastSent;
+            if (timeSinceLastSend < TimeSpan.FromMinutes(_settings.ResendIntervalMinutes))
+            {
+                return ApplicationErrors.Auth.EmailVerificationThrottled;
+            }
+        }
+
+        // 3. Update Usage Tracking
+        cache.Set(lastSentKey, timeProvider.GetUtcNow(), TimeSpan.FromMinutes(_settings.ResendIntervalMinutes));
+        cache.Set(usageKey, count + 1, TimeSpan.FromDays(1));
+
+        return Result.Success;
     }
 
     private async Task SendOtpEmailAsync(

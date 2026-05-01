@@ -1092,7 +1092,7 @@ export default function InvoicesTable() {
 
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <PageHeader title="الفواتير" desc="جميع فواتيرك مع حالاتها وتفاصيل العملاء." />
-        <Button onClick={openCreateInvoice} className="rounded-xl bg-teal font-bold text-white hover:bg-teal/90">
+        <Button onClick={openCreateInvoice} className="w-full rounded-xl bg-teal font-bold text-white hover:bg-teal/90 sm:w-auto">
           <Plus className="ml-2 h-4 w-4" />
           فاتورة جديدة
         </Button>
@@ -1123,9 +1123,9 @@ export default function InvoicesTable() {
         </div>
       )}
 
-      <div className="rounded-2xl border border-border/70 bg-card p-5 shadow-card">
+      <div className="min-w-0 rounded-2xl border border-border/70 bg-card p-4 shadow-card sm:p-5">
         <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <form onSubmit={submitSearch} className="flex flex-1 gap-2">
+          <form onSubmit={submitSearch} className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row">
             <Input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
@@ -1137,7 +1137,7 @@ export default function InvoicesTable() {
             </Button>
           </form>
 
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <div className="flex flex-col gap-2 xl:flex-row xl:items-center">
             <Select
               dir="rtl"
               value={status}
@@ -1146,7 +1146,7 @@ export default function InvoicesTable() {
                 setPageNumber(1);
               }}
             >
-              <SelectTrigger className="h-11 w-44 rounded-xl bg-white text-right [&>span]:w-full [&>span]:text-right">
+              <SelectTrigger className="h-11 w-full rounded-xl bg-white text-right xl:w-44 [&>span]:w-full [&>span]:text-right">
                 <SelectValue placeholder="حالة الفاتورة" />
               </SelectTrigger>
               <SelectContent dir="rtl" className="text-right">
@@ -1160,7 +1160,7 @@ export default function InvoicesTable() {
               </SelectContent>
             </Select>
 
-            <div className="flex gap-2">
+            <div className="grid grid-cols-[1fr_1fr_auto] gap-2">
               <Input
                 type="date"
                 value={fromDate}
@@ -1168,7 +1168,7 @@ export default function InvoicesTable() {
                   setFromDate(e.target.value);
                   setPageNumber(1);
                 }}
-                className="h-11 w-40 rounded-xl border-border/70 bg-white"
+                className="h-11 min-w-0 rounded-xl border-border/70 bg-white"
               />
               <Input
                 type="date"
@@ -1177,9 +1177,9 @@ export default function InvoicesTable() {
                   setToDate(e.target.value);
                   setPageNumber(1);
                 }}
-                className="h-11 w-40 rounded-xl border-border/70 bg-white"
+                className="h-11 min-w-0 rounded-xl border-border/70 bg-white"
               />
-              <Button type="button" variant="outline" className="h-11 rounded-xl" onClick={() => void loadInvoices()} disabled={isLoading || isBusy}>
+              <Button type="button" variant="outline" className="h-11 rounded-xl px-3" onClick={() => void loadInvoices()} disabled={isLoading || isBusy}>
                 <RefreshCw className="h-4 w-4" />
               </Button>
             </div>
@@ -1193,7 +1193,93 @@ export default function InvoicesTable() {
           </div>
         ) : invoices?.items?.length ? (
           <>
-            <div className="overflow-x-auto rounded-xl border border-border/70">
+            <div className="grid gap-3 md:hidden">
+              {invoices.items.map((inv) => (
+                <article key={inv.id} className="rounded-xl border border-border/70 bg-background p-4 text-right">
+                  <div className="mb-3 flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate font-bold text-navy">{inv.invoiceNumber}</p>
+                      <p className="mt-1 truncate text-xs text-muted-foreground">{inv.customerName}</p>
+                    </div>
+                    <span className={`shrink-0 rounded-full px-2 py-1 text-xs font-bold ${statusClass(inv.status)}`}>
+                      {statusLabel(inv.status)}
+                    </span>
+                  </div>
+
+                  <div className="space-y-2 rounded-lg bg-card p-3 text-xs text-muted-foreground">
+                    <div className="flex items-center justify-between gap-3">
+                      <span>المشروع</span>
+                      <span className="min-w-0 truncate font-semibold text-navy">{inv.projectName}</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <span>الإجمالي</span>
+                      <span className="font-semibold text-navy">{formatCurrency(inv.totalWithTax, inv.currency)}</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <span>المدفوع</span>
+                      <span>{formatCurrency(inv.paidAmount, inv.currency)}</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <span>المتبقي</span>
+                      <span className="font-bold text-navy">{formatCurrency(inv.remainingAmount, inv.currency)}</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <span>الاستحقاق</span>
+                      <span>{formatDate(inv.dueDate)}</span>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 grid grid-cols-4 gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="h-10 w-full rounded-lg"
+                      onClick={() => void openDetails(inv)}
+                      disabled={isBusy}
+                      title="عرض"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="h-10 w-full rounded-lg"
+                      onClick={() => openPaymentDialog(inv, "payment")}
+                      disabled={isBusy}
+                      title="تسجيل دفعة"
+                    >
+                      <Wallet className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="h-10 w-full rounded-lg"
+                      onClick={() => void runAction("send", inv.id)}
+                      disabled={isBusy || normalizeStatus(inv.status) === "Cancelled" || normalizeStatus(inv.status) === "Paid"}
+                      title="إرسال"
+                    >
+                      <Send className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="h-10 w-full rounded-lg text-danger hover:text-danger"
+                      onClick={() => setDeleteTarget(inv)}
+                      disabled={isBusy}
+                      title="حذف"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </article>
+              ))}
+            </div>
+
+            <div className="hidden overflow-x-auto rounded-xl border border-border/70 md:block">
               <table className="w-full min-w-[1040px] table-fixed text-right text-sm">
                 <colgroup>
                   <col className="w-[11%]" />
@@ -1292,11 +1378,11 @@ export default function InvoicesTable() {
               </table>
             </div>
 
-            <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
+            <div className="mt-4 flex flex-col gap-3 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
               <span>
                 صفحة {invoices.pageNumber} من {invoices.totalPages || 1}
               </span>
-              <div className="flex gap-2">
+              <div className="grid grid-cols-2 gap-2 sm:flex">
                 <Button
                   type="button"
                   variant="outline"
@@ -1500,11 +1586,11 @@ export default function InvoicesTable() {
 
           {selectedInvoice ? (
             <div className="space-y-4">
-              <div className="flex flex-wrap justify-end gap-2">
+              <div className="grid gap-2 sm:flex sm:flex-wrap sm:justify-end">
                 <Button
                   type="button"
                   variant="outline"
-                  className="rounded-xl"
+                  className="w-full rounded-xl sm:w-auto"
                   disabled={isBusy}
                   onClick={() => window.print()}
                 >
@@ -1514,7 +1600,7 @@ export default function InvoicesTable() {
                 <Button
                   type="button"
                   variant="outline"
-                  className="rounded-xl"
+                  className="w-full rounded-xl sm:w-auto"
                   disabled={isBusy}
                   onClick={() => window.print()}
                 >
@@ -1661,11 +1747,11 @@ export default function InvoicesTable() {
                 )}
               </div>
 
-              <DialogFooter className="gap-2 sm:justify-start sm:space-x-0">
+              <DialogFooter className="grid gap-2 sm:flex sm:flex-wrap sm:justify-start sm:space-x-0">
                 <Button
                   type="button"
                   variant="outline"
-                  className="rounded-xl"
+                  className="w-full rounded-xl sm:w-auto"
                   disabled={isBusy}
                   onClick={() => void runAction("mark-overdue", selectedInvoice.id)}
                 >
@@ -1674,7 +1760,7 @@ export default function InvoicesTable() {
                 <Button
                   type="button"
                   variant="outline"
-                  className="rounded-xl"
+                  className="w-full rounded-xl sm:w-auto"
                   disabled={isBusy || normalizeStatus(selectedInvoice.status) === "Cancelled" || normalizeStatus(selectedInvoice.status) === "Paid"}
                   onClick={() => void runAction("send", selectedInvoice.id)}
                 >
@@ -1683,19 +1769,19 @@ export default function InvoicesTable() {
                 <Button
                   type="button"
                   variant="outline"
-                  className="rounded-xl"
+                  className="w-full rounded-xl sm:w-auto"
                   disabled={isBusy}
                   onClick={() => window.print()}
                 >
                   حفظ PDF
                 </Button>
-                <Button type="button" className="rounded-xl bg-teal font-bold text-white hover:bg-teal/90" disabled={isBusy} onClick={() => openPaymentDialog(selectedInvoice, "payment")}>
+                <Button type="button" className="w-full rounded-xl bg-teal font-bold text-white hover:bg-teal/90 sm:w-auto" disabled={isBusy} onClick={() => openPaymentDialog(selectedInvoice, "payment")}>
                   تسجيل دفعة
                 </Button>
-                <Button type="button" variant="outline" className="rounded-xl" disabled={isBusy} onClick={() => openPaymentDialog(selectedInvoice, "advance")}>
+                <Button type="button" variant="outline" className="w-full rounded-xl sm:w-auto" disabled={isBusy} onClick={() => openPaymentDialog(selectedInvoice, "advance")}>
                   دفعة مقدمة
                 </Button>
-                <Button type="button" variant="outline" className="rounded-xl" onClick={() => setIsDetailsOpen(false)}>
+                <Button type="button" variant="outline" className="w-full rounded-xl sm:w-auto" onClick={() => setIsDetailsOpen(false)}>
                   إغلاق
                 </Button>
               </DialogFooter>

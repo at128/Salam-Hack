@@ -8,11 +8,20 @@ import {
   LayoutDashboard,
   Loader2,
   LogOut,
+  Menu,
+  PieChart,
   Plus,
   ReceiptText,
+  ShieldAlert,
+  Sparkles,
+  TrendingUp,
   Trash2,
   UserRound,
   Users,
+  Wallet,
+  ArrowLeftRight,
+  Brain,
+  BriefcaseBusiness,
 } from "lucide-react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import Sidebar from "@/components/dashboard/Sidebar";
@@ -90,9 +99,20 @@ const CATEGORY_OPTIONS: { value: ServiceCategory; label: string }[] = [
 const mobileNavItems = [
   { label: "الرئيسية", href: "/dashboard", icon: LayoutDashboard },
   { label: "المشاريع", href: "/dashboard/projects", icon: FolderKanban },
-  { label: "العملاء", href: "/dashboard/customers", icon: Users },
   { label: "الفواتير", href: "/dashboard/invoices", icon: FileText },
-  { label: "المصاريف", href: "/dashboard/expenses", icon: ReceiptText },
+  { label: "المدفوعات", href: "/dashboard/payments", icon: Wallet },
+];
+
+const mobileMoreItems = [
+  { label: "خدماتي", href: "/dashboard/services", icon: BriefcaseBusiness },
+  { label: "عملائي", href: "/dashboard/customers", icon: Users },
+  { label: "مصروفاتي", href: "/dashboard/expenses", icon: ReceiptText },
+  { label: "التسعير الذكي", href: "/dashboard/pricing", icon: Sparkles },
+  { label: "تحليل العميل", href: "/dashboard/client-risk", icon: ShieldAlert },
+  { label: "كشف الربح الحقيقي", href: "/dashboard/profit", icon: TrendingUp },
+  { label: "أين ذهب ربحك؟", href: "/dashboard/breakdown", icon: PieChart },
+  { label: "التدفق النقدي", href: "/dashboard/cashflow", icon: ArrowLeftRight },
+  { label: "محلل الأرباح الذكي", href: "/dashboard/ai", icon: Brain },
 ];
 
 function createEmptyServiceRow(): ServiceOnboardingRow {
@@ -384,6 +404,36 @@ export default function DashboardLayout({
               </NavLink>
             );
           })}
+
+          <DropdownMenu dir="rtl">
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className="flex min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 py-2 text-[10px] font-semibold text-muted-foreground transition-colors hover:bg-muted/50 hover:text-navy sm:text-[11px]"
+                aria-label="المزيد من روابط لوحة التحكم"
+              >
+                <Menu className="h-4 w-4" />
+                <span className="max-w-full truncate">المزيد</span>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" sideOffset={12} className="mb-2 max-h-[70vh] w-64 overflow-y-auto text-right lg:hidden">
+              <DropdownMenuLabel>روابط لوحة التحكم</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {mobileMoreItems.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <DropdownMenuItem
+                    key={item.href}
+                    onClick={() => navigate(item.href)}
+                    className="cursor-pointer justify-start gap-2 text-right"
+                  >
+                    <Icon className="h-4 w-4" />
+                    {item.label}
+                  </DropdownMenuItem>
+                );
+              })}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </nav>
       </div>
 

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { ArrowLeft, Loader2, MailCheck } from "lucide-react";
 import AuthLayout from "@/components/auth/AuthLayout";
@@ -39,6 +39,21 @@ export default function RegisterVerify() {
   const [isResending, setIsResending] = useState(false);
   const [error, setError] = useState("");
   const [resendMessage, setResendMessage] = useState("");
+  const [timeLeft, setTimeLeft] = useState(300);
+
+  useEffect(() => {
+    if (timeLeft <= 0) return;
+    const timer = setInterval(() => {
+      setTimeLeft((prev) => prev - 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [timeLeft]);
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
+  };
 
   if (!registrationData) {
     return <Navigate to="/register" replace />;
@@ -98,12 +113,17 @@ export default function RegisterVerify() {
       const payload = await response.json().catch(() => null);
 
       if (!response.ok) {
-        setError(getApiErrorMessage(payload));
+        const msg = getApiErrorMessage(payload);
+        setError(msg);
+        if (msg.includes("5 دقائق")) {
+          setTimeLeft(300);
+        }
         return;
       }
 
       setOtp("");
       setResendMessage("تم إرسال رمز تحقق جديد إلى بريدك الإلكتروني.");
+      setTimeLeft(300);
     } catch {
       setError("تعذر إعادة إرسال الرمز. حاول مرة أخرى بعد قليل.");
     } finally {
@@ -184,12 +204,12 @@ export default function RegisterVerify() {
         <Button
           type="button"
           variant="ghost"
-          disabled={isSubmitting || isResending}
+          disabled={isSubmitting || isResending || timeLeft > 0}
           onClick={handleResendOtp}
           className="h-10 w-full rounded-xl text-sm text-teal hover:text-teal"
         >
           {isResending && <Loader2 className="ml-1 h-4 w-4 animate-spin" />}
-          {isResending ? "جاري إعادة الإرسال..." : "إعادة إرسال الرمز"}
+          {isResending ? "جاري إعادة الإرسال..." : timeLeft > 0 ? `إعادة الإرسال خلال ${formatTime(timeLeft)}` : "إعادة إرسال الرمز"}
         </Button>
       </form>
     </AuthLayout>
