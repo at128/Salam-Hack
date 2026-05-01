@@ -27,11 +27,33 @@ type RegisterForm = {
 
 type ValidationErrors = Partial<Record<keyof RegisterForm | "otp" | "general", string[]>>;
 
+type ApiErrorItem = {
+  code?: string | null;
+  message?: string | null;
+};
+
+const REGISTER_FIELDS = ["firstName", "lastName", "email", "phoneNumber", "password"] as const;
+
+function toRegisterField(key: string): keyof RegisterForm | "general" {
+  const normalized = key.charAt(0).toLowerCase() + key.slice(1);
+  if (REGISTER_FIELDS.includes(normalized as keyof RegisterForm)) {
+    return normalized as keyof RegisterForm;
+  }
+
+  const lowerKey = key.toLowerCase();
+  const matchingField = REGISTER_FIELDS.find((field) => lowerKey.includes(field.toLowerCase()));
+  return matchingField ?? "general";
+}
+
+function addValidationMessage(errors: ValidationErrors, field: keyof RegisterForm | "general", message: string) {
+  errors[field] = [...(errors[field] ?? []), message];
+}
+
 function normalizeValidationErrors(payload: unknown): ValidationErrors {
   if (!payload || typeof payload !== "object") return {};
 
-  const errors = (payload as { errors?: Record<string, string[]> }).errors;
-  if (!errors || typeof errors !== "object") return {};
+  const errors = (payload as { errors?: Record<string, string[]> | ApiErrorItem[] }).errors;
+  if (!errors) return {};
 
   if (Array.isArray(errors)) {
     const normalized: ValidationErrors = {};
@@ -49,10 +71,23 @@ function normalizeValidationErrors(payload: unknown): ValidationErrors {
   }
 
   const normalized: ValidationErrors = {};
+
+  if (Array.isArray(errors)) {
+    for (const error of errors) {
+      if (!error?.message) continue;
+      addValidationMessage(normalized, toRegisterField(error.code ?? "general"), error.message);
+    }
+
+    return normalized;
+  }
+
+  if (typeof errors !== "object") return {};
+
   for (const [key, messages] of Object.entries(errors)) {
     if (!Array.isArray(messages)) continue;
-    const field = key.charAt(0).toLowerCase() + key.slice(1);
-    normalized[field as keyof RegisterForm] = messages;
+    for (const message of messages) {
+      addValidationMessage(normalized, toRegisterField(key), message);
+    }
   }
 
   return normalized;

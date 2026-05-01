@@ -58,3 +58,4 @@ src/SalamHack.Client/*.local
 *.sln
 *.sw?
 
+db_data/
