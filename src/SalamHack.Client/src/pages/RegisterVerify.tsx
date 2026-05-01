@@ -8,6 +8,7 @@ import { storeAuthSession, unwrapApiResponse, type AuthSessionResponse } from "@
 import type { RegisterForm } from "./Register";
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/+$/, "");
+const REGISTER_API_URL = `${API_BASE_URL}/api/v1/Auth/register`;
 const VERIFY_REGISTER_API_URL = `${API_BASE_URL}/api/v1/Auth/register/verify`;
 
 type LocationState = {
@@ -35,7 +36,9 @@ export default function RegisterVerify() {
   const registrationData = (location.state as LocationState | null)?.registrationData;
   const [otp, setOtp] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isResending, setIsResending] = useState(false);
   const [error, setError] = useState("");
+  const [resendMessage, setResendMessage] = useState("");
 
   if (!registrationData) {
     return <Navigate to="/register" replace />;
@@ -76,6 +79,38 @@ export default function RegisterVerify() {
     }
   };
 
+  const handleResendOtp = async () => {
+    setIsResending(true);
+    setError("");
+    setResendMessage("");
+
+    try {
+      const response = await fetch(REGISTER_API_URL, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(registrationData),
+      });
+
+      const payload = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        setError(getApiErrorMessage(payload));
+        return;
+      }
+
+      setOtp("");
+      setResendMessage("تم إرسال رمز تحقق جديد إلى بريدك الإلكتروني.");
+    } catch {
+      setError("تعذر إعادة إرسال الرمز. حاول مرة أخرى بعد قليل.");
+    } finally {
+      setIsResending(false);
+    }
+  };
+
   return (
     <AuthLayout
       badge="تأكيد البريد"
@@ -84,7 +119,11 @@ export default function RegisterVerify() {
       footer={
         <>
           البريد غير صحيح؟{" "}
-          <Link to="/register" className="text-teal font-semibold hover:underline">
+          <Link
+            to="/register"
+            state={{ registrationData }}
+            className="text-teal font-semibold hover:underline"
+          >
             تعديل البيانات
           </Link>
         </>
@@ -94,6 +133,12 @@ export default function RegisterVerify() {
         {error && (
           <div className="rounded-xl border border-danger/30 bg-danger-soft p-3 text-xs leading-relaxed text-danger">
             {error}
+          </div>
+        )}
+
+        {resendMessage && (
+          <div className="rounded-xl border border-success/30 bg-success-soft p-3 text-xs leading-relaxed text-success">
+            {resendMessage}
           </div>
         )}
 
@@ -134,6 +179,17 @@ export default function RegisterVerify() {
             <ArrowLeft className="ml-1 h-4 w-4" />
           )}
           {isSubmitting ? "جاري التحقق..." : "تحقق"}
+        </Button>
+
+        <Button
+          type="button"
+          variant="ghost"
+          disabled={isSubmitting || isResending}
+          onClick={handleResendOtp}
+          className="h-10 w-full rounded-xl text-sm text-teal hover:text-teal"
+        >
+          {isResending && <Loader2 className="ml-1 h-4 w-4 animate-spin" />}
+          {isResending ? "جاري إعادة الإرسال..." : "إعادة إرسال الرمز"}
         </Button>
       </form>
     </AuthLayout>
