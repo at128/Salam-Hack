@@ -1,11 +1,14 @@
 using Asp.Versioning;
 using SalamHack.Application.Features.Auth.Commands.ChangePassword;
+using SalamHack.Application.Features.Auth.Commands.ForgotPassword;
 using SalamHack.Application.Features.Auth.Commands.Login;
 using SalamHack.Application.Features.Auth.Commands.LogoutAllSessions;
 using SalamHack.Application.Features.Auth.Commands.LogoutCurrentSession;
 using SalamHack.Application.Features.Auth.Commands.RefreshToken;
 using SalamHack.Application.Features.Auth.Commands.Register;
+using SalamHack.Application.Features.Auth.Commands.ResetPassword;
 using SalamHack.Application.Features.Auth.Commands.UpdateProfile;
+using SalamHack.Application.Features.Auth.Commands.VerifyRegistration;
 using SalamHack.Application.Features.Auth.Queries.GetProfile;
 using SalamHack.Api.Responses;
 using SalamHack.Contracts.Auth;
@@ -22,7 +25,7 @@ public sealed class AuthController(ISender sender) : ApiController
     [EnableRateLimiting("auth")]
     [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
     [HttpPost("register")]
-    [ProducesResponseType(typeof(ApiResponse<AuthResponse>), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ApiResponse<EmailVerificationChallengeResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Register(
@@ -31,6 +34,27 @@ public sealed class AuthController(ISender sender) : ApiController
         var result = await sender.Send(new RegisterCommand(
             request.Email, request.Password, request.FirstName,
             request.LastName, request.PhoneNumber), ct);
+
+        return result.Match(
+            response => OkResponse(
+                new EmailVerificationChallengeResponse(response.Email, response.ExpiresInMinutes),
+                "Verification code sent."),
+            Problem);
+    }
+
+    /// <summary>Verify email OTP and create a new user account.</summary>
+    [EnableRateLimiting("auth")]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+    [HttpPost("register/verify")]
+    [ProducesResponseType(typeof(ApiResponse<AuthResponse>), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> VerifyRegistration(
+        [FromBody] VerifyRegistrationRequest request, CancellationToken ct)
+    {
+        var result = await sender.Send(new VerifyRegistrationCommand(
+            request.Email, request.Password, request.FirstName,
+            request.LastName, request.PhoneNumber, request.Otp), ct);
 
         return result.Match(
             response => CreatedResponse(nameof(GetProfile), null, response, "Registered successfully."),
@@ -50,6 +74,43 @@ public sealed class AuthController(ISender sender) : ApiController
             new LoginCommand(request.Email, request.Password), ct);
 
         return result.Match(response => OkResponse(response), Problem);
+    }
+
+    /// <summary>Send a password reset OTP to the user's email.</summary>
+    [EnableRateLimiting("auth")]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+    [HttpPost("forgot-password")]
+    [ProducesResponseType(typeof(ApiResponse<EmailVerificationChallengeResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> ForgotPassword(
+        [FromBody] ForgotPasswordRequest request, CancellationToken ct)
+    {
+        var result = await sender.Send(new ForgotPasswordCommand(request.Email), ct);
+
+        return result.Match(
+            response => OkResponse(
+                new EmailVerificationChallengeResponse(response.Email, response.ExpiresInMinutes),
+                "If an account exists for this email, a reset code has been sent."),
+            Problem);
+    }
+
+    /// <summary>Verify password reset OTP and set a new password.</summary>
+    [EnableRateLimiting("auth")]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+    [HttpPost("reset-password")]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> ResetPassword(
+        [FromBody] ResetPasswordRequest request, CancellationToken ct)
+    {
+        var result = await sender.Send(new ResetPasswordCommand(
+            request.Email,
+            request.Otp,
+            request.NewPassword), ct);
+
+        return result.Match(
+            _ => OkResponse<object?>(null, "Password reset successfully."),
+            Problem);
     }
 
     /// <summary>Get the current user's profile.</summary>
