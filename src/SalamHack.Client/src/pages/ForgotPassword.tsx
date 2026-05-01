@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, Loader2, Mail } from "lucide-react";
 import AuthLayout from "@/components/auth/AuthLayout";
@@ -14,21 +14,6 @@ export default function ForgotPassword() {
   const [email, setEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
-  const [timeLeft, setTimeLeft] = useState(0);
-
-  useEffect(() => {
-    if (timeLeft <= 0) return;
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => prev - 1);
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [timeLeft]);
-
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, "0")}`;
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,13 +33,11 @@ export default function ForgotPassword() {
       const payload = await response.json().catch(() => null);
 
       if (!response.ok) {
-        const msg = (payload as { message?: string; detail?: string; title?: string } | null)?.message ??
-          (payload as { detail?: string; title?: string } | null)?.detail ??
-          "تعذر إرسال رمز إعادة التعيين. تحقق من البريد الإلكتروني وحاول مرة أخرى.";
-        setError(msg);
-        if (msg.includes("5 دقائق")) {
-          setTimeLeft(300);
-        }
+        setError(
+          (payload as { message?: string; detail?: string; title?: string } | null)?.message ??
+            (payload as { detail?: string; title?: string } | null)?.detail ??
+            "تعذر إرسال رمز إعادة التعيين. تحقق من البريد الإلكتروني وحاول مرة أخرى.",
+        );
         return;
       }
 
@@ -111,7 +94,7 @@ export default function ForgotPassword() {
         <Button
           type="submit"
           size="lg"
-          disabled={isSubmitting || timeLeft > 0}
+          disabled={isSubmitting}
           className="h-11 w-full rounded-xl bg-gradient-brand text-base shadow-glow hover:opacity-90"
         >
           {isSubmitting ? (
@@ -119,7 +102,7 @@ export default function ForgotPassword() {
           ) : (
             <ArrowLeft className="ml-1 h-4 w-4" />
           )}
-          {isSubmitting ? "جاري الإرسال..." : timeLeft > 0 ? `إرسال مجدداً خلال ${formatTime(timeLeft)}` : "إرسال رمز التحقق"}
+          {isSubmitting ? "جاري الإرسال..." : "إرسال رمز التحقق"}
         </Button>
       </form>
     </AuthLayout>

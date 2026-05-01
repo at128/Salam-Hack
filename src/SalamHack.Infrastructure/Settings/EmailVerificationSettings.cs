@@ -11,10 +11,6 @@ public sealed class EmailVerificationSettings
     public int ExpiryMinutes { get; init; } = 10;
 
     public int MaxAttempts { get; init; } = 5;
-
-    public int ResendIntervalMinutes { get; init; } = 5;
-
-    public int MaxDailyRequests { get; init; } = 5;
 }
 
 public sealed class MailSettings

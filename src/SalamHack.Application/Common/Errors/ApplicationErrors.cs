@@ -93,12 +93,6 @@ public static class ApplicationErrors
         public static readonly Error InvalidEmailVerificationCode =
             Error.Validation("Auth.InvalidEmailVerificationCode", "Invalid or expired email verification code.");
 
-        public static readonly Error EmailVerificationThrottled =
-            Error.Validation("Auth.EmailVerificationThrottled", "يرجى الانتظار 5 دقائق قبل طلب رمز تحقق آخر.");
-
-        public static readonly Error EmailVerificationTooManyRequests =
-            Error.Validation("Auth.EmailVerificationTooManyRequests", "تم الوصول إلى الحد اليومي لرموز التحقق (5 مرات). يرجى المحاولة غداً.");
-
         public static Error RegistrationFailed(string details) =>
             Error.Failure("Auth.RegistrationFailed", $"فشل التسجيل: {details}");
 
