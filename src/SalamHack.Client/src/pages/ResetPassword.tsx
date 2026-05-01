@@ -1,36 +1,24 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, Eye, EyeOff, Loader2, Lock, Mail } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { ArrowLeft, Eye, EyeOff, Loader2, Lock, Mail, ShieldCheck } from "lucide-react";
 import AuthLayout from "@/components/auth/AuthLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { storeAuthSession, unwrapApiResponse, type AuthSessionResponse } from "@/lib/auth";
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/+$/, "");
-const LOGIN_API_URL = `${API_BASE_URL}/api/v1/Auth/login`;
+const RESET_PASSWORD_API_URL = `${API_BASE_URL}/api/v1/Auth/reset-password`;
 
-type LoginForm = {
-  email: string;
-  password: string;
-  rememberMe: boolean;
-};
-
-export default function Login() {
+export default function ResetPassword() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const initialEmail = useMemo(() => searchParams.get("email") ?? "", [searchParams]);
+  const [email, setEmail] = useState(initialEmail);
+  const [otp, setOtp] = useState("");
+  const [newPassword, setNewPassword] = useState("");
   const [showPwd, setShowPwd] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
-  const [form, setForm] = useState<LoginForm>({
-    email: "",
-    password: "",
-    rememberMe: false,
-  });
-
-  const setField = (field: "email" | "password") => (e: React.ChangeEvent<HTMLInputElement>) => {
-    setForm((prev) => ({ ...prev, [field]: e.target.value }));
-    setError("");
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,16 +26,16 @@ export default function Login() {
     setError("");
 
     try {
-      const response = await fetch(LOGIN_API_URL, {
+      const response = await fetch(RESET_PASSWORD_API_URL, {
         method: "POST",
-        credentials: "include",
         headers: {
           Accept: "application/json",
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          email: form.email.trim(),
-          password: form.password,
+          email: email.trim(),
+          otp,
+          newPassword,
         }),
       });
 
@@ -55,14 +43,14 @@ export default function Login() {
 
       if (!response.ok) {
         setError(
-          (payload as { detail?: string; title?: string } | null)?.detail ??
-            "تعذر تسجيل الدخول. تحقق من البريد الإلكتروني وكلمة المرور.",
+          (payload as { message?: string; detail?: string; title?: string } | null)?.message ??
+            (payload as { detail?: string; title?: string } | null)?.detail ??
+            "تعذر إعادة تعيين كلمة المرور. تحقق من الرمز وكلمة المرور الجديدة.",
         );
         return;
       }
 
-      storeAuthSession(unwrapApiResponse<AuthSessionResponse>(payload), form.rememberMe);
-      navigate("/dashboard");
+      navigate("/login");
     } catch {
       setError("تعذر الاتصال بالخدمة. حاول مرة أخرى بعد قليل.");
     } finally {
@@ -72,14 +60,14 @@ export default function Login() {
 
   return (
     <AuthLayout
-      badge="تسجيل الدخول"
-      title="أهلا بعودتك"
-      subtitle="سجل دخولك للمتابعة إلى لوحة تحكمك المالية."
+      badge="رمز التحقق"
+      title="إعادة تعيين كلمة المرور"
+      subtitle="أدخل الرمز المرسل إلى بريدك الإلكتروني واختر كلمة مرور جديدة."
       footer={
         <>
-          ليس لديك حساب؟{" "}
-          <Link to="/register" className="text-teal font-semibold hover:underline">
-            أنشئ حسابا جديدا
+          لم يصلك الرمز؟{" "}
+          <Link to="/forgot-password" className="text-teal font-semibold hover:underline">
+            أرسل رمزاً جديداً
           </Link>
         </>
       }
@@ -100,8 +88,11 @@ export default function Login() {
             <Input
               id="email"
               type="email"
-              value={form.email}
-              onChange={setField("email")}
+              value={email}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                setError("");
+              }}
               placeholder="name@example.com"
               required
               className="h-11 rounded-xl border-border/70 bg-card pr-10"
@@ -110,23 +101,44 @@ export default function Login() {
         </div>
 
         <div className="space-y-2">
-          <div className="flex items-center justify-between gap-3">
-            <Label htmlFor="password" className="text-navy">
-              كلمة المرور
-            </Label>
-            <Link to="/forgot-password" className="text-xs font-semibold text-teal hover:underline">
-              نسيت كلمة المرور؟
-            </Link>
+          <Label htmlFor="otp" className="text-navy">
+            رمز التحقق
+          </Label>
+          <div className="relative">
+            <ShieldCheck className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              id="otp"
+              type="text"
+              inputMode="numeric"
+              value={otp}
+              onChange={(e) => {
+                setOtp(e.target.value.replace(/\D/g, "").slice(0, 6));
+                setError("");
+              }}
+              placeholder="123456"
+              required
+              className="h-11 rounded-xl border-border/70 bg-card pr-10 tracking-[0.35em]"
+            />
           </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="newPassword" className="text-navy">
+            كلمة المرور الجديدة
+          </Label>
           <div className="relative">
             <Lock className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              id="password"
+              id="newPassword"
               type={showPwd ? "text" : "password"}
-              value={form.password}
-              onChange={setField("password")}
-              placeholder="••••••••"
+              value={newPassword}
+              onChange={(e) => {
+                setNewPassword(e.target.value);
+                setError("");
+              }}
+              placeholder="8 أحرف على الأقل"
               required
+              minLength={8}
               className="h-11 rounded-xl border-border/70 bg-card pr-10 pl-10"
             />
             <button
@@ -140,20 +152,10 @@ export default function Login() {
           </div>
         </div>
 
-        <label className="flex select-none items-center gap-2 text-sm text-muted-foreground">
-          <input
-            type="checkbox"
-            checked={form.rememberMe}
-            onChange={(e) => setForm((prev) => ({ ...prev, rememberMe: e.target.checked }))}
-            className="h-4 w-4 rounded border-border accent-teal"
-          />
-          تذكرني على هذا الجهاز
-        </label>
-
         <Button
           type="submit"
           size="lg"
-          disabled={isSubmitting}
+          disabled={isSubmitting || otp.length !== 6}
           className="h-11 w-full rounded-xl bg-gradient-brand text-base shadow-glow hover:opacity-90"
         >
           {isSubmitting ? (
@@ -161,10 +163,8 @@ export default function Login() {
           ) : (
             <ArrowLeft className="ml-1 h-4 w-4" />
           )}
-          {isSubmitting ? "جاري تسجيل الدخول..." : "دخول"}
+          {isSubmitting ? "جاري الحفظ..." : "تحديث كلمة المرور"}
         </Button>
-
-
       </form>
     </AuthLayout>
   );

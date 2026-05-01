@@ -25,6 +25,11 @@ public interface IIdentityService
         string currentPassword,
         string newPassword,
         CancellationToken ct = default);
+
+    Task<Result<Success>> ResetPasswordAsync(
+        string email,
+        string newPassword,
+        CancellationToken ct = default);
 }
 
 

@@ -176,4 +176,29 @@ public class IdentityService(
 
         return Result.Success;
     }
+
+    public async Task<Result<Success>> ResetPasswordAsync(
+        string email,
+        string newPassword,
+        CancellationToken ct = default)
+    {
+        var user = await userManager.FindByEmailAsync(email);
+        if (user is null)
+            return ApplicationErrors.Auth.UserNotFound;
+
+        user.UpdatedAtUtc = DateTimeOffset.UtcNow;
+
+        var token = await userManager.GeneratePasswordResetTokenAsync(user);
+        var resetResult = await userManager.ResetPasswordAsync(user, token, newPassword);
+
+        if (!resetResult.Succeeded)
+        {
+            var errors = string.Join(", ", resetResult.Errors.Select(e => e.Description));
+            return ApplicationErrors.Auth.PasswordResetFailed(errors);
+        }
+
+        await userManager.ResetAccessFailedCountAsync(user);
+
+        return Result.Success;
+    }
 }

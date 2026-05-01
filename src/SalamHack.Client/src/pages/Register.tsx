@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, Check, Eye, EyeOff, Loader2, Lock, Mail, Phone, User } from "lucide-react";
+import { ArrowLeft, Check, Eye, EyeOff, Loader2, Lock, Mail, Phone, ShieldCheck, User } from "lucide-react";
 import AuthLayout from "@/components/auth/AuthLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,7 @@ import { storeAuthSession, unwrapApiResponse, type AuthSessionResponse } from "@
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/+$/, "");
 const REGISTER_API_URL = `${API_BASE_URL}/api/v1/Auth/register`;
+const VERIFY_REGISTER_API_URL = `${API_BASE_URL}/api/v1/Auth/register/verify`;
 
 const PERKS = [
   "حتى ٥ فواتير شهريا مجانا",
@@ -24,7 +25,7 @@ type RegisterForm = {
   password: string;
 };
 
-type ValidationErrors = Partial<Record<keyof RegisterForm | "general", string[]>>;
+type ValidationErrors = Partial<Record<keyof RegisterForm | "otp" | "general", string[]>>;
 
 type ApiErrorItem = {
   code?: string | null;
@@ -53,6 +54,21 @@ function normalizeValidationErrors(payload: unknown): ValidationErrors {
 
   const errors = (payload as { errors?: Record<string, string[]> | ApiErrorItem[] }).errors;
   if (!errors) return {};
+
+  if (Array.isArray(errors)) {
+    const normalized: ValidationErrors = {};
+    for (const error of errors) {
+      if (!error || typeof error !== "object") continue;
+      const code = (error as { code?: string }).code;
+      const message = (error as { message?: string }).message;
+      if (!code || !message) continue;
+
+      const field = code.includes(".") ? "general" : code.charAt(0).toLowerCase() + code.slice(1);
+      normalized[field as keyof ValidationErrors] = [message];
+    }
+
+    return normalized;
+  }
 
   const normalized: ValidationErrors = {};
 
@@ -86,6 +102,9 @@ export default function Register() {
   const navigate = useNavigate();
   const [showPwd, setShowPwd] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isOtpStep, setIsOtpStep] = useState(false);
+  const [otp, setOtp] = useState("");
+  const [notice, setNotice] = useState("");
   const [errors, setErrors] = useState<ValidationErrors>({});
   const [form, setForm] = useState<RegisterForm>({
     firstName: "",
@@ -98,6 +117,17 @@ export default function Register() {
   const setField = (field: keyof RegisterForm) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm((prev) => ({ ...prev, [field]: e.target.value }));
     setErrors((prev) => ({ ...prev, [field]: undefined, general: undefined }));
+    setNotice("");
+
+    if (isOtpStep) {
+      setIsOtpStep(false);
+      setOtp("");
+    }
+  };
+
+  const setOtpField = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setOtp(e.target.value.replace(/\D/g, "").slice(0, 6));
+    setErrors((prev) => ({ ...prev, otp: undefined, general: undefined }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -106,7 +136,7 @@ export default function Register() {
     setErrors({});
 
     try {
-      const response = await fetch(REGISTER_API_URL, {
+      const response = await fetch(isOtpStep ? VERIFY_REGISTER_API_URL : REGISTER_API_URL, {
         method: "POST",
         credentials: "include",
         headers: {
@@ -119,6 +149,7 @@ export default function Register() {
           firstName: form.firstName.trim(),
           lastName: form.lastName.trim(),
           phoneNumber: form.phoneNumber.trim(),
+          ...(isOtpStep ? { otp } : {}),
         }),
       });
 
@@ -136,6 +167,12 @@ export default function Register() {
                 ],
               },
         );
+        return;
+      }
+
+      if (!isOtpStep) {
+        setIsOtpStep(true);
+        setNotice("Verification code sent to your email.");
         return;
       }
 
@@ -166,6 +203,12 @@ export default function Register() {
         {errors.general && (
           <div className="rounded-xl border border-danger/30 bg-danger-soft p-3 text-xs leading-relaxed text-danger">
             {errors.general[0]}
+          </div>
+        )}
+
+        {notice && (
+          <div className="rounded-xl border border-success/30 bg-success-soft p-3 text-xs leading-relaxed text-success">
+            {notice}
           </div>
         )}
 
@@ -275,6 +318,28 @@ export default function Register() {
           <ErrorText messages={errors.password} />
         </div>
 
+        {isOtpStep && (
+          <div className="space-y-1.5">
+            <Label htmlFor="otp" className="text-navy">
+              Email verification code
+            </Label>
+            <div className="relative">
+              <ShieldCheck className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                id="otp"
+                type="text"
+                inputMode="numeric"
+                value={otp}
+                onChange={setOtpField}
+                placeholder="123456"
+                required
+                className="h-10 rounded-xl border-border/70 bg-card pr-10 tracking-[0.35em]"
+              />
+            </div>
+            <ErrorText messages={errors.otp} />
+          </div>
+        )}
+
         <label className="flex select-none items-start gap-2 text-xs leading-relaxed text-muted-foreground">
           <input type="checkbox" required className="mt-1 h-4 w-4 rounded border-border accent-teal" />
           <span>
@@ -292,7 +357,7 @@ export default function Register() {
         <Button
           type="submit"
           size="lg"
-          disabled={isSubmitting}
+          disabled={isSubmitting || (isOtpStep && otp.length !== 6)}
           className="h-10 w-full rounded-xl bg-gradient-brand text-sm shadow-glow hover:opacity-90"
         >
           {isSubmitting ? (
@@ -300,7 +365,13 @@ export default function Register() {
           ) : (
             <ArrowLeft className="ml-1 h-4 w-4" />
           )}
-          {isSubmitting ? "جاري إنشاء الحساب..." : "إنشاء الحساب"}
+          {isSubmitting
+            ? isOtpStep
+              ? "Verifying..."
+              : "جاري إنشاء الحساب..."
+            : isOtpStep
+              ? "Verify and create account"
+              : "إنشاء الحساب"}
         </Button>
 
         <ul className="grid gap-2 sm:grid-cols-3">

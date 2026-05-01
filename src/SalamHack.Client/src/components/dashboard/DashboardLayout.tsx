@@ -1,20 +1,6 @@
 import { useEffect, useState } from "react";
-import {
-  Bell,
-  ChevronDown,
-  FileText,
-  FolderKanban,
-  KeyRound,
-  LayoutDashboard,
-  Loader2,
-  LogOut,
-  Plus,
-  ReceiptText,
-  Trash2,
-  UserRound,
-  Users,
-} from "lucide-react";
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { Bell, ChevronDown, FileText, FolderKanban, KeyRound, Loader2, LogOut, Plus, ReceiptText, Trash2, UserRound } from "lucide-react";
+import { Link, Outlet, useNavigate } from "react-router-dom";
 import Sidebar from "@/components/dashboard/Sidebar";
 import { Button } from "@/components/ui/button";
 import {
@@ -312,30 +298,27 @@ export default function DashboardLayout({
 
             <div className="flex justify-center">
               <div className="hidden items-center gap-2 md:flex">
-                <button
-                  type="button"
-                  onClick={() => navigate("/dashboard/projects")}
+                <Link
+                  to="/dashboard/projects"
                   className="inline-flex h-9 items-center gap-2 rounded-xl border border-border/70 bg-card px-3 text-sm font-semibold text-navy transition-colors hover:bg-muted/40"
                 >
                   <FolderKanban className="h-4 w-4" />
                   مشروع
-                </button>
-                <button
-                  type="button"
-                  onClick={() => navigate("/dashboard/invoices")}
+                </Link>
+                <Link
+                  to="/dashboard/invoices"
                   className="inline-flex h-9 items-center gap-2 rounded-xl border border-border/70 bg-card px-3 text-sm font-semibold text-navy transition-colors hover:bg-muted/40"
                 >
                   <FileText className="h-4 w-4" />
                   فاتورة
-                </button>
-                <button
-                  type="button"
-                  onClick={() => navigate("/dashboard/expenses")}
+                </Link>
+                <Link
+                  to="/dashboard/profit"
                   className="inline-flex h-9 items-center gap-2 rounded-xl border border-border/70 bg-card px-3 text-sm font-semibold text-navy transition-colors hover:bg-muted/40"
                 >
                   <ReceiptText className="h-4 w-4" />
                   مصروف
-                </button>
+                </Link>
               </div>
             </div>
 

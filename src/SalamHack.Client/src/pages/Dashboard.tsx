@@ -3,20 +3,20 @@ import { Link } from "react-router-dom";
 import {
   AlertTriangle,
   BriefcaseBusiness,
+  ClipboardList,
+  FilePlus2,
   FileText,
-  FolderKanban,
+  FolderPlus,
   Lightbulb,
   Percent,
   Plus,
   ReceiptText,
-  ShieldAlert,
+  Shield,
   ShieldCheck,
   Siren,
-  Sparkles,
-  Users,
+  UserPlus,
   type LucideIcon,
 } from "lucide-react";
-import KpiCard from "@/components/dashboard/KpiCard";
 import { getApiErrorMessage, getValidAccessToken, unwrapApiResponse } from "@/lib/auth";
 
 type AnalysisInsight = {
@@ -188,48 +188,96 @@ function insightTypeLabel(type: string | undefined) {
   }
 }
 
-function QuickAction({ action }: { action: ActionLink }) {
-  const Icon = action.icon;
+type QuickAction = {
+  title: string;
+  description: string;
+  href: string;
+  icon: LucideIcon;
+  featured?: boolean;
+};
+
+const quickActions: QuickAction[] = [
+  {
+    title: "مشروع جديد",
+    description: "ابدأ من السعر والعميل والخدمة",
+    href: "/dashboard/projects",
+    icon: Plus,
+    featured: true,
+  },
+  {
+    title: "فاتورة",
+    description: "أنشئ فاتورة أو سجل دفعة",
+    href: "/dashboard/invoices",
+    icon: FilePlus2,
+  },
+  {
+    title: "مصروف",
+    description: "اشتراك، أداة، أو تكلفة عامة",
+    href: "/dashboard/profit",
+    icon: ReceiptText,
+  },
+  {
+    title: "عميل",
+    description: "أضف عميل قبل إنشاء المشروع",
+    href: "/dashboard/customers",
+    icon: UserPlus,
+  },
+];
+
+const priorityItems = [
+  {
+    title: "ابدأ بمشروعك الأول",
+    description: "المشروع هو نقطة الربط بين العميل، الفاتورة، والربح",
+    href: "/dashboard/projects",
+    icon: FolderPlus,
+  },
+  {
+    title: "سجل مصروف جديد",
+    description: "الاشتراكات والأدوات تظهر تأثيرها في الربح الحقيقي",
+    href: "/dashboard/profit",
+    icon: ClipboardList,
+  },
+  {
+    title: "راجع الفواتير والتحصيل",
+    description: "الفواتير والدفعات صارت في صفحة واحدة",
+    href: "/dashboard/invoices",
+    icon: FileText,
+  },
+];
+
+function MetricCard({
+  label,
+  value,
+  delta,
+  trend,
+  icon: Icon,
+}: {
+  label: string;
+  value: string;
+  delta: string;
+  trend: "up" | "down" | "neutral";
+  icon: LucideIcon;
+}) {
+  const tone =
+    trend === "up"
+      ? "bg-success-soft text-success"
+      : trend === "down"
+        ? "bg-warning-soft text-warning"
+        : "bg-muted text-muted-foreground";
 
   return (
-    <Link
-      to={action.href}
-      className={`rounded-xl border p-4 transition-colors ${
-        action.primary
-          ? "border-navy bg-navy text-white hover:bg-navy-light"
-          : "border-border/70 bg-card text-navy hover:border-navy/25 hover:bg-muted/30"
-      }`}
-    >
-      <div className="mb-3 flex items-center justify-between">
-        <span className={`grid h-10 w-10 place-items-center rounded-xl ${action.primary ? "bg-white/10" : "bg-teal-soft text-teal"}`}>
+    <article className="min-h-36 rounded-2xl border border-border/70 bg-card p-5 shadow-card">
+      <div className="flex items-start justify-between gap-3">
+        <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold ${tone}`}>
+          {delta}
+        </span>
+        <span className="grid h-11 w-11 place-items-center rounded-xl bg-teal-soft text-teal">
           <Icon className="h-5 w-5" />
         </span>
-        <span className={`text-xs font-semibold ${action.primary ? "text-white/65" : "text-muted-foreground"}`}>فتح</span>
       </div>
-      <h3 className="font-bold">{action.title}</h3>
-      <p className={`mt-1 text-xs leading-relaxed ${action.primary ? "text-white/65" : "text-muted-foreground"}`}>
-        {action.desc}
-      </p>
-    </Link>
-  );
-}
-
-function PriorityStep({ step }: { step: ActionLink }) {
-  const Icon = step.icon;
-
-  return (
-    <Link
-      to={step.href}
-      className="flex items-start gap-3 rounded-xl border border-border/70 bg-card p-3 transition-colors hover:border-navy/25 hover:bg-muted/30"
-    >
-      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-teal-soft text-teal">
-        <Icon className="h-4 w-4" />
-      </span>
-      <span className="min-w-0">
-        <span className="block font-semibold text-navy">{step.title}</span>
-        <span className="mt-0.5 block text-xs leading-relaxed text-muted-foreground">{step.desc}</span>
-      </span>
-    </Link>
+      <div className="mt-6 text-2xl font-extrabold text-navy">{value}</div>
+      <div className="mt-1 text-xs text-muted-foreground">{label}</div>
+    </article>
   );
 }
 
@@ -379,50 +427,100 @@ export default function Dashboard() {
         </div>
       )}
 
-      <section className="grid gap-4 xl:grid-cols-[1.45fr_0.75fr]">
+      <section className="grid gap-4 xl:grid-cols-[1.95fr_1fr]">
         <div className="rounded-2xl border border-border/70 bg-card p-5 shadow-card">
-          <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <p className="text-xs font-semibold text-teal">الصفحات الأساسية</p>
-              <h2 className="mt-1 text-xl font-bold text-navy">إدارة الشغل من مكان واحد</h2>
+          <div className="mb-5 flex items-start justify-between gap-4">
+            <div className="text-right">
+              <p className="mb-1 text-xs font-semibold text-teal">الصفحات الأساسية</p>
+              <h2 className="text-2xl font-extrabold tracking-normal text-navy">إدارة الشغل من مكان واحد</h2>
             </div>
             <Link
               to="/dashboard/client-risk"
-              className="inline-flex items-center justify-center gap-2 rounded-xl border border-border/70 px-3 py-2 text-sm font-semibold text-navy transition-colors hover:bg-muted/40"
+              className="inline-flex shrink-0 items-center gap-2 rounded-xl border border-border/70 bg-background px-3 py-2 text-sm font-semibold text-navy transition-colors hover:bg-muted/60"
             >
-              <ShieldAlert className="h-4 w-4" />
+              <Shield className="h-4 w-4" />
               تحليل عميل
             </Link>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            {quickActions.map((action) => (
-              <QuickAction key={action.href} action={action} />
-            ))}
+            {quickActions.map((action) => {
+              const Icon = action.icon;
+              return (
+                <Link
+                  key={action.title}
+                  to={action.href}
+                  className={
+                    action.featured
+                      ? "group flex min-h-36 flex-col justify-between rounded-2xl bg-navy p-4 text-white shadow-card transition-transform hover:-translate-y-0.5"
+                      : "group flex min-h-36 flex-col justify-between rounded-2xl border border-border/70 bg-background p-4 transition-colors hover:bg-muted/40"
+                  }
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <span className={action.featured ? "text-xs text-white/70" : "text-xs text-muted-foreground"}>
+                      فتح
+                    </span>
+                    <span
+                      className={
+                        action.featured
+                          ? "grid h-10 w-10 place-items-center rounded-xl bg-white/10 text-white"
+                          : "grid h-10 w-10 place-items-center rounded-xl bg-teal-soft text-teal"
+                      }
+                    >
+                      <Icon className="h-5 w-5" />
+                    </span>
+                  </div>
+                  <div>
+                    <h3 className={action.featured ? "text-lg font-extrabold text-white" : "text-lg font-extrabold text-navy"}>
+                      {action.title}
+                    </h3>
+                    <p className={action.featured ? "mt-1 text-xs leading-relaxed text-white/70" : "mt-1 text-xs leading-relaxed text-muted-foreground"}>
+                      {action.description}
+                    </p>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         </div>
 
-        <div className="rounded-2xl border border-border/70 bg-card p-5 shadow-card">
-          <div className="mb-4">
-            <h2 className="text-lg font-bold text-navy">الأولوية الآن</h2>
+        <aside className="rounded-2xl border border-border/70 bg-card p-5 shadow-card">
+          <div className="mb-5 text-right">
+            <h2 className="text-xl font-extrabold text-navy">الأولوية الآن</h2>
             <p className="mt-1 text-xs text-muted-foreground">مختصر عملي بدل التنقل بين تقارير كثيرة.</p>
           </div>
-          <div className="space-y-2">
-            {prioritySteps.map((step) => (
-              <PriorityStep key={`${step.href}-${step.title}`} step={step} />
-            ))}
+
+          <div className="space-y-3">
+            {priorityItems.map((item) => {
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.title}
+                  to={item.href}
+                  className="flex items-center justify-between gap-3 rounded-2xl border border-border/70 bg-background p-4 transition-colors hover:bg-muted/40"
+                >
+                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-teal-soft text-teal">
+                    <Icon className="h-4 w-4" />
+                  </span>
+                  <span className="min-w-0 flex-1 text-right">
+                    <span className="block font-extrabold text-navy">{item.title}</span>
+                    <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">{item.description}</span>
+                  </span>
+                </Link>
+              );
+            })}
           </div>
-        </div>
+        </aside>
       </section>
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         {kpis.map((k) => (
-          <KpiCard key={k.label} {...k} />
+          <MetricCard key={k.label} {...k} />
         ))}
       </section>
 
       <section className="grid gap-6 lg:grid-cols-3">
-        <div className="rounded-2xl border border-border/70 bg-card p-5 shadow-card lg:col-span-2">
+        <div className="lg:col-span-2 rounded-2xl border border-border/70 bg-card p-5 shadow-card">
           <div className="mb-4 flex items-center justify-between">
             <div>
               <h2 className="text-lg font-bold text-navy">قرارات هذا الشهر</h2>

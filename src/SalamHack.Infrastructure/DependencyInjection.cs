@@ -6,6 +6,7 @@ using SalamHack.Infrastructure.BackgroundJobs;
 using SalamHack.Infrastructure.Caching;
 using SalamHack.Infrastructure.Data;
 using SalamHack.Infrastructure.Data.Interceptors;
+using SalamHack.Infrastructure.Email;
 using SalamHack.Infrastructure.Identity;
 using SalamHack.Infrastructure.Invoices;
 using SalamHack.Infrastructure.Notifications;
@@ -40,6 +41,7 @@ public static class DependencyInjection
 
         services.AddScoped<ITokenProvider, TokenProvider>();
         services.AddScoped<IIdentityService, IdentityService>();
+        services.AddScoped<IEmailVerificationService, EmailVerificationService>();
         services.AddScoped<IServiceHistoryAnalyzer, ServiceHistoryAnalyzer>();
         services.AddScoped<IProjectAnalysisAiClient, OpenAiProjectAnalysisClient>();
         services.AddScoped<IExpenseClassifier, RuleBasedExpenseClassifier>();
@@ -55,6 +57,7 @@ public static class DependencyInjection
         services.AddRefreshToken(configuration);
         services.AddExpenseReceiptStorage(configuration);
         services.AddProjectAnalysisAi(configuration);
+        services.AddEmailVerification(configuration);
 
         return services;
     }
@@ -217,6 +220,27 @@ public static class DependencyInjection
                 $"{ProjectAnalysisAiSettings.SectionName}:TimeoutSeconds must be between 5 and 120.")
             .Validate(s => s.Temperature is >= 0 and <= 2,
                 $"{ProjectAnalysisAiSettings.SectionName}:Temperature must be between 0 and 2.");
+
+        return services;
+    }
+
+    private static IServiceCollection AddEmailVerification(
+        this IServiceCollection services,
+        IConfiguration configuration)
+    {
+        services.AddOptions<EmailVerificationSettings>()
+            .Bind(configuration.GetSection(EmailVerificationSettings.SectionName))
+            .Validate(s => s.OtpLength is >= 4 and <= 8,
+                $"{EmailVerificationSettings.SectionName}:OtpLength must be between 4 and 8.")
+            .Validate(s => s.ExpiryMinutes is >= 1 and <= 60,
+                $"{EmailVerificationSettings.SectionName}:ExpiryMinutes must be between 1 and 60.")
+            .Validate(s => s.MaxAttempts is >= 1 and <= 10,
+                $"{EmailVerificationSettings.SectionName}:MaxAttempts must be between 1 and 10.");
+
+        services.AddOptions<MailSettings>()
+            .Bind(configuration.GetSection(MailSettings.SectionName))
+            .Validate(s => s.Port is > 0 and <= 65535,
+                $"{MailSettings.SectionName}:Port must be a valid TCP port.");
 
         return services;
     }
