@@ -12,7 +12,8 @@ public class RegisterCommandHandler(
     public async Task<Result<EmailVerificationChallengeResult>> Handle(
         RegisterCommand request, CancellationToken ct)
     {
-        if (!await identityService.IsEmailUniqueAsync(request.Email, ct))
+        var emailConfirmed = await identityService.GetEmailConfirmedStatusAsync(request.Email, ct);
+        if (emailConfirmed == true)
             return ApplicationErrors.Auth.EmailAlreadyRegistered;
 
         return await emailVerificationService.SendRegistrationOtpAsync(request.Email, ct);

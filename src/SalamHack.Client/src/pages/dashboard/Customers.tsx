@@ -375,7 +375,7 @@ export default function CustomersPage() {
     <>
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <PageHeader title="إدارة العملاء" desc="إضافة وتحديث وحذف العملاء المرتبطين بحسابك." />
-        <Button onClick={openCreateForm} className="rounded-xl bg-teal font-bold text-white hover:bg-teal/90">
+        <Button onClick={openCreateForm} className="w-full rounded-xl bg-teal font-bold text-white hover:bg-teal/90 sm:w-auto">
           <Plus className="ml-2 h-4 w-4" />
           عميل جديد
         </Button>
@@ -406,9 +406,9 @@ export default function CustomersPage() {
         </div>
       )}
 
-      <section className="rounded-2xl border border-border/70 bg-card p-5 shadow-card">
+      <section className="min-w-0 rounded-2xl border border-border/70 bg-card p-4 shadow-card sm:p-5">
         <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <form onSubmit={submitSearch} className="flex flex-1 gap-2">
+          <form onSubmit={submitSearch} className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row">
             <div className="relative flex-1">
               <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
@@ -423,7 +423,7 @@ export default function CustomersPage() {
             </Button>
           </form>
 
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Select
               dir="rtl"
               value={clientType}
@@ -432,7 +432,7 @@ export default function CustomersPage() {
                 setPageNumber(1);
               }}
             >
-              <SelectTrigger className="h-11 w-40 rounded-xl bg-white text-right [&>span]:w-full [&>span]:text-right">
+              <SelectTrigger className="h-11 w-full rounded-xl bg-white text-right sm:w-40 [&>span]:w-full [&>span]:text-right">
                 <SelectValue placeholder="نوع العميل" />
               </SelectTrigger>
               <SelectContent dir="rtl" className="text-right">
@@ -454,8 +454,8 @@ export default function CustomersPage() {
           </div>
         ) : customers?.items.length ? (
           <>
-            <div className="overflow-hidden rounded-xl border border-border/70">
-              <table className="w-full text-right text-sm">
+            <div className="overflow-x-auto rounded-xl border border-border/70">
+              <table className="w-full min-w-[820px] text-right text-sm">
                 <thead className="bg-muted/50 text-xs text-muted-foreground">
                   <tr>
                     <th className="px-4 py-3 font-semibold">العميل</th>

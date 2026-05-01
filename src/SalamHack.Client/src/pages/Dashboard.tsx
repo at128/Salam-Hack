@@ -431,16 +431,16 @@ export default function Dashboard() {
         </div>
       )}
 
-      <section className="grid gap-4 xl:grid-cols-[1.95fr_1fr]">
-        <div className="rounded-2xl border border-border/70 bg-card p-5 shadow-card">
-          <div className="mb-5 flex items-start justify-between gap-4">
-            <div className="text-right">
+      <section className="grid min-w-0 gap-4 xl:grid-cols-[1.95fr_1fr]">
+        <div className="min-w-0 rounded-2xl border border-border/70 bg-card p-4 shadow-card sm:p-5">
+          <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0 text-right">
               <p className="mb-1 text-xs font-semibold text-teal">الصفحات الأساسية</p>
-              <h2 className="text-2xl font-extrabold tracking-normal text-navy">إدارة الشغل من مكان واحد</h2>
+              <h2 className="text-xl font-extrabold leading-tight tracking-normal text-navy sm:text-2xl">إدارة الشغل من مكان واحد</h2>
             </div>
             <Link
               to="/dashboard/client-risk"
-              className="inline-flex shrink-0 items-center gap-2 rounded-xl border border-border/70 bg-background px-3 py-2 text-sm font-semibold text-navy transition-colors hover:bg-muted/60"
+              className="inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-xl border border-border/70 bg-background px-3 py-2 text-sm font-semibold text-navy transition-colors hover:bg-muted/60 sm:w-auto"
             >
               <Shield className="h-4 w-4" />
               تحليل عميل
@@ -488,7 +488,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <aside className="rounded-2xl border border-border/70 bg-card p-5 shadow-card">
+        <aside className="min-w-0 rounded-2xl border border-border/70 bg-card p-4 shadow-card sm:p-5">
           <div className="mb-5 text-right">
             <h2 className="text-xl font-extrabold text-navy">الأولوية الآن</h2>
             <p className="mt-1 text-xs text-muted-foreground">مختصر عملي بدل التنقل بين تقارير كثيرة.</p>
@@ -523,10 +523,10 @@ export default function Dashboard() {
         ))}
       </section>
 
-      <section className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2 rounded-2xl border border-border/70 bg-card p-5 shadow-card">
-          <div className="mb-4 flex items-center justify-between">
-            <div>
+      <section className="grid min-w-0 gap-6 lg:grid-cols-3">
+        <div className="min-w-0 rounded-2xl border border-border/70 bg-card p-4 shadow-card sm:p-5 lg:col-span-2">
+          <div className="mb-4 flex items-start justify-between gap-3">
+            <div className="min-w-0 text-right">
               <h2 className="text-lg font-bold text-navy">قرارات هذا الشهر</h2>
               <p className="text-xs text-muted-foreground">تنبيهات مبنية على صحة المشاريع والمصاريف.</p>
             </div>
@@ -559,7 +559,7 @@ export default function Dashboard() {
           )}
         </div>
 
-        <div className="rounded-2xl border border-border/70 bg-card p-5 shadow-card">
+        <div className="min-w-0 rounded-2xl border border-border/70 bg-card p-4 shadow-card sm:p-5">
           <h2 className="mb-4 text-lg font-bold text-navy">مشروع يحتاج انتباه</h2>
           {isLoadingStats ? (
             <div className="rounded-xl bg-muted/50 p-6 text-sm text-muted-foreground">جاري تحميل المشروع...</div>
@@ -588,7 +588,7 @@ export default function Dashboard() {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-border/70 bg-card p-5 shadow-card">
+      <section className="min-w-0 rounded-2xl border border-border/70 bg-card p-4 shadow-card sm:p-5">
         <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h2 className="text-lg font-bold text-navy">صحة المشاريع</h2>
@@ -605,8 +605,8 @@ export default function Dashboard() {
         {isLoadingStats ? (
           <div className="rounded-xl bg-muted/50 p-6 text-sm text-muted-foreground">جاري تحميل المشاريع...</div>
         ) : projects.length > 0 ? (
-          <div className="overflow-hidden rounded-xl border border-border/70">
-            <table className="w-full text-right text-sm">
+          <div className="overflow-x-auto rounded-xl border border-border/70">
+            <table className="w-full min-w-[760px] text-right text-sm">
               <thead className="bg-muted/50 text-xs text-muted-foreground">
                 <tr>
                   <th className="px-4 py-3 font-semibold">المشروع</th>

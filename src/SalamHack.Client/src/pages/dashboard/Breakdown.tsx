@@ -66,10 +66,10 @@ export default function BreakdownPage() {
       />
 
       {/* Filters */}
-      <div className="flex items-center gap-4 mb-6 bg-card rounded-xl p-4 border border-border/70">
-        <CalendarDays className="w-5 h-5 text-muted-foreground" />
+      <div className="mb-6 flex flex-col gap-3 rounded-xl border border-border/70 bg-card p-4 sm:flex-row sm:items-center sm:gap-4">
+        <CalendarDays className="h-5 w-5 text-muted-foreground" />
         <Select value={dateRange} onValueChange={handleDateRangeChange}>
-          <SelectTrigger className="w-[150px]">
+          <SelectTrigger className="w-full sm:w-[150px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -82,12 +82,12 @@ export default function BreakdownPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 mb-8 border-b border-border/70">
+      <div className="mb-8 flex gap-2 overflow-x-auto border-b border-border/70">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`px-4 py-3 font-medium transition-colors relative ${
+            className={`relative shrink-0 px-4 py-3 font-medium transition-colors ${
               activeTab === tab.id
                 ? "text-brand"
                 : "text-muted-foreground hover:text-foreground"

@@ -6,6 +6,8 @@ public interface IIdentityService
 {
     Task<bool> IsEmailUniqueAsync(string email, CancellationToken ct = default);
 
+    Task<bool?> GetEmailConfirmedStatusAsync(string email, CancellationToken ct = default);
+
     Task<Result<UserAuthResult>> RegisterUserAsync(
         string email, string password, string firstName, string lastName,
         string? phoneNumber, CancellationToken ct = default);

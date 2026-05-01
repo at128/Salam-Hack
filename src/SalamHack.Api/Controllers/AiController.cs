@@ -1,4 +1,3 @@
-using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
@@ -19,10 +18,8 @@ public sealed class AiController(
     IConfiguration configuration,
     ILogger<AiController> logger) : ApiController
 {
-    private const string OpenRouterApiUrl = "https://openrouter.ai/api/v1/chat/completions";
-    private const string OpenRouterModel = "openai/gpt-4o-mini";
-    private const string SiteUrl = "https://salamhack.com";
-    private const string SiteTitle = "SalamHack";
+    private const string GeminiApiBaseUrl = "https://generativelanguage.googleapis.com/v1beta/models";
+    private const string DefaultGeminiModel = "gemini-1.5-flash";
     private static readonly TimeSpan RequestTimeout = TimeSpan.FromSeconds(60);
 
     [HttpPost("profit")]
@@ -35,9 +32,9 @@ public sealed class AiController(
         if (!TryGetUserId(out var userId))
             return UnauthorizedResponse();
 
-        var apiKey = configuration["OpenRouter:ApiKey"];
+        var apiKey = configuration["Gemini:ApiKey"];
         if (string.IsNullOrWhiteSpace(apiKey))
-            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "OpenRouter API key is not configured." });
+            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Gemini API key is not configured." });
 
         var dashboardResult = await sender.Send(new GetDashboardSummaryQuery(userId, null, 8), ct);
         if (dashboardResult.IsError)
@@ -52,33 +49,41 @@ public sealed class AiController(
             return Problem(projectAnalysisResult.Errors);
 
         var prompt = BuildPrompt(dashboardResult.Value, paymentsResult.Value, projectAnalysisResult.Value);
-        var openRouterResult = await RequestOpenRouterAsync(prompt, apiKey, ct);
-        if (!openRouterResult.Success)
+        var model = configuration["Gemini:Model"] ?? DefaultGeminiModel;
+        var geminiResult = await RequestGeminiAsync(prompt, apiKey, model, forceJson: true, ct);
+        if (!geminiResult.Success)
         {
             return StatusCode(StatusCodes.Status502BadGateway, new
             {
-                message = openRouterResult.Message,
-                upstreamStatusCode = openRouterResult.StatusCode,
-                upstreamError = openRouterResult.UpstreamError,
-                model = OpenRouterModel
+                message = geminiResult.Message,
+                upstreamStatusCode = geminiResult.StatusCode,
+                upstreamError = geminiResult.UpstreamError,
+                model
             });
         }
 
-        return OkResponse(new ProfitAiAnalysisResponse(openRouterResult.Content!, DateTimeOffset.UtcNow));
+        return OkResponse(new ProfitAiAnalysisResponse(geminiResult.Content!, DateTimeOffset.UtcNow));
     }
 
-    private async Task<OpenRouterAnalysisResult> RequestOpenRouterAsync(string prompt, string apiKey, CancellationToken ct)
+    private async Task<GeminiAnalysisResult> RequestGeminiAsync(string prompt, string apiKey, string model, bool forceJson, CancellationToken ct)
     {
-        using var httpRequest = new HttpRequestMessage(HttpMethod.Post, OpenRouterApiUrl);
-        httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
-        httpRequest.Headers.Add("HTTP-Referer", SiteUrl);
-        httpRequest.Headers.Add("X-Title", SiteTitle);
+        var requestUrl = $"{GeminiApiBaseUrl}/{model}:generateContent?key={Uri.EscapeDataString(apiKey)}";
+        using var httpRequest = new HttpRequestMessage(HttpMethod.Post, requestUrl);
         httpRequest.Content = JsonContent.Create(new
         {
-            model = OpenRouterModel,
-            messages = new[] { new { role = "user", content = prompt } },
-            temperature = 0.2,
-            response_format = new { type = "json_object" }
+            contents = new[]
+            {
+                new
+                {
+                    role = "user",
+                    parts = new[] { new { text = prompt } }
+                }
+            },
+            generationConfig = new
+            {
+                temperature = 0.2,
+                responseMimeType = forceJson ? "application/json" : null
+            }
         });
 
         HttpResponseMessage response;
@@ -93,13 +98,13 @@ public sealed class AiController(
         }
         catch (HttpRequestException ex)
         {
-            logger.LogError(ex, "OpenRouter request failed before receiving a response.");
-            return OpenRouterAnalysisResult.Failure("Could not connect to OpenRouter API.", upstreamError: ex.Message);
+            logger.LogError(ex, "Gemini request failed before receiving a response.");
+            return GeminiAnalysisResult.Failure("Could not connect to Gemini API.", upstreamError: ex.Message);
         }
         catch (TaskCanceledException ex) when (!ct.IsCancellationRequested)
         {
-            logger.LogError(ex, "OpenRouter request timed out.");
-            return OpenRouterAnalysisResult.Failure("OpenRouter API request timed out.", statusCode: StatusCodes.Status504GatewayTimeout, upstreamError: ex.Message);
+            logger.LogError(ex, "Gemini request timed out.");
+            return GeminiAnalysisResult.Failure("Gemini API request timed out.", statusCode: StatusCodes.Status504GatewayTimeout, upstreamError: ex.Message);
         }
 
         using (response)
@@ -107,14 +112,14 @@ public sealed class AiController(
             if (!response.IsSuccessStatusCode)
             {
                 logger.LogWarning(
-                    "OpenRouter returned non-success status {StatusCode}: {Body}",
+                    "Gemini returned non-success status {StatusCode}: {Body}",
                     (int)response.StatusCode,
                     body);
 
-                return OpenRouterAnalysisResult.Failure(
-                    "OpenRouter API request failed.",
+                return GeminiAnalysisResult.Failure(
+                    "Gemini API request failed.",
                     (int)response.StatusCode,
-                    ExtractOpenRouterError(body) ?? TrimForGateway(body));
+                    ExtractGeminiError(body) ?? TrimForGateway(body));
             }
         }
 
@@ -122,24 +127,24 @@ public sealed class AiController(
         {
             using var document = JsonDocument.Parse(body);
             if (TryGetContent(document.RootElement, out var content))
-                return OpenRouterAnalysisResult.Ok(content);
+                return GeminiAnalysisResult.Ok(content);
 
             var finishReason = TryGetFinishReason(document.RootElement);
-            var upstreamError = ExtractOpenRouterError(document.RootElement)
+            var upstreamError = ExtractGeminiError(document.RootElement)
                 ?? (finishReason is null ? null : $"finish_reason: {finishReason}")
                 ?? TrimForGateway(body);
 
-            logger.LogWarning("OpenRouter returned a successful response without message content: {Body}", body);
-            return OpenRouterAnalysisResult.Failure(
-                "OpenRouter returned a successful response, but no analysis text was found.",
+            logger.LogWarning("Gemini returned a successful response without message content: {Body}", body);
+            return GeminiAnalysisResult.Failure(
+                "Gemini returned a successful response, but no analysis text was found.",
                 (int)response.StatusCode,
                 upstreamError);
         }
         catch (JsonException ex)
         {
-            logger.LogError(ex, "OpenRouter returned invalid JSON: {Body}", body);
-            return OpenRouterAnalysisResult.Failure(
-                "OpenRouter API returned an invalid JSON response.",
+            logger.LogError(ex, "Gemini returned invalid JSON: {Body}", body);
+            return GeminiAnalysisResult.Failure(
+                "Gemini API returned an invalid JSON response.",
                 (int)response.StatusCode,
                 TrimForGateway(body));
         }
@@ -155,7 +160,7 @@ public sealed class AiController(
         });
 
         var builder = new StringBuilder();
-        builder.AppendLine("أنت محلل أرباح ذكي داخل منصة SalamHack للمستقلين.");
+        builder.AppendLine("أنت محلل أرباح ذكي داخل منصة مالي للمستقلين.");
         builder.AppendLine("حلل البيانات الفعلية التالية وكأن صاحب الحساب مستقل يدير خدمات ومشاريع وفواتير، وليس شركة.");
         builder.AppendLine("أرجع الرد باللغة العربية فقط وبصياغة موجهة للمستقل مباشرة.");
         builder.AppendLine("استخدم عبارات مثل: عملك المستقل، دخلك، مشاريعك، عملاؤك، فواتيرك. لا تستخدم كلمة الشركة أو المنشأة أو المؤسسة.");
@@ -188,14 +193,13 @@ public sealed class AiController(
     {
         content = string.Empty;
 
-        if (!root.TryGetProperty("choices", out var choices) ||
-            choices.ValueKind != JsonValueKind.Array ||
-            choices.GetArrayLength() == 0)
+        if (!root.TryGetProperty("candidates", out var candidates) ||
+            candidates.ValueKind != JsonValueKind.Array ||
+            candidates.GetArrayLength() == 0)
             return false;
 
-        var firstChoice = choices[0];
-        if (!firstChoice.TryGetProperty("message", out var message) ||
-            !message.TryGetProperty("content", out var contentElement))
+        var firstCandidate = candidates[0];
+        if (!firstCandidate.TryGetProperty("content", out var contentElement))
             return false;
 
         content = ReadContent(contentElement);
@@ -204,21 +208,14 @@ public sealed class AiController(
 
     private static string ReadContent(JsonElement contentElement)
     {
-        if (contentElement.ValueKind == JsonValueKind.String)
-            return contentElement.GetString() ?? string.Empty;
-
-        if (contentElement.ValueKind != JsonValueKind.Array)
+        if (contentElement.ValueKind != JsonValueKind.Object ||
+            !contentElement.TryGetProperty("parts", out var parts) ||
+            parts.ValueKind != JsonValueKind.Array)
             return string.Empty;
 
         var builder = new StringBuilder();
-        foreach (var item in contentElement.EnumerateArray())
+        foreach (var item in parts.EnumerateArray())
         {
-            if (item.ValueKind == JsonValueKind.String)
-            {
-                builder.Append(item.GetString());
-                continue;
-            }
-
             if (item.ValueKind == JsonValueKind.Object &&
                 item.TryGetProperty("text", out var textElement) &&
                 textElement.ValueKind == JsonValueKind.String)
@@ -230,12 +227,12 @@ public sealed class AiController(
         return builder.ToString();
     }
 
-    private static string? ExtractOpenRouterError(string body)
+    private static string? ExtractGeminiError(string body)
     {
         try
         {
             using var document = JsonDocument.Parse(body);
-            return ExtractOpenRouterError(document.RootElement);
+            return ExtractGeminiError(document.RootElement);
         }
         catch (JsonException)
         {
@@ -243,7 +240,7 @@ public sealed class AiController(
         }
     }
 
-    private static string? ExtractOpenRouterError(JsonElement root)
+    private static string? ExtractGeminiError(JsonElement root)
     {
         if (!root.TryGetProperty("error", out var error))
             return null;
@@ -256,8 +253,8 @@ public sealed class AiController(
             if (error.TryGetProperty("message", out var message) && message.ValueKind == JsonValueKind.String)
                 return message.GetString();
 
-            if (error.TryGetProperty("code", out var code) && code.ValueKind == JsonValueKind.String)
-                return code.GetString();
+            if (error.TryGetProperty("code", out var code))
+                return code.ToString();
         }
 
         return null;
@@ -265,13 +262,13 @@ public sealed class AiController(
 
     private static string? TryGetFinishReason(JsonElement root)
     {
-        if (!root.TryGetProperty("choices", out var choices) ||
-            choices.ValueKind != JsonValueKind.Array ||
-            choices.GetArrayLength() == 0)
+        if (!root.TryGetProperty("candidates", out var candidates) ||
+            candidates.ValueKind != JsonValueKind.Array ||
+            candidates.GetArrayLength() == 0)
             return null;
 
-        var firstChoice = choices[0];
-        return firstChoice.TryGetProperty("finish_reason", out var finishReason) && finishReason.ValueKind == JsonValueKind.String
+        var firstCandidate = candidates[0];
+        return firstCandidate.TryGetProperty("finishReason", out var finishReason) && finishReason.ValueKind == JsonValueKind.String
             ? finishReason.GetString()
             : null;
     }
@@ -288,16 +285,16 @@ public sealed class AiController(
 
 public sealed record ProfitAiAnalysisResponse(string Content, DateTimeOffset GeneratedAt);
 
-sealed record OpenRouterAnalysisResult(
+sealed record GeminiAnalysisResult(
     bool Success,
     string? Content,
     string Message,
     int? StatusCode = null,
     string? UpstreamError = null)
 {
-    public static OpenRouterAnalysisResult Ok(string content) =>
-        new(true, content, "OpenRouter analysis completed.");
+    public static GeminiAnalysisResult Ok(string content) =>
+        new(true, content, "Gemini analysis completed.");
 
-    public static OpenRouterAnalysisResult Failure(string message, int? statusCode = null, string? upstreamError = null) =>
+    public static GeminiAnalysisResult Failure(string message, int? statusCode = null, string? upstreamError = null) =>
         new(false, null, message, statusCode, upstreamError);
 }

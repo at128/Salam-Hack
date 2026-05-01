@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { ArrowLeft, Check, Eye, EyeOff, Loader2, Lock, Mail, Phone, User } from "lucide-react";
 import AuthLayout from "@/components/auth/AuthLayout";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,9 @@ export type RegisterForm = {
 };
 
 type ValidationErrors = Partial<Record<keyof RegisterForm | "general", string[]>>;
+type RegisterLocationState = {
+  registrationData?: Partial<RegisterForm>;
+};
 
 type ApiErrorItem = {
   code?: string | null;
@@ -31,6 +34,9 @@ type ApiErrorItem = {
 };
 
 const REGISTER_FIELDS = ["firstName", "lastName", "email", "phoneNumber", "password"] as const;
+
+const PHONE_DIGIT_MIN_LENGTH = 8;
+const PHONE_DIGIT_MAX_LENGTH = 15;
 
 function toRegisterField(key: string): keyof RegisterForm | "general" {
   const normalized = key.charAt(0).toLowerCase() + key.slice(1);
@@ -96,17 +102,46 @@ function ErrorText({ messages }: { messages?: string[] }) {
   return <p className="text-xs leading-relaxed text-danger">{messages[0]}</p>;
 }
 
+function normalizePhoneNumber(value: string) {
+  const arabicIndicDigits = "٠١٢٣٤٥٦٧٨٩";
+  const easternArabicDigits = "۰۱۲۳۴۵۶۷۸۹";
+
+  return value
+    .trim()
+    .replace(/[٠-٩]/g, (digit) => String(arabicIndicDigits.indexOf(digit)))
+    .replace(/[۰-۹]/g, (digit) => String(easternArabicDigits.indexOf(digit)))
+    .replace(/[\s().-]/g, "");
+}
+
+function validatePhoneNumber(value: string): string | null {
+  const phone = normalizePhoneNumber(value);
+  if (!phone) return "رقم الهاتف مطلوب.";
+
+  if (!/^\+?\d+$/.test(phone)) {
+    return "رقم الهاتف يجب أن يحتوي على أرقام فقط مع إمكانية استخدام + في البداية.";
+  }
+
+  const digitCount = phone.replace(/\D/g, "").length;
+  if (digitCount < PHONE_DIGIT_MIN_LENGTH || digitCount > PHONE_DIGIT_MAX_LENGTH) {
+    return `رقم الهاتف يجب أن يكون بين ${PHONE_DIGIT_MIN_LENGTH} و${PHONE_DIGIT_MAX_LENGTH} رقمًا.`;
+  }
+
+  return null;
+}
+
 export default function Register() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const registrationData = (location.state as RegisterLocationState | null)?.registrationData;
   const [showPwd, setShowPwd] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<ValidationErrors>({});
   const [form, setForm] = useState<RegisterForm>({
-    firstName: "",
-    lastName: "",
-    email: "",
-    phoneNumber: "",
-    password: "",
+    firstName: registrationData?.firstName ?? "",
+    lastName: registrationData?.lastName ?? "",
+    email: registrationData?.email ?? "",
+    phoneNumber: registrationData?.phoneNumber ?? "",
+    password: registrationData?.password ?? "",
   });
 
   const setField = (field: keyof RegisterForm) => (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -116,8 +151,16 @@ export default function Register() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
     setErrors({});
+
+    const normalizedPhoneNumber = normalizePhoneNumber(form.phoneNumber);
+    const phoneError = validatePhoneNumber(form.phoneNumber);
+    if (phoneError) {
+      setErrors({ phoneNumber: [phoneError] });
+      return;
+    }
+
+    setIsSubmitting(true);
 
     try {
       const registrationData = {
@@ -125,7 +168,7 @@ export default function Register() {
         password: form.password,
         firstName: form.firstName.trim(),
         lastName: form.lastName.trim(),
-        phoneNumber: form.phoneNumber.trim(),
+        phoneNumber: normalizedPhoneNumber,
       };
 
       const response = await fetch(REGISTER_API_URL, {
@@ -254,8 +297,10 @@ export default function Register() {
               type="tel"
               value={form.phoneNumber}
               onChange={setField("phoneNumber")}
-              placeholder="+123456789"
+              placeholder="+966501234567"
               required
+              inputMode="tel"
+              aria-invalid={Boolean(errors.phoneNumber)}
               className="h-10 rounded-xl border-border/70 bg-card pr-10"
             />
           </div>

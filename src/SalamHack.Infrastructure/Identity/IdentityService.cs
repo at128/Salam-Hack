@@ -16,6 +16,13 @@ public class IdentityService(
         return existing is null;
     }
 
+    public async Task<bool?> GetEmailConfirmedStatusAsync(
+        string email, CancellationToken ct = default)
+    {
+        var existing = await userManager.FindByEmailAsync(email);
+        return existing?.EmailConfirmed;
+    }
+
     public async Task<Result<UserAuthResult>> RegisterUserAsync(
     string email,
     string password,
@@ -24,6 +31,56 @@ public class IdentityService(
     string? phoneNumber,
     CancellationToken ct = default)
     {
+        var existingUser = await userManager.FindByEmailAsync(email);
+        if (existingUser is not null)
+        {
+            if (existingUser.EmailConfirmed)
+                return ApplicationErrors.Auth.EmailAlreadyRegistered;
+
+            existingUser.UserName = email.Trim();
+            existingUser.Email = email.Trim();
+            existingUser.FirstName = firstName;
+            existingUser.LastName = lastName;
+            existingUser.PhoneNumber = NormalizeOptional(phoneNumber);
+            existingUser.EmailConfirmed = true;
+            existingUser.UpdatedAtUtc = DateTimeOffset.UtcNow;
+
+            var token = await userManager.GeneratePasswordResetTokenAsync(existingUser);
+            var resetResult = await userManager.ResetPasswordAsync(existingUser, token, password);
+            if (!resetResult.Succeeded)
+            {
+                var resetErrors = string.Join(", ", resetResult.Errors.Select(e => e.Description));
+                return ApplicationErrors.Auth.RegistrationFailed(resetErrors);
+            }
+
+            var updateResult = await userManager.UpdateAsync(existingUser);
+            if (!updateResult.Succeeded)
+            {
+                var updateErrors = string.Join(", ", updateResult.Errors.Select(e => e.Description));
+                return ApplicationErrors.Auth.RegistrationFailed(updateErrors);
+            }
+
+            if (!await userManager.IsInRoleAsync(existingUser, ApplicationConstants.Roles.User))
+            {
+                var existingRoleResult = await userManager.AddToRoleAsync(existingUser, ApplicationConstants.Roles.User);
+                if (!existingRoleResult.Succeeded)
+                {
+                    var roleErrors = string.Join(", ", existingRoleResult.Errors.Select(e => e.Description));
+                    return ApplicationErrors.Auth.RegistrationFailed(
+                        $"User updated but role assignment failed: {roleErrors}");
+                }
+            }
+
+            var existingRoles = await userManager.GetRolesAsync(existingUser);
+            return new UserAuthResult(
+                existingUser.Id,
+                existingUser.Email!,
+                existingUser.FirstName,
+                existingUser.LastName,
+                existingRoles,
+                existingUser.CreatedAtUtc);
+        }
+
         var user = new ApplicationUser
         {
             Id = Guid.CreateVersion7(),
@@ -32,6 +89,7 @@ public class IdentityService(
             FirstName = firstName,
             LastName = lastName,
             PhoneNumber = phoneNumber,
+            EmailConfirmed = true,
             CreatedAtUtc = DateTimeOffset.UtcNow
         };
 

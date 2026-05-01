@@ -365,7 +365,7 @@ export default function PaymentsPage() {
     <>
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <PageHeader title="المدفوعات" desc="متابعة التحصيل، الدفعات المسجلة، والفواتير المتأخرة." />
-        <Button onClick={() => openPaymentDialog()} className="rounded-xl bg-teal font-bold text-white hover:bg-teal/90">
+        <Button onClick={() => openPaymentDialog()} className="w-full rounded-xl bg-teal font-bold text-white hover:bg-teal/90 sm:w-auto">
           <Plus className="ml-2 h-4 w-4" />
           تسجيل دفعة
         </Button>
@@ -381,7 +381,7 @@ export default function PaymentsPage() {
         </div>
       )}
 
-      <section className="grid gap-4 md:grid-cols-4">
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <SummaryCard icon={Wallet} label="إجمالي المفوتر" value={formatCurrency(summary?.totalInvoiced)} />
         <SummaryCard icon={Banknote} label="المحصل" value={formatCurrency(summary?.totalCollected)} />
         <SummaryCard icon={CalendarDays} label="المتبقي" value={formatCurrency(summary?.totalOutstanding)} />
@@ -389,7 +389,7 @@ export default function PaymentsPage() {
       </section>
 
       <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
-        <div className="rounded-2xl border border-border/70 bg-card p-5 shadow-card">
+        <div className="min-w-0 rounded-2xl border border-border/70 bg-card p-4 shadow-card sm:p-5">
           <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <h3 className="font-bold text-navy">سجل المدفوعات</h3>
@@ -402,7 +402,7 @@ export default function PaymentsPage() {
             </Button>
           </div>
 
-          <div className="mb-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_180px_150px_150px]">
+          <div className="mb-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_180px_150px_150px]">
             <div className="relative">
               <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
@@ -445,8 +445,8 @@ export default function PaymentsPage() {
             </div>
           ) : filteredPayments.length ? (
             <>
-              <div className="overflow-hidden rounded-xl border border-border/70">
-                <table className="w-full text-right text-sm">
+              <div className="overflow-x-auto rounded-xl border border-border/70">
+                <table className="w-full min-w-[820px] text-right text-sm">
                   <thead className="bg-muted/50 text-xs text-muted-foreground">
                     <tr>
                       <th className="px-4 py-3 font-semibold">الفاتورة</th>

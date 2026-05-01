@@ -302,17 +302,15 @@ export default function DashboardLayout({
     <div className="min-h-screen bg-background">
       <Sidebar user={user} onLogout={handleLogout} />
 
-      <div className="lg:pr-60">
+      <div className="min-w-0 lg:pr-60">
         <header className="sticky top-0 z-30 border-b border-border/60 bg-background/85 backdrop-blur">
-          <div className="grid h-16 grid-cols-3 items-center px-6">
-            <div>
-              <h1 className="text-lg font-bold text-navy">{headerTitle}</h1>
-              <p className="text-xs text-muted-foreground">{subtitle}</p>
+          <div className="flex min-h-16 items-center justify-between gap-3 px-4 py-3 sm:px-6">
+            <div className="min-w-0 text-right">
+              <h1 className="truncate text-base font-bold text-navy sm:text-lg">{headerTitle}</h1>
+              <p className="truncate text-xs text-muted-foreground">{subtitle}</p>
             </div>
 
-            <div />
-
-            <div className="flex justify-end gap-2">
+            <div className="flex shrink-0 justify-end gap-2">
               <DropdownMenu dir="rtl">
                 <DropdownMenuTrigger asChild>
                   <button
@@ -363,11 +361,11 @@ export default function DashboardLayout({
           </div>
         </header>
 
-        <main className="space-y-6 p-6 pb-24 lg:pb-6">
+        <main className="min-w-0 space-y-5 p-4 pb-24 sm:space-y-6 sm:p-6 lg:pb-6">
           <Outlet />
         </main>
 
-        <nav className="fixed inset-x-3 bottom-3 z-40 grid grid-cols-5 rounded-2xl border border-border/70 bg-card/95 p-1 shadow-elevated backdrop-blur lg:hidden" dir="rtl">
+        <nav className="fixed inset-x-2 bottom-2 z-40 grid grid-cols-5 rounded-2xl border border-border/70 bg-card/95 p-1 shadow-elevated backdrop-blur sm:inset-x-3 sm:bottom-3 lg:hidden" dir="rtl">
           {mobileNavItems.map((item) => {
             const Icon = item.icon;
             return (
@@ -376,13 +374,13 @@ export default function DashboardLayout({
                 to={item.href}
                 end={item.href === "/dashboard"}
                 className={({ isActive }) =>
-                  `flex flex-col items-center justify-center gap-1 rounded-xl px-1 py-2 text-[11px] font-semibold transition-colors ${
+                  `flex min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 py-2 text-[10px] font-semibold transition-colors sm:text-[11px] ${
                     isActive ? "bg-navy text-white" : "text-muted-foreground hover:bg-muted/50 hover:text-navy"
                   }`
                 }
               >
                 <Icon className="h-4 w-4" />
-                <span>{item.label}</span>
+                <span className="max-w-full truncate">{item.label}</span>
               </NavLink>
             );
           })}
@@ -533,9 +531,9 @@ export default function DashboardLayout({
 
 export function PageHeader({ title, desc }: { title: string; desc?: string }) {
   return (
-    <div className="mb-2">
-      <h2 className="text-2xl font-bold text-navy">{title}</h2>
-      {desc && <p className="mt-1 text-sm text-muted-foreground">{desc}</p>}
+    <div className="mb-2 min-w-0 text-right">
+      <h2 className="text-xl font-bold leading-tight text-navy sm:text-2xl">{title}</h2>
+      {desc && <p className="mt-1 max-w-3xl text-sm leading-relaxed text-muted-foreground">{desc}</p>}
     </div>
   );
 }

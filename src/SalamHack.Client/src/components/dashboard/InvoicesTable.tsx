@@ -1193,8 +1193,8 @@ export default function InvoicesTable() {
           </div>
         ) : invoices?.items?.length ? (
           <>
-            <div className="rounded-xl border border-border/70 overflow-hidden">
-              <table className="w-full table-fixed text-right text-sm">
+            <div className="overflow-x-auto rounded-xl border border-border/70">
+              <table className="w-full min-w-[1040px] table-fixed text-right text-sm">
                 <colgroup>
                   <col className="w-[11%]" />
                   <col className="w-[13%]" />
