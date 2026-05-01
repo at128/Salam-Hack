@@ -191,7 +191,7 @@ export default function ExpensesPage() {
       const res = await apiRequest<PaginatedList<ExpenseListItem>>(EXPENSES_API_URL);
       setExpenses(res);
     } catch (e) {
-      setError(getApiErrorMessage(e));
+      setError(getApiErrorMessage(e, "تعذر تحميل المصروفات."));
     }
   };
 
@@ -217,7 +217,7 @@ export default function ExpensesPage() {
       setIsDialogOpen(false);
       loadExpenses();
     } catch (e) {
-      setError(getApiErrorMessage(e));
+      setError(getApiErrorMessage(e, "تعذر حفظ المصروف."));
     } finally {
       setIsSaving(false);
     }

@@ -6,15 +6,19 @@ import {
   ClipboardList,
   FilePlus2,
   FileText,
+  FolderKanban,
   FolderPlus,
   Lightbulb,
   Percent,
   Plus,
   ReceiptText,
   Shield,
+  ShieldAlert,
   ShieldCheck,
   Siren,
+  Sparkles,
   UserPlus,
+  Users,
   type LucideIcon,
 } from "lucide-react";
 import { getApiErrorMessage, getValidAccessToken, unwrapApiResponse } from "@/lib/auth";
@@ -69,7 +73,7 @@ type ActionLink = {
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/+$/, "");
 const ANALYSIS_DASHBOARD_URL = `${API_BASE_URL}/api/v1/analysis/dashboard`;
 
-const quickActions: ActionLink[] = [
+const legacyQuickActions = [
   {
     title: "مشروع جديد",
     desc: "ابدأ من السعر والعميل والخدمة",

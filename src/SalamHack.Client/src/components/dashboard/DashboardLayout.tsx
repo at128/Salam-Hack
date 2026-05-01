@@ -1,6 +1,20 @@
 import { useEffect, useState } from "react";
-import { Bell, ChevronDown, KeyRound, Loader2, LogOut, Plus, Trash2, UserRound } from "lucide-react";
-import { Outlet, useNavigate } from "react-router-dom";
+import {
+  Bell,
+  ChevronDown,
+  FileText,
+  FolderKanban,
+  KeyRound,
+  LayoutDashboard,
+  Loader2,
+  LogOut,
+  Plus,
+  ReceiptText,
+  Trash2,
+  UserRound,
+  Users,
+} from "lucide-react";
+import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import Sidebar from "@/components/dashboard/Sidebar";
 import { Button } from "@/components/ui/button";
 import {
