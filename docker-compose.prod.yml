@@ -70,6 +70,12 @@ services:
       OpenTelemetry__ServiceName: "SalamHack.Api"
       OpenTelemetry__ServiceVersion: "1.0.0"
       OpenTelemetry__OtlpEndpoint: "http://otel-collector:4317"
+      MailSettings__Host: "${MAIL_HOST}"
+      MailSettings__Port: "${MAIL_PORT}"
+      MailSettings__User: "${MAIL_USER}"
+      MailSettings__Password: "${MAIL_PASSWORD}"
+      MailSettings__FromEmail: "${MAIL_FROM_ADDRESS}"
+      MailSettings__FromName: "${MAIL_FROM_NAME}"
     expose:
       - "8080"
     volumes:
