@@ -68,6 +68,12 @@ jobs:
           -e JWT__Secret=SmokeTestSecretKey1234567890123456 \
           -e JWT__Issuer=smoke -e JWT__Audience=smoke \
           -e ConnectionStrings__DefaultConnection="Server=tcp:127.0.0.1,1;Database=Smoke;User Id=sa;Password=Smoke;Encrypt=False;TrustServerCertificate=True;" \
+          -e MailSettings__Host=smtp.resend.com \
+          -e MailSettings__Port=587 \
+          -e MailSettings__User=smoke \
+          -e MailSettings__Password=smoke \
+          -e MailSettings__FromEmail=noreply@smoke.com \
+          -e MailSettings__FromName=SmokeTest \
           -p 5010:8080 \
           "$API_IMAGE"
 
